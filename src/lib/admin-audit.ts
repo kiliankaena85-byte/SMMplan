@@ -85,10 +85,12 @@ export function auditAdmin(params: {
   oldValue?: unknown;
   newValue?: unknown;
   ipAddress?: string;
+  tenantId?: string;
 }) {
   // Fire-and-forget: does not block the main operation
   void db.adminAuditLog.create({
     data: {
+      tenantId: params.tenantId || 'smmplan',
       adminId: params.adminId,
       adminEmail: params.adminEmail,
       action: params.action,
@@ -117,11 +119,13 @@ export async function auditAdminAwaitable(params: {
   oldValue?: unknown;
   newValue?: unknown;
   ipAddress?: string;
+  tenantId?: string;
   tx?: any;
 }) {
   const client = params.tx || db;
   return client.adminAuditLog.create({
     data: {
+      tenantId: params.tenantId || 'smmplan',
       adminId: params.adminId,
       adminEmail: params.adminEmail,
       action: params.action,

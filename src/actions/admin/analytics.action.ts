@@ -12,13 +12,17 @@ export async function getFunnelAnalyticsAction(days: number) {
     const { SettingsProvider } = await import('@/lib/settings')
     const tenantId = await SettingsProvider.getTenantId()
 
+    // Real-time sync: Flush any pending clickstream events in Redis buffer in background
+    import('@/services/analytics/analytics-buffer.service')
+      .then(({ AnalyticsBufferService }) => AnalyticsBufferService.flush(2000))
+      .catch(() => {});
+
     const [
       linkPasted,
       serviceSelected,
       checkoutInitiated,
       paymentClicked,
       serviceProfitability,
-      categoryProfitability,
       ltv
     ] = await Promise.all([
       db.analyticsEvent.count({
@@ -46,9 +50,10 @@ export async function getFunnelAnalyticsAction(days: number) {
         },
       }),
       analyticsService.getServiceProfitability(days, tenantId),
-      analyticsService.getCategoryProfitability(days, tenantId),
       analyticsService.getLTVAnalytics(tenantId),
     ]);
+
+    const categoryProfitability = analyticsService.aggregateCategoryProfitability(serviceProfitability);
 
     // Optional: Top 5 Services by Clicks (for funnel)
     const topServicesRaw = await db.$queryRaw<{ name: string; clicks: number }[]>`

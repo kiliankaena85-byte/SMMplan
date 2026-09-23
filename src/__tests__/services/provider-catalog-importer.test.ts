@@ -30,6 +30,8 @@ describe('Provider Catalog AI Importer & Taxonomy Engine', () => {
         'REPOSTS',
         'STORIES',
         'BOOSTS',
+        'BOTS',
+        'TRAFFIC',
         'STREAMS',
         'AUTO_SERVICES',
         'OTHER'

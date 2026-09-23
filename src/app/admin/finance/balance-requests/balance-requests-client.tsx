@@ -8,6 +8,8 @@ import React, { useState, useEffect, useCallback, useTransition } from "react";
 import { getBalanceAdjustmentsAction } from "@/actions/admin/balance-adjustments";
 import { BalanceAdjustmentDrawer, BalanceAdjustmentItem } from "@/components/admin/balance/BalanceAdjustmentDrawer";
 import { AdminBreadcrumbs } from "@/components/admin/AdminBreadcrumbs";
+import { AdminTabs } from "@/components/admin/tabbed-header-client";
+import { FINANCE_TABS } from "@/components/admin/navigation-data";
 import { PlanTable, PlanTableHeader, PlanTableHeadCell, PlanTableRow, PlanTableCell } from "@/components/ui/plan";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -134,7 +136,7 @@ export function BalanceRequestsClient({
         <div className="space-y-1">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-primary/10 text-primary border border-primary/20 rounded-2xl">
-              <Wallet className="w-6 h-6" />
+              <Wallet className="w-6 h-6 shrink-0" />
             </div>
             <div>
               <h1 className="text-2xl font-black text-foreground tracking-tight">Заявки на корректировку баланса</h1>
@@ -182,6 +184,9 @@ export function BalanceRequestsClient({
         </div>
       </div>
 
+      {/* Finance Horizontal Tabs */}
+      <AdminTabs tabs={FINANCE_TABS} />
+
       {/* Filters Bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-4 rounded-2xl border border-border/70 bg-card/60 backdrop-blur-md shadow-xs">
         <div className="flex flex-wrap items-center gap-3">
@@ -193,7 +198,7 @@ export function BalanceRequestsClient({
                 if (v) { setStatusFilter(v); setPage(1); } 
               }}
             >
-              <SelectTrigger className="w-[160px] h-9 text-xs" size="sm">
+              <SelectTrigger className="w-[160px] max-w-full h-9 text-xs" size="sm">
                 <SelectValue placeholder="Статус">
                   {(val: string) => STATUS_OPTIONS.find(s => s.value === val)?.label ?? val}
                 </SelectValue>
@@ -214,7 +219,7 @@ export function BalanceRequestsClient({
                 if (v) { setDirectionFilter(v); setPage(1); } 
               }}
             >
-              <SelectTrigger className="w-[150px] h-9 text-xs" size="sm">
+              <SelectTrigger className="w-[150px] max-w-full h-9 text-xs" size="sm">
                 <SelectValue placeholder="Тип">
                   {(val: string) => DIRECTION_OPTIONS.find(d => d.value === val)?.label ?? val}
                 </SelectValue>
@@ -247,16 +252,17 @@ export function BalanceRequestsClient({
 
       {/* PlanTable */}
       <div className="space-y-4">
+      <div className="overflow-x-auto">
         <PlanTable compact={true} className="w-full table-fixed">
           <PlanTableHeader>
             <tr>
-              <PlanTableHeadCell className="w-[105px]">ID / Дата</PlanTableHeadCell>
+              <PlanTableHeadCell className="w-[105px] max-w-full">ID / Дата</PlanTableHeadCell>
               <PlanTableHeadCell className="w-[20%] min-w-0">Клиент</PlanTableHeadCell>
               <PlanTableHeadCell className="w-[16%] min-w-0">Оператор</PlanTableHeadCell>
               <PlanTableHeadCell className="w-[24%] min-w-0">Тип / Причина</PlanTableHeadCell>
-              <PlanTableHeadCell className="w-[110px] text-right">Сумма</PlanTableHeadCell>
+              <PlanTableHeadCell className="w-[110px] max-w-full text-right">Сумма</PlanTableHeadCell>
               <PlanTableHeadCell className="w-[70px] text-center">Тикет</PlanTableHeadCell>
-              <PlanTableHeadCell className="w-[115px]">Статус</PlanTableHeadCell>
+              <PlanTableHeadCell className="w-[115px] max-w-full">Статус</PlanTableHeadCell>
               <PlanTableHeadCell className="w-[75px] text-right">Действия</PlanTableHeadCell>
             </tr>
           </PlanTableHeader>
@@ -321,11 +327,11 @@ export function BalanceRequestsClient({
                     <PlanTableCell className="min-w-0 overflow-hidden">
                       <div className="flex flex-col gap-0.5 min-w-0">
                         {item.reasonCode === 'REFUND_TO_CARD' ? (
-                          <span className="text-xs font-bold font-mono text-amber-600 dark:text-amber-400 flex items-center gap-1 truncate">
+                          <span className="text-xs font-bold font-mono text-amber-600 dark:text-amber-400 flex items-center gap-1 truncate min-w-0">
                             💳 ВОЗВРАТ НА КАРТУ
                           </span>
                         ) : (
-                          <span className={`text-xs font-bold font-mono truncate ${isCredit ? 'text-success' : 'text-destructive'}`}>
+                          <span className={`text-xs font-bold font-mono truncate min-w-0 ${isCredit ? 'text-success' : 'text-destructive'}`}>
                             {isCredit ? '+ CREDIT' : '- DEBIT'}
                           </span>
                         )}
@@ -376,6 +382,7 @@ export function BalanceRequestsClient({
             )}
           </tbody>
         </PlanTable>
+      </div>
 
         {/* Pagination */}
         {total > pageSize && (

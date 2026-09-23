@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { passwordLoginSchema } from '@/lib/validators/auth-schemas';
 
 describe('Auth Payload Hardening & Anti-DoS Suite (SPEC-2026-09-11)', () => {
-  it('rejects password longer than 72 characters to prevent Argon2/Bcrypt CPU exhaustion', () => {
-    const hugePassword = 'A'.repeat(73);
+  it('rejects password longer than 128 characters to prevent CPU exhaustion', () => {
+    const hugePassword = 'A'.repeat(129);
     const result = passwordLoginSchema.safeParse({
       email: 'valid.user@example.com',
       password: hugePassword,
@@ -11,7 +11,7 @@ describe('Auth Payload Hardening & Anti-DoS Suite (SPEC-2026-09-11)', () => {
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.errors[0].message).toMatch(/длинн|72|максимум/i);
+      expect(result.error.errors[0].message).toMatch(/длинн|72|128|максимум/i);
     }
   });
 

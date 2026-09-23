@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 
 const setPasswordSchema = z.object({
-  password: z.string().min(8, "Пароль должен состоять как минимум из 8 символов"),
+  password: z.string().min(6, "Пароль должен состоять как минимум из 6 символов").max(128, "Пароль не должен превышать 128 символов"),
   confirmPassword: z.string()
 }).refine(data => data.password === data.confirmPassword, {
   message: "Пароли не совпадают",
@@ -16,7 +16,7 @@ const setPasswordSchema = z.object({
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().optional(),
-  newPassword: z.string().min(8, "Новый пароль должен состоять как минимум из 8 символов"),
+  newPassword: z.string().min(6, "Новый пароль должен состоять как минимум из 6 символов").max(128, "Пароль не должен превышать 128 символов"),
   confirmPassword: z.string()
 }).refine(data => data.newPassword === data.confirmPassword, {
   message: "Пароли не совпадают",
@@ -41,7 +41,6 @@ export async function setPasswordAction(formData: FormData) {
   const { password } = parsed.data;
 
   try {
-    // tenant-isolation-ignore: manual IDOR check
     const user = await db.user.findUnique({
       where: { id: session.userId },
       select: { passwordHash: true }
@@ -57,13 +56,13 @@ export async function setPasswordAction(formData: FormData) {
 
     const hashed = await hashPassword(password);
 
-    // tenant-isolation-ignore: manual IDOR check
     await db.user.update({
       where: { id: session.userId },
       data: { passwordHash: hashed }
     });
 
     revalidatePath('/dashboard/settings');
+    revalidatePath('/dashboard/settings/security');
     return { success: true };
   } catch (error: unknown) {
     console.error('Failed to set password:', error);
@@ -96,7 +95,6 @@ export async function changePasswordAction(formData: FormData) {
   }
 
   try {
-    // tenant-isolation-ignore: manual IDOR check
     const user = await db.user.findUnique({
       where: { id: session.userId },
       select: { passwordHash: true }
@@ -119,7 +117,6 @@ export async function changePasswordAction(formData: FormData) {
 
     const hashed = await hashPassword(newPassword);
 
-    // tenant-isolation-ignore: manual IDOR check
     await db.user.update({
       where: { id: session.userId },
       data: { passwordHash: hashed }
@@ -143,6 +140,7 @@ export async function changePasswordAction(formData: FormData) {
     });
 
     revalidatePath('/dashboard/settings');
+    revalidatePath('/dashboard/settings/security');
     return { success: true };
   } catch (error: unknown) {
     console.error('Failed to change password:', error);

@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { auditAdminAwaitable } from '@/lib/admin-audit';
 import { inferTargetTypeFromName, isTargetTypeCompatible } from '@/utils/target-type';
+import { resolveServiceTargetType } from '@/utils/target-type-mapper';
 import { assertSafeOutboundUrl } from '@/lib/security/ssrf-guard';
 import { UPPER_SANITY_LIMIT_RUB } from '@/lib/financial-constants';
 
@@ -86,7 +87,7 @@ export class ServicesLifecycleService {
     const markup = input.markup ?? 3.0;
 
     const retailPriceRub = this.calculateRetailPrice(procurementRate, markup, usdRate, currency);
-    const targetType = input.targetType || inferTargetTypeFromName(input.name);
+    const targetType = resolveServiceTargetType(input);
 
     const draft = await db.serviceDraft.create({
       data: {
@@ -390,7 +391,6 @@ export class ServicesLifecycleService {
       throw new Error('Невозможно опубликовать: отсутствует категория');
     }
 
-    // tenant-isolation-ignore: manual IDOR check
     const category = await db.category.findUnique({ where: { id: draft.categoryId } });
     if (!category) {
       throw new Error(`Категория #${draft.categoryId} не найдена в базе`);
@@ -415,7 +415,6 @@ export class ServicesLifecycleService {
 
       if (targetServiceId) {
         // Обновление существующей
-        // tenant-isolation-ignore: manual IDOR check
         await tx.service.update({
           where: { id: targetServiceId },
           data: {
@@ -509,12 +508,10 @@ export class ServicesLifecycleService {
    * 6. Архивация услуги (PUBLISHED → ARCHIVED)
    */
   async archiveService(serviceId: string, reason: string, admin: AdminContext) {
-    // tenant-isolation-ignore: manual IDOR check
     const service = await db.service.findUnique({ where: { id: serviceId } });
     if (!service) throw new Error(`Услуга #${serviceId} не найдена`);
 
     await db.$transaction(async (tx) => {
-      // tenant-isolation-ignore: manual IDOR check
       await tx.service.update({
         where: { id: serviceId },
         data: { isActive: false },
@@ -595,7 +592,6 @@ export class ServicesLifecycleService {
     customPricesRub?: Record<string, number>,
     admin?: AdminContext
   ) {
-    // tenant-isolation-ignore: manual IDOR check
     const service = await db.service.findUnique({ where: { id: serviceId } });
     if (!service) throw new Error(`Услуга #${serviceId} не найдена`);
 
@@ -641,7 +637,6 @@ export class ServicesLifecycleService {
 
     if (!userId) return false;
 
-    // tenant-isolation-ignore: manual IDOR check
     const user = await db.user.findUnique({
       where: { id: userId },
       select: { customerGroupId: true },

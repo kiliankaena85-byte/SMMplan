@@ -83,16 +83,16 @@ describe('Checkout, Payments & Link Validator Fallback Resilience Suite', () => 
 
     it('ensures LinkType.CUSTOM is universally compatible with all service target types', () => {
       const targetTypes = [
-        ServiceTargetType.CHANNEL,
-        ServiceTargetType.PROFILE,
-        ServiceTargetType.POST_INTERACTION,
-        ServiceTargetType.VIDEO_INTERACTION,
-        ServiceTargetType.STORY_INTERACTION,
-        ServiceTargetType.CHANNEL_POSTS,
-        ServiceTargetType.POLL_VOTES,
-        ServiceTargetType.BOT_STARTS,
-        ServiceTargetType.COMMENTS,
-        ServiceTargetType.CUSTOM,
+        LinkType.CHANNEL,
+        LinkType.PROFILE,
+        LinkType.POST_INTERACTION,
+        LinkType.VIDEO_INTERACTION,
+        LinkType.STORY_INTERACTION,
+        LinkType.CHANNEL_POSTS,
+        LinkType.POLL_VOTES,
+        LinkType.BOT_STARTS,
+        LinkType.COMMENTS,
+        LinkType.CUSTOM,
       ];
 
       for (const tt of targetTypes) {

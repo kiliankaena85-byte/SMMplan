@@ -1,4 +1,4 @@
-import { requestMagicLink } from './src/actions/auth/request-magic-link';
+import { requestMagicLink } from '@/actions/auth/request-magic-link';
 
 async function run() {
   const formData = new FormData();

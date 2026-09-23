@@ -5,6 +5,8 @@ import { adminOrderService } from '@/services/admin/order.service';
 import { auditAdminAwaitable } from '@/lib/admin-audit';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { db } from '@/lib/db';
+import { isTenantAllowedForUser } from '@/utils/admin-tenant';
 
 const schema = z.object({
   orderId: z.string().min(1),
@@ -18,6 +20,14 @@ export async function cancelOrderAction(orderId: string) {
 
   try {
     const result = await requireOperatorPermission('orders', 'edit', async (admin) => {
+      const order = await db.order.findUnique({
+        where: { id: parsed.data.orderId },
+        select: { id: true, tenantId: true },
+      });
+      if (!order || !isTenantAllowedForUser(admin, order.tenantId)) {
+        return { success: false as const, error: 'Заказ не найден или доступ ограничен' };
+      }
+
       await adminOrderService.cancelOrder(parsed.data.orderId, {
         id: admin.id,
         email: admin.email,

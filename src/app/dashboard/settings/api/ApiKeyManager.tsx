@@ -1,42 +1,71 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import React, { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { generateApiKeyAction, resetApiKeyAction, revokeApiKeyAction } from '@/actions/user/settings-extra';
-import { RefreshCw, Trash2, CheckCheck, ShieldAlert, Key } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { ApiKeyActiveDisplay } from './components/ApiKeyActiveDisplay';
+import { ApiKeyActionButtons } from './components/ApiKeyActionButtons';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Key } from 'lucide-react';
 
-export default function ApiKeyManager({ 
-  hasKey, 
-  onKeyGenerated 
-}: { 
-  hasKey: boolean; 
+export interface ApiKeyManagerProps {
+  hasKey: boolean;
   onKeyGenerated?: (key: string | null) => void;
-}) {
+}
+
+export default function ApiKeyManager({
+  hasKey,
+  onKeyGenerated,
+}: ApiKeyManagerProps) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
   const [newKey, setNewKey] = useState<string | null>(null);
   const [confirmRevoke, setConfirmRevoke] = useState(false);
+  const [isRevoked, setIsRevoked] = useState(false);
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
-  const handleGenerate = () => {
+  const executeGenerate = (pwd?: string) => {
     setError('');
-    setNewKey(null);
+    setPasswordError('');
     if (onKeyGenerated) onKeyGenerated(null);
+
     startTransition(async () => {
-      const res = await (newKey ? resetApiKeyAction() : generateApiKeyAction());
+      const res = await (newKey ? resetApiKeyAction(pwd) : generateApiKeyAction(pwd));
       if (!res.success) {
+        if (res.requiresPassword) {
+          setPasswordModalOpen(true);
+          if (pwd) {
+            setPasswordError(res.error || 'Неверный пароль');
+          }
+          return;
+        }
         const errMsg = res.error || 'Ошибка при генерации ключа';
         setError(errMsg);
         toast.error(errMsg);
       } else {
+        setPasswordModalOpen(false);
+        setPasswordInput('');
+        setPasswordError('');
+        setIsRevoked(false);
         setNewKey(res.apiKey || null);
         toast.success('API-ключ успешно сгенерирован!');
         if (onKeyGenerated && res.apiKey) {
           onKeyGenerated(res.apiKey);
         }
+        router.refresh();
       }
     });
+  };
+
+  const handleGenerate = () => {
+    executeGenerate();
   };
 
   const handleRevoke = () => {
@@ -48,6 +77,7 @@ export default function ApiKeyManager({
     setConfirmRevoke(false);
     setError('');
     if (onKeyGenerated) onKeyGenerated(null);
+
     startTransition(async () => {
       const res = await revokeApiKeyAction();
       if (!res.success) {
@@ -55,8 +85,10 @@ export default function ApiKeyManager({
         setError(errMsg);
         toast.error(errMsg);
       } else {
+        setIsRevoked(true);
         setNewKey(null);
         toast.success('API-ключ успешно отозван');
+        router.refresh();
       }
     });
   };
@@ -73,110 +105,25 @@ export default function ApiKeyManager({
     }
   };
 
+  const hasKeyOrNew = (!isRevoked && hasKey) || !!newKey;
+
   return (
     <div className="space-y-5">
-      {hasKey || newKey ? (
-        <div className="space-y-4">
-          {/* Key display */}
-          {newKey ? (
-            <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl space-y-3 animate-in fade-in zoom-in-95 duration-300">
-              <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
-                <CheckCheck className="w-5 h-5" />
-                <span className="font-semibold text-sm">Новый API-ключ сгенерирован</span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Скопируйте ключ прямо сейчас. В целях безопасности он больше никогда не будет показан в открытом виде.
-              </p>
-              <div className="flex gap-2">
-                <div className="flex-1 min-w-0 bg-background border border-emerald-500/30 rounded-xl px-4 py-2.5 font-mono text-sm text-foreground truncate select-all">
-                  {newKey}
-                </div>
-                <button
-                  type="button"
-                  onClick={copyKey}
-                  aria-label="Скопировать API-ключ"
-                  className={`shrink-0 px-4 py-2.5 rounded-xl border font-semibold text-xs transition-all duration-200 ${
-                    copied
-                      ? 'bg-primary border-primary text-primary-foreground shadow-sm'
-                      : 'bg-card border-emerald-500/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20'
-                  }`}
-                >
-                  {copied ? 'Скопировано!' : 'Скопировать'}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="bg-muted/30 border border-border rounded-xl p-4 flex items-start gap-3">
-              <ShieldAlert className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-semibold text-foreground">API-ключ активен (SHA-256)</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  В целях безопасности ключ захеширован и скрыт. Если вы его потеряли, сгенерируйте новый токен.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Actions */}
-          <div className="flex flex-wrap gap-2 pt-2">
-            <Button
-              type="button"
-              onClick={handleGenerate}
-              disabled={isPending}
-              intent="secondary"
-              size="sm"
-              className="rounded-xl text-xs font-semibold gap-2"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isPending ? 'animate-spin' : ''}`} />
-              <span>Сгенерировать новый</span>
-            </Button>
-
-            {confirmRevoke ? (
-              <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/20 rounded-xl px-3 py-1.5 animate-in fade-in">
-                <span className="text-xs text-destructive font-semibold">Отозвать ключ навсегда?</span>
-                <button
-                  type="button"
-                  onClick={handleRevoke}
-                  disabled={isPending}
-                  className="text-xs font-bold text-destructive underline hover:no-underline"
-                >
-                  Да, удалить
-                </button>
-              </div>
-            ) : (
-              <Button
-                type="button"
-                onClick={handleRevoke}
-                disabled={isPending}
-                intent="destructive"
-                size="sm"
-                className="rounded-xl text-xs font-semibold gap-2"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>Отозвать</span>
-              </Button>
-            )}
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <div className="bg-muted/30 border border-border rounded-xl p-4 text-xs text-muted-foreground">
-            У вас ещё не создан API-ключ. Сгенерируйте его для доступа к REST API SMMplan (создание заказов, проверка баланса).
-          </div>
-          <Button
-            type="button"
-            onClick={handleGenerate}
-            disabled={isPending}
-            intent="primary"
-            size="sm"
-            isAnimated={true}
-            className="rounded-xl text-xs font-semibold gap-2 shadow-sm"
-          >
-            <Key className="w-3.5 h-3.5" />
-            <span>{isPending ? 'Генерация...' : 'Сгенерировать API-ключ'}</span>
-          </Button>
-        </div>
+      {hasKeyOrNew && (
+        <ApiKeyActiveDisplay
+          newKey={newKey}
+          copied={copied}
+          onCopyKey={copyKey}
+        />
       )}
+
+      <ApiKeyActionButtons
+        hasKeyOrNew={hasKeyOrNew}
+        isPending={isPending}
+        confirmRevoke={confirmRevoke}
+        onGenerate={handleGenerate}
+        onRevoke={handleRevoke}
+      />
 
       {error && (
         <div className="text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-xl px-4 py-3 animate-in slide-in-from-top-1">
@@ -187,6 +134,70 @@ export default function ApiKeyManager({
       <p className="text-[11px] text-muted-foreground pt-1">
         Никогда не передавайте API-ключ третьим лицам. При компрометации немедленно отзовите его.
       </p>
+
+      <Dialog open={passwordModalOpen} onOpenChange={(open) => {
+        if (!open) {
+          setPasswordModalOpen(false);
+          setPasswordInput('');
+          setPasswordError('');
+        }
+      }}>
+        <DialogContent className="sm:max-w-md rounded-2xl border border-border bg-background shadow-2xl p-6">
+          <DialogHeader className="pb-3 border-b border-border/50">
+            <DialogTitle className="text-foreground font-black text-base flex items-center gap-2">
+              <Key className="w-4 h-4 text-primary" />
+              <span>Подтверждение пароля</span>
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="py-4 space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Для создания или смены API-ключа требуется подтвердить пароль от вашего аккаунта (Sudo-режим).
+            </p>
+            <Input
+              type="password"
+              placeholder="Введите текущий пароль"
+              value={passwordInput}
+              onChange={(e) => setPasswordInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && passwordInput.trim() && !isPending) {
+                  executeGenerate(passwordInput);
+                }
+              }}
+              className="rounded-xl text-xs h-10"
+              autoFocus
+            />
+            {passwordError && (
+              <p className="text-xs text-destructive font-medium">{passwordError}</p>
+            )}
+          </div>
+
+          <DialogFooter className="mt-2 pt-3 border-t border-border/50 flex justify-end gap-2">
+            <Button
+              intent="outline"
+              size="sm"
+              onClick={() => {
+                setPasswordModalOpen(false);
+                setPasswordInput('');
+                setPasswordError('');
+              }}
+              disabled={isPending}
+              className="rounded-xl text-xs h-9"
+            >
+              Отмена
+            </Button>
+            <Button
+              intent="primary"
+              size="sm"
+              onClick={() => executeGenerate(passwordInput)}
+              disabled={isPending || !passwordInput.trim()}
+              className="rounded-xl text-xs h-9 font-semibold"
+            >
+              {isPending ? 'Проверка...' : 'Подтвердить'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

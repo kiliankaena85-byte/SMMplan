@@ -1,7 +1,7 @@
 import { adminUserService, getVolumeTier, USER_SORT_FIELDS, type UserSortField, type SortOrder } from '@/services/admin/user.service';
 import Link from 'next/link';
 import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
-import { FINANCE_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
+import { CLIENTS_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 import { ClientTable } from './components/client-table';
 import { ClientQuickSort } from './components/client-quick-sort';
 import { NumberedPagination } from '@/components/admin/ui/numbered-pagination';
@@ -28,12 +28,7 @@ type Props = {
 };
 
 export default async function AdminClientsPage({ searchParams }: Props) {
-  await enforceSectionAccess('clients');
-  const session = await verifySession();
-  const user = session ? await db.user.findUnique({ 
-    where: { id: session.userId },
-    include: { staffRole: { include: { permissions: true } } }
-  }) : null;
+  const user = await enforceSectionAccess('clients');
 
   const isOwner = user?.role === 'OWNER';
   // SUPPORT can see client finances for effective client assistance
@@ -113,15 +108,15 @@ export default async function AdminClientsPage({ searchParams }: Props) {
             </a>
           </div>
         ) : undefined}
-        tabs={FINANCE_TABS}
+        tabs={CLIENTS_TABS}
         onboardingKey="clients"
         onboarding={ONBOARDING_CONFIGS.clients}
       />
 
       {/* Filter Tabs & Search / Sort Bar */}
-      <div className="bg-card/60 backdrop-blur-md border border-border/70 shadow-xs rounded-lg p-4 sm:p-5 ring-1 ring-border/5 space-y-4">
+      <div className="bg-card/60 backdrop-blur-md border border-border/70 shadow-xs rounded-lg p-4 sm:p-5 ring-1 ring-border/5 space-y-4 w-full max-w-full">
         {/* Fast Filter Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1 w-full max-w-full flex-nowrap">
           {filterTabs.map((f) => {
             const Icon = f.icon;
             const isActive = filter === f.id;
@@ -136,13 +131,13 @@ export default async function AdminClientsPage({ searchParams }: Props) {
               <Link
                 key={f.id}
                 href={`/admin/clients${queryParams.toString() ? `?${queryParams.toString()}` : ''}`}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all select-none whitespace-nowrap cursor-pointer border ${
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all select-none whitespace-nowrap cursor-pointer border shrink-0 ${
                   isActive
                     ? 'bg-primary text-primary-foreground border-primary shadow-xs'
                     : 'bg-background/60 text-muted-foreground border-border/70 hover:bg-muted hover:text-foreground'
                 }`}
               >
-                <Icon className="w-3.5 h-3.5" />
+                <Icon className="w-3.5 h-3.5 shrink-0" />
                 <span>{f.label}</span>
                 {f.count !== undefined && (
                   <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${
@@ -165,7 +160,7 @@ export default async function AdminClientsPage({ searchParams }: Props) {
             {sortOrder !== 'desc' && <input type="hidden" name="sortOrder" value={sortOrder} />}
             
             <div className="relative flex-1">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground shrink-0" />
               <input
                 type="text"
                 name="q"
@@ -203,8 +198,8 @@ export default async function AdminClientsPage({ searchParams }: Props) {
       </div>
 
       {/* Main Clients Table */}
-      <div className="bg-card/60 backdrop-blur-md border border-border/70 shadow-xs rounded-lg ring-1 ring-border/5 overflow-hidden">
-        <div className="p-4 sm:p-6">
+      <div className="bg-card/60 backdrop-blur-md border border-border/70 shadow-xs rounded-lg ring-1 ring-border/5 overflow-hidden w-full max-w-full">
+        <div className="p-3 sm:p-6 w-full max-w-full overflow-x-auto scrollbar-none">
           <ClientTable 
             data={users.map(u => ({
               ...u,

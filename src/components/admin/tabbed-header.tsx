@@ -47,7 +47,7 @@ export function AdminTabbedHeader({
   tabs,
 }: AdminTabbedHeaderProps) {
   return (
-    <div className="w-full flex flex-col gap-3 mb-5 border-b border-border/50 pb-4">
+    <div className="w-full max-w-full overflow-hidden flex flex-col gap-3 mb-5 border-b border-border/50 pb-4">
       {/* Breadcrumbs & Header Title */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex flex-col gap-2">
@@ -56,7 +56,7 @@ export function AdminTabbedHeader({
               <Link href="/admin/dashboard" className="hover:text-primary transition-colors">Admin</Link>
               {breadcrumbs.map((crumb, idx) => (
                 <React.Fragment key={idx}>
-                  <ChevronRight className="w-3 h-3 mx-1 opacity-50" />
+                  <ChevronRight className="w-3 h-3 mx-1 opacity-50 shrink-0" />
                   {crumb.href ? (
                     <Link href={crumb.href} className="hover:text-primary transition-colors">
                       {crumb.label}
@@ -72,7 +72,7 @@ export function AdminTabbedHeader({
           <h1 className="text-2xl font-black tracking-tight text-foreground flex items-center gap-3">
             {Icon && (
               <div className="p-2 bg-primary/10 text-primary rounded-xl shadow-sm shrink-0">
-                <Icon className="w-5 h-5" />
+                <Icon className="w-5 h-5 shrink-0" />
               </div>
             )}
             <span>{title}</span>

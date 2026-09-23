@@ -18,7 +18,8 @@ export class RateLimitService {
     endpoint: string, 
     maxHits: number = 10, 
     windowSeconds: number = 60,
-    failClosed: boolean = true // Secure by default: block traffic if rate limiter fails
+    failClosed: boolean = true, // Secure by default: block traffic if rate limiter fails
+    tenantId?: string
   ): Promise<boolean> {
     try {
       if (process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development') {
@@ -35,7 +36,18 @@ export class RateLimitService {
       const { getClientIp } = await import('@/utils/ip');
       const ip = await getClientIp();
       const now = new Date();
-      const redisKey = `ratelimit:${endpoint}:${ip}`;
+      let cleanTenant = tenantId;
+      if (!cleanTenant) {
+        try {
+          const { SettingsProvider } = await import('@/lib/settings');
+          cleanTenant = await SettingsProvider.getTenantId();
+        } catch {
+          cleanTenant = 'smmplan';
+        }
+      }
+      cleanTenant = cleanTenant || 'smmplan';
+      const scopedEndpoint = endpoint.includes(':') ? endpoint : `${cleanTenant}:${endpoint}`;
+      const redisKey = `ratelimit:${scopedEndpoint}:${ip}`;
 
       // 1. Try Redis First
       try {
@@ -55,7 +67,7 @@ export class RateLimitService {
           const hits = await redis.eval(script, 1, redisKey, windowSeconds) as number;
           
           if (hits > maxHits) {
-             console.warn(`[RATE_LIMIT:REDIS] Blocked ${ip} on ${endpoint} (${hits}/${maxHits})`);
+             console.warn(`[RATE_LIMIT:REDIS] Blocked ${ip} on ${scopedEndpoint} (${hits}/${maxHits})`);
              return false;
           }
           return true;
@@ -68,7 +80,7 @@ export class RateLimitService {
       const newExpiry = new Date(now.getTime() + windowSeconds * 1000);
       const rows = await db.$queryRaw<Array<{ hits: number }>>`
         INSERT INTO "RateLimit" ("id", "ip", "endpoint", "hits", "expiresAt", "createdAt")
-        VALUES (gen_random_uuid()::text, ${ip}, ${endpoint}, 1, ${newExpiry}, NOW())
+        VALUES (gen_random_uuid()::text, ${ip}, ${scopedEndpoint}, 1, ${newExpiry}, NOW())
         ON CONFLICT ("ip", "endpoint") DO UPDATE SET
           "hits" = CASE WHEN "RateLimit"."expiresAt" <= NOW() THEN 1 ELSE "RateLimit"."hits" + 1 END,
           "expiresAt" = CASE WHEN "RateLimit"."expiresAt" <= NOW() THEN ${newExpiry} ELSE "RateLimit"."expiresAt" END

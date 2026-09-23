@@ -15009,7 +15009,7 @@ var init_tenant_context = __esm({
 // src/lib/prisma-tenant-enforcer.ts
 function applyTenantWhereClause(where, activeTenantId, model) {
   if (!where.tenantId) {
-    if (model === "category" || model === "service") {
+    if (model === "category" || model === "service" || model === "network" || model === "shadowService") {
       where.tenantId = { in: [activeTenantId, "all"] };
     } else {
       where.tenantId = activeTenantId;
@@ -15080,7 +15080,7 @@ function createTenantEnforcerExtension(options = {}) {
         if (!tenantId) {
           return query(args);
         }
-        if (model === "user" && args.where && args.where.id) {
+        if (model === "user" && args.where && (args.where.id || args.where.email_tenantId)) {
           return query(args);
         }
         const scopedWhere = model === "category" || model === "service" ? { ...args.where, tenantId: { in: [tenantId, "all"] } } : { ...args.where, tenantId };
@@ -15201,8 +15201,38 @@ var init_prisma_tenant_enforcer = __esm({
       "category",
       "customerGroup",
       "ticketFeedback",
+      "ledgerEntry",
+      "page",
+      "article",
       "promoCode",
-      "ledgerEntry"
+      "featureFlag",
+      "supportTemplate",
+      "contentCategory",
+      "contentItem",
+      "network",
+      "shadowService",
+      "serviceDraft",
+      "storefrontKey",
+      "staffRole",
+      "staffPermission",
+      "telegramBotInstance",
+      "telegramButton",
+      "telegramTemplate",
+      "telegramProxy",
+      "telegramErrorLog",
+      "telegramDailyStat",
+      "adminAuditLog",
+      "securityEvent",
+      "supportFinancialAction",
+      "supportLimitUsage",
+      "supportHourlyUsage",
+      "employeeResponsibilityConsent",
+      "legalDocumentVersion",
+      "economicOptimizationSnapshot",
+      "preLaunchLead",
+      "bonusRedemptionLog",
+      "loginLog",
+      "authToken"
     ];
   }
 });
@@ -15222,6 +15252,15 @@ function getDatasourceUrl() {
   let url = process.env.DATABASE_URL || process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_URL;
   if (url && url.startsWith("prisma://")) {
     url = process.env.POSTGRES_URL_NON_POOLING || process.env.DATABASE_URL_UNPOOLED || process.env.DIRECT_URL || url.replace(/^prisma:\/\//, "postgresql://");
+  }
+  if (url && typeof window === "undefined") {
+    try {
+      const fs3 = require("fs");
+      if (!fs3.existsSync("/.dockerenv") && url.includes("@db:")) {
+        url = url.replace("@db:5432", "@127.0.0.1:5435").replace("@db:", "@127.0.0.1:5435");
+      }
+    } catch {
+    }
   }
   return url;
 }
@@ -15348,17 +15387,11 @@ var init_exact_math = __esm({
   "src/lib/financial/exact-math.ts"() {
     "use strict";
     ExactMath = class {
-      static {
-        this.MICRO_SCALE = BigInt(1e4);
-      }
-      static {
-        // 10^4 precision factor for sub-kopecks
-        this.BPS_BASE = BigInt(1e4);
-      }
-      static {
-        // 100.00% = 10,000 basis points
-        this.KOPECK_TO_RUB = BigInt(100);
-      }
+      static MICRO_SCALE = BigInt(1e4);
+      // 10^4 precision factor for sub-kopecks
+      static BPS_BASE = BigInt(1e4);
+      // 100.00% = 10,000 basis points
+      static KOPECK_TO_RUB = BigInt(100);
       // 100 kopecks = 1 RUB
       /**
        * Converts floating rubles to BigInt kopecks safely.
@@ -15492,23 +15525,23 @@ var init_wallet_ops = __esm({
     init_transactions();
     init_exact_math();
     WalletInsufficientFundsError = class extends Error {
+      code = "INSUFFICIENT_FUNDS";
       constructor(needed, got) {
         super(`Insufficient funds: needed ${needed.toString()}, got ${got.toString()}`);
-        this.code = "INSUFFICIENT_FUNDS";
         this.name = "WalletInsufficientFundsError";
       }
     };
     WalletUserNotFoundError = class extends Error {
+      code = "USER_NOT_FOUND";
       constructor(userId) {
         super(`User ${userId} not found or tenant access forbidden.`);
-        this.code = "USER_NOT_FOUND";
         this.name = "WalletUserNotFoundError";
       }
     };
     WalletInvalidAmountError = class extends Error {
+      code = "INVALID_AMOUNT";
       constructor(action) {
         super(`${action} amount must be a strictly positive finite number.`);
-        this.code = "INVALID_AMOUNT";
         this.name = "WalletInvalidAmountError";
       }
     };
@@ -15707,12 +15740,34 @@ var init_wallet_ops = __esm({
             transactionType: txTypeOverride ?? "ADJUSTMENT"
           }
         });
-        const updatedUser = await tx.user.update({
-          where: { id: userId },
-          data: { balance: { increment: rawCents } },
-          select: { balance: true }
-        });
-        return { success: true, balance: updatedUser.balance, cached: false, entry };
+        let updatedBalance;
+        if (rawCents < BigInt(0)) {
+          const absCents = -rawCents;
+          const updatedUserBatch = await tx.user.updateMany({
+            where: { id: userId, tenantId: resolvedTenantId, balance: { gte: absCents } },
+            data: { balance: { increment: rawCents } }
+          });
+          if (updatedUserBatch.count === 0) {
+            const current = await tx.user.findUnique({
+              where: { id: userId },
+              select: { balance: true }
+            });
+            throw new WalletInsufficientFundsError(absCents, current?.balance ?? BigInt(0));
+          }
+          const updatedUser = await tx.user.findUnique({
+            where: { id: userId },
+            select: { balance: true }
+          });
+          updatedBalance = updatedUser.balance;
+        } else {
+          const updatedUser = await tx.user.update({
+            where: { id: userId },
+            data: { balance: { increment: rawCents } },
+            select: { balance: true }
+          });
+          updatedBalance = updatedUser.balance;
+        }
+        return { success: true, balance: updatedBalance, cached: false, entry };
       },
       /**
        * Refund user balance: increments balance, decrements totalSpent, creates ledger entry.
@@ -15772,24 +15827,18 @@ var init_wallet_ops = __esm({
         const { idempotencyKey, adminId, tenantId } = opts || {};
         const rawCents = typeof amountCents === "bigint" ? amountCents : BigInt(amountCents);
         const absAmount = rawCents < BigInt(0) ? -rawCents : rawCents;
-        if (tenantId) {
-          const user2 = await tx.user.findUnique({
-            where: { id: userId },
-            select: { id: true, tenantId: true }
-          });
-          if (!user2 || user2.tenantId !== tenantId) {
-            throw new WalletUserNotFoundError(userId);
-          }
-        }
-        const user = await tx.user.update({
+        const user = await tx.user.findUnique({
           where: { id: userId },
-          data: { quarantineBalance: { increment: absAmount } },
-          select: { tenantId: true }
+          select: { id: true, tenantId: true }
         });
-        return await tx.ledgerEntry.create({
+        if (!user || tenantId && user.tenantId !== tenantId) {
+          throw new WalletUserNotFoundError(userId);
+        }
+        const resolvedTenantId = tenantId || user.tenantId || "smmplan";
+        const entry = await tx.ledgerEntry.create({
           data: {
             userId,
-            tenantId: tenantId || user.tenantId || "smmplan",
+            tenantId: resolvedTenantId,
             adminId,
             amount: rawCents,
             reason,
@@ -15798,6 +15847,11 @@ var init_wallet_ops = __esm({
             transactionType: "COMPENSATION"
           }
         });
+        await tx.user.update({
+          where: { id: userId },
+          data: { quarantineBalance: { increment: absAmount } }
+        });
+        return entry;
       },
       /**
        * Release or clear quarantine balance for a user.
@@ -15883,6 +15937,7 @@ async function auditAdminAwaitable(params) {
   const client = params.tx || db;
   return client.adminAuditLog.create({
     data: {
+      tenantId: params.tenantId || "smmplan",
       adminId: params.adminId,
       adminEmail: params.adminEmail,
       action: params.action,
@@ -15898,6 +15953,24 @@ var init_admin_audit = __esm({
   "src/lib/admin-audit.ts"() {
     "use strict";
     init_db();
+  }
+});
+
+// src/lib/tenant-resolver-edge.ts
+function normalizeTenantId(tenantId) {
+  if (!tenantId) return tenantId;
+  const clean = tenantId.trim().toLowerCase();
+  const normalized = clean === "lovable" || clean === "smmflux" ? "flux" : clean;
+  if (!VALID_TENANTS.has(normalized)) {
+    return "smmplan";
+  }
+  return normalized;
+}
+var VALID_TENANTS;
+var init_tenant_resolver_edge = __esm({
+  "src/lib/tenant-resolver-edge.ts"() {
+    "use strict";
+    VALID_TENANTS = /* @__PURE__ */ new Set(["smmplan", "flux"]);
   }
 });
 
@@ -24029,24 +24102,6 @@ var require_cache = __commonJS({
     exports2.cacheTag = cacheExports.cacheTag;
     exports2.unstable_cacheTag = cacheExports.unstable_cacheTag;
     exports2.refresh = cacheExports.refresh;
-  }
-});
-
-// src/lib/tenant-resolver-edge.ts
-function normalizeTenantId(tenantId) {
-  if (!tenantId) return tenantId;
-  const clean = tenantId.trim().toLowerCase();
-  const normalized = clean === "lovable" || clean === "smmflux" ? "flux" : clean;
-  if (!VALID_TENANTS.has(normalized)) {
-    return "smmplan";
-  }
-  return normalized;
-}
-var VALID_TENANTS;
-var init_tenant_resolver_edge = __esm({
-  "src/lib/tenant-resolver-edge.ts"() {
-    "use strict";
-    VALID_TENANTS = /* @__PURE__ */ new Set(["smmplan", "flux"]);
   }
 });
 
@@ -33742,6 +33797,23 @@ __export2(redis_exports, {
   redis: () => redis,
   validateRedisUrl: () => validateRedisUrl
 });
+function getRedisUrl() {
+  let url = process.env.REDIS_URL || "redis://localhost:6379";
+  if (typeof window === "undefined") {
+    try {
+      const fs3 = require("fs");
+      if (!fs3.existsSync("/.dockerenv")) {
+        if (url.includes("@redis:")) {
+          url = url.replace("@redis:", "@127.0.0.1:");
+        } else if (url.includes("//redis:")) {
+          url = url.replace("//redis:", "//127.0.0.1:");
+        }
+      }
+    } catch {
+    }
+  }
+  return url;
+}
 function validateRedisUrl(url, env = process.env.NODE_ENV || "development", explicitPassword) {
   if (env === "production") {
     const hasAuth = url.includes("@") || Boolean(explicitPassword || process.env.REDIS_PASSWORD);
@@ -33774,7 +33846,7 @@ var init_redis = __esm({
     import_ioredis = __toESM(require_built3());
     init_sensitive_data_filter();
     globalForRedis = global;
-    redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
+    redisUrl = getRedisUrl();
     redisCheck = validateRedisUrl(redisUrl, process.env.NODE_ENV);
     if (!redisCheck.valid) {
       throw new Error(redisCheck.error);
@@ -33904,8 +33976,12 @@ var init_settings = __esm({
        */
       static async resolveTenantRecordId(tenantSlug) {
         const slug = normalizeTenantId(tenantSlug) || "smmplan";
-        const tenant = await db.tenant.findUnique({ where: { slug } }) || await db.tenant.findFirst({ where: { slug: "smmplan" } }) || await db.tenant.findFirst();
-        if (tenant) return tenant.id;
+        try {
+          const tenant = await db.tenant.findUnique({ where: { slug } }) || await db.tenant.findFirst({ where: { slug: "smmplan" } }) || await db.tenant.findFirst();
+          if (tenant) return tenant.id;
+        } catch (dbErr) {
+          console.warn(`[SettingsProvider] Database unreachable in resolveTenantRecordId for ${slug}, using fallback slug.`);
+        }
         return slug;
       }
       /**
@@ -34015,6 +34091,9 @@ var init_settings = __esm({
         if (isDummy && hasTestKeys) {
           shopId = settings.yookassaTestShopId;
           secretKeyRaw = settings.yookassaTestSecretKey;
+        } else if (isDummy && useTestKeys && settings.yookassaShopId && settings.yookassaShopId !== "test_shop_id") {
+          shopId = settings.yookassaShopId;
+          secretKeyRaw = settings.yookassaSecretKey;
         }
         const envShopId = useTestKeys ? process.env.YOOKASSA_TEST_SHOP_ID ?? process.env.YOOKASSA_SHOP_ID ?? null : process.env.YOOKASSA_SHOP_ID ?? null;
         const envSecretKey = useTestKeys ? process.env.YOOKASSA_TEST_SECRET_KEY ?? process.env.YOOKASSA_SECRET_KEY ?? null : process.env.YOOKASSA_SECRET_KEY ?? null;
@@ -34140,8 +34219,13 @@ var init_settings = __esm({
           console.warn("[SettingsProvider] Redis is unavailable in isTestMode:", err instanceof Error ? err.message : String(err));
         }
         const settings = await this.get(activeTenantId);
-        if (settings && typeof settings.isTestMode === "boolean") {
-          return settings.isTestMode;
+        if (settings) {
+          if (settings.environmentMode) {
+            return settings.environmentMode !== "PRODUCTION";
+          }
+          if (typeof settings.isTestMode === "boolean") {
+            return settings.isTestMode;
+          }
         }
         if (_SettingsProvider.isTestEnvironment()) return true;
         return false;
@@ -34283,9 +34367,8 @@ var init_settings = __esm({
           console.error("[SettingsProvider] Warning: Failed to invalidate cache tag:", cacheErr);
         }
       }
-      static async isMockPaymentEnabled(tenantId) {
-        const mode = await this.getEnvironmentMode(tenantId);
-        return mode === "SANDBOX" || mode === "HYBRID";
+      static async isMockPaymentEnabled(_tenantId) {
+        return false;
       }
       static async isMockProviderEnabled(tenantId) {
         const mode = await this.getEnvironmentMode(tenantId);
@@ -38857,7 +38940,7 @@ var init_compensation_service = __esm({
           await db.order.updateMany({
             where: {
               id: order.id,
-              tenantId: order.tenantId || "smmplan"
+              tenantId: order.tenantId
             },
             data: {
               actualProviderCost,
@@ -70307,6 +70390,7 @@ __export2(queue_manager_exports, {
   geoAvailabilityQueue: () => geoAvailabilityQueue,
   getQueuePrefix: () => getQueuePrefix,
   getRedisConnection: () => getRedisConnection,
+  indexNowQueue: () => indexNowQueue,
   jitteredBackoff: () => jitteredBackoff,
   ordersQueue: () => ordersQueue,
   paymentGatewayQueue: () => paymentGatewayQueue,
@@ -70501,7 +70585,7 @@ async function ensureGeoAvailabilityCron() {
     }
   );
 }
-var import_bullmq, import_ioredis2, redisConnection, getQueuePrefix, getRedisConnection, jitteredBackoff, createQueue, ordersQueue, syncQueue, catalogQueue, dlqQueue, cleanupQueue, telegramQueue, etaQueue, paymentSyncQueue, refillQueue, criticalQueue, defaultQueue, bulkQueue, queuePayment, queueOrder, queueSync, paymentGatewayQueue, articlePublishQueue, aiObserverQueue, aiEconomicOptimizerQueue, geoAvailabilityQueue, closeQueues;
+var import_bullmq, import_ioredis2, redisConnection, getQueuePrefix, getRedisConnection, jitteredBackoff, createQueue, ordersQueue, syncQueue, catalogQueue, dlqQueue, cleanupQueue, telegramQueue, etaQueue, paymentSyncQueue, refillQueue, criticalQueue, defaultQueue, bulkQueue, queuePayment, queueOrder, queueSync, paymentGatewayQueue, indexNowQueue, articlePublishQueue, aiObserverQueue, aiEconomicOptimizerQueue, geoAvailabilityQueue, closeQueues;
 var init_queue_manager = __esm({
   "src/lib/queue-manager.ts"() {
     "use strict";
@@ -70518,7 +70602,20 @@ var init_queue_manager = __esm({
     };
     getRedisConnection = () => {
       if (redisConnection) return redisConnection;
-      const redisUrl2 = process.env.CONTOUR === "test" && process.env.REDIS_URL_TEST ? process.env.REDIS_URL_TEST : process.env.REDIS_URL || "redis://127.0.0.1:6379";
+      let redisUrl2 = process.env.CONTOUR === "test" && process.env.REDIS_URL_TEST ? process.env.REDIS_URL_TEST : process.env.REDIS_URL || "redis://127.0.0.1:6379";
+      if (typeof window === "undefined") {
+        try {
+          const fs3 = require("fs");
+          if (!fs3.existsSync("/.dockerenv")) {
+            if (redisUrl2.includes("@redis:")) {
+              redisUrl2 = redisUrl2.replace("@redis:", "@127.0.0.1:");
+            } else if (redisUrl2.includes("//redis:")) {
+              redisUrl2 = redisUrl2.replace("//redis:", "//127.0.0.1:");
+            }
+          }
+        } catch {
+        }
+      }
       const redisPassword = process.env.REDIS_PASSWORD || void 0;
       const dbIndex = process.env.REDIS_DB_INDEX ? parseInt(process.env.REDIS_DB_INDEX, 10) : process.env.CONTOUR === "test" ? 1 : 0;
       const check = validateRedisUrl(redisUrl2, process.env.NODE_ENV, redisPassword);
@@ -70550,6 +70647,7 @@ var init_queue_manager = __esm({
       const isBuildOrTest = process.env.NEXT_PHASE === "phase-production-build" || !!process.env.CI || process.env.NODE_ENV === "test";
       if (isBuildOrTest) {
         const targetObj = {
+          name,
           add: async (jobName, data, opts) => ({ id: opts?.jobId || "mock-id", name: jobName, data }),
           close: async () => {
           },
@@ -70560,7 +70658,8 @@ var init_queue_manager = __esm({
           count: async () => 0,
           defaultJobOptions: {
             attempts: 3,
-            backoff: { type: "exponential", delay: 5e3 }
+            backoff: { type: "exponential", delay: 5e3 },
+            ...defaultOptions
           }
         };
         return new Proxy(targetObj, {
@@ -70635,6 +70734,10 @@ var init_queue_manager = __esm({
       attempts: 3,
       backoff: { type: "exponential", delay: 2e3 }
     });
+    indexNowQueue = createQueue("indexnow-queue", {
+      attempts: 5,
+      backoff: { type: "exponential", delay: 1e4 }
+    });
     articlePublishQueue = createQueue("articlePublishQueue");
     aiObserverQueue = createQueue("aiObserverQueue", {
       attempts: 2,
@@ -70671,6 +70774,16 @@ var init_queue_manager = __esm({
       await geoAvailabilityQueue.close();
       if (redisConnection) await redisConnection.quit();
     };
+  }
+});
+
+// src/config/order-constants.ts
+var ORDER_COOLING_OFF_SECONDS, ORDER_COOLING_OFF_MS;
+var init_order_constants = __esm({
+  "src/config/order-constants.ts"() {
+    "use strict";
+    ORDER_COOLING_OFF_SECONDS = 90;
+    ORDER_COOLING_OFF_MS = ORDER_COOLING_OFF_SECONDS * 1e3;
   }
 });
 
@@ -70984,7 +71097,7 @@ var init_target_type = __esm({
 var link_service_compatibility_exports = {};
 __export2(link_service_compatibility_exports, {
   LinkType: () => LinkType2,
-  ServiceTargetType: () => ServiceTargetType,
+  TargetTypeEnum: () => TargetTypeEnum,
   getCompatibilityError: () => getCompatibilityError2,
   isLinkServiceCompatible: () => isLinkServiceCompatible2,
   normalizeLinkType: () => normalizeLinkType,
@@ -71002,13 +71115,12 @@ function isLinkServiceCompatible2(rawLinkType, rawTargetType) {
 function getCompatibilityError2(rawLinkType, rawTargetType, serviceName) {
   return getCompatibilityError(rawLinkType, rawTargetType, serviceName);
 }
-var LinkType2, ServiceTargetType;
+var LinkType2;
 var init_link_service_compatibility = __esm({
   "src/constants/link-service-compatibility.ts"() {
     "use strict";
     init_target_type();
     LinkType2 = TargetTypeEnum;
-    ServiceTargetType = TargetTypeEnum;
   }
 });
 
@@ -71016,21 +71128,6 @@ var init_link_service_compatibility = __esm({
 var init_description_sanitizer = __esm({
   "src/utils/description-sanitizer.ts"() {
     "use strict";
-  }
-});
-
-// src/constants/geo-registry.ts
-var init_geo_registry = __esm({
-  "src/constants/geo-registry.ts"() {
-    "use strict";
-  }
-});
-
-// src/services/providers/name-tokenizer.service.ts
-var init_name_tokenizer_service = __esm({
-  "src/services/providers/name-tokenizer.service.ts"() {
-    "use strict";
-    init_geo_registry();
   }
 });
 
@@ -71089,15 +71186,41 @@ var init_translation_dictionary = __esm({
   }
 });
 
-// src/services/providers/smart-analyzer.logic.ts
-var CATEGORY_LABELS;
-var init_smart_analyzer_logic = __esm({
-  "src/services/providers/smart-analyzer.logic.ts"() {
+// src/constants/geo-registry.ts
+var init_geo_registry = __esm({
+  "src/constants/geo-registry.ts"() {
     "use strict";
-    init_description_sanitizer();
+  }
+});
+
+// src/services/providers/name-tokenizer.service.ts
+var init_name_tokenizer_service = __esm({
+  "src/services/providers/name-tokenizer.service.ts"() {
+    "use strict";
     init_geo_registry();
-    init_name_tokenizer_service();
-    init_translation_dictionary();
+  }
+});
+
+// src/services/providers/analyzer/geo-warranty.pure.ts
+var init_geo_warranty_pure = __esm({
+  "src/services/providers/analyzer/geo-warranty.pure.ts"() {
+    "use strict";
+    init_geo_registry();
+  }
+});
+
+// src/services/providers/analyzer/platform-detector.pure.ts
+var init_platform_detector_pure = __esm({
+  "src/services/providers/analyzer/platform-detector.pure.ts"() {
+    "use strict";
+  }
+});
+
+// src/services/providers/analyzer/category-detector.pure.ts
+var CATEGORY_LABELS;
+var init_category_detector_pure = __esm({
+  "src/services/providers/analyzer/category-detector.pure.ts"() {
+    "use strict";
     CATEGORY_LABELS = {
       SUBSCRIBERS: "\u041F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A\u0438 / \u0423\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u0438",
       GROUPS: "\u0412\u0441\u0442\u0443\u043F\u043B\u0435\u043D\u0438\u0435 \u0432 \u0433\u0440\u0443\u043F\u043F\u044B / \u0447\u0430\u0442\u044B",
@@ -71128,6 +71251,35 @@ var init_smart_analyzer_logic = __esm({
       RECOVER: "\u0412\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 / \u0414\u043E\u043A\u0440\u0443\u0442\u043A\u0430",
       OTHER: "\u0414\u0440\u0443\u0433\u043E\u0435 / \u0420\u0430\u0437\u043D\u043E\u0435"
     };
+  }
+});
+
+// src/services/providers/analyzer/target-type-detector.pure.ts
+var init_target_type_detector_pure = __esm({
+  "src/services/providers/analyzer/target-type-detector.pure.ts"() {
+    "use strict";
+  }
+});
+
+// src/services/providers/analyzer/execution-metrics.pure.ts
+var init_execution_metrics_pure = __esm({
+  "src/services/providers/analyzer/execution-metrics.pure.ts"() {
+    "use strict";
+  }
+});
+
+// src/services/providers/smart-analyzer.logic.ts
+var init_smart_analyzer_logic = __esm({
+  "src/services/providers/smart-analyzer.logic.ts"() {
+    "use strict";
+    init_description_sanitizer();
+    init_translation_dictionary();
+    init_name_tokenizer_service();
+    init_geo_warranty_pure();
+    init_platform_detector_pure();
+    init_category_detector_pure();
+    init_target_type_detector_pure();
+    init_execution_metrics_pure();
   }
 });
 
@@ -71880,6 +72032,19 @@ function isPublicIp(rawIp) {
       }
     }
   }
+  if (ip.startsWith("100.")) {
+    const parts = ip.split(".");
+    if (parts.length >= 2) {
+      const secondOctet = parseInt(parts[1], 10);
+      if (secondOctet >= 64 && secondOctet <= 127) {
+        return false;
+      }
+    }
+  }
+  const firstOctet = parseInt(ip.split(".")[0], 10);
+  if (!isNaN(firstOctet) && firstOctet >= 224) {
+    return false;
+  }
   if (ip === "::1" || ip === "::" || ip.startsWith("fc00:") || ip.startsWith("fd00:") || ip.startsWith("fe80:") || ip === "fd00:ec2::254") {
     return false;
   }
@@ -71946,11 +72111,11 @@ async function resolveShortLink(rawUrl) {
     try {
       const parsed = new import_url.URL(currentUrl);
       if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-        return currentUrl;
+        return rawUrl;
       }
       const isAllowedHost2 = await isPublicHost(parsed.hostname);
       if (!isAllowedHost2) {
-        return currentUrl;
+        return rawUrl;
       }
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5e3);
@@ -97420,12 +97585,14 @@ function resolveCanonicalHost(tenantId, incomingHost) {
     if (hostWithoutPort === "flux.smmplan.pro" || rawHost === "flux.smmplan.pro") return "flux.smmplan.pro";
     if (hostWithoutPort === "smmflux.ru" || rawHost === "smmflux.ru") return "smmflux.ru";
     if (rawHost.includes("localhost") || rawHost.includes("127.0.0.1") || rawHost.endsWith(".ts.net")) return rawHost;
-    return process.env.NODE_ENV === "production" && !process.env.APP_URL?.includes("test.") ? "smmflux.ru" : "flux.smmplan.pro";
+    const isStaging = process.env.APP_ENV === "staging" || Boolean(process.env.APP_URL) && process.env.APP_URL.includes("flux.smmplan.pro");
+    return isStaging ? "flux.smmplan.pro" : "smmflux.ru";
   } else {
     if (hostWithoutPort === "test.smmplan.pro" || rawHost === "test.smmplan.pro") return "test.smmplan.pro";
     if (hostWithoutPort === "smmplan.pro" || rawHost === "smmplan.pro") return "smmplan.pro";
     if (rawHost.includes("localhost") || rawHost.includes("127.0.0.1") || rawHost.endsWith(".ts.net")) return rawHost;
-    return process.env.NODE_ENV === "production" && !process.env.APP_URL?.includes("test.") ? "smmplan.pro" : "test.smmplan.pro";
+    const isStaging = process.env.APP_ENV === "staging" || Boolean(process.env.APP_URL) && process.env.APP_URL.includes("test.");
+    return isStaging ? "test.smmplan.pro" : "smmplan.pro";
   }
 }
 function getTenantHost(tenantId, incomingHost) {
@@ -97528,6 +97695,7 @@ async function verifyDirectSmtpConnection(host = "smtp.yandex.ru", port = 465, t
             host,
             port,
             servername: host,
+            localAddress: process.env.SMTP_LOCAL_ADDRESS || void 0,
             rejectUnauthorized: true,
             timeout: timeoutMs
           },
@@ -97596,6 +97764,7 @@ async function getTransporter(tenantId) {
       user: s.smtpUser,
       pass: s.smtpPassword
     },
+    localAddress: process.env.SMTP_LOCAL_ADDRESS || void 0,
     family: 4
     // Force IPv4 to prevent ENETUNREACH on systems without IPv6 routing
   });
@@ -97887,9 +98056,7 @@ var init_emergency_email = __esm({
     init_logger();
     log3 = logger.child({ component: "EmergencyEmailService" });
     EmergencyEmailService = class {
-      static {
-        this.transporter = null;
-      }
+      static transporter = null;
       static getTransporter() {
         if (this.transporter) return this.transporter;
         const host = process.env.SMTP_HOST || "smtp.yandex.ru";
@@ -97905,6 +98072,8 @@ var init_emergency_email = __esm({
           port,
           secure: port === 465,
           auth: { user, pass },
+          localAddress: process.env.SMTP_LOCAL_ADDRESS || void 0,
+          family: 4,
           connectionTimeout: 5e3,
           socketTimeout: 5e3
         });
@@ -129323,6 +129492,7 @@ var init_order_service = __esm({
     init_compensation_service();
     init_transactions();
     init_queue_manager();
+    init_order_constants();
     OrderService = class {
       /**
        * Fast secure path for Orders.
@@ -129477,7 +129647,7 @@ var init_order_service = __esm({
             return createdOrder;
           });
           try {
-            await ordersQueue.add("order-dispatch", { orderId: newOrder.id }, { jobId: `dispatch-${newOrder.id}`, delay: 3 * 60 * 1e3 });
+            await ordersQueue.add("order-dispatch", { orderId: newOrder.id }, { jobId: `dispatch-${newOrder.id}`, delay: ORDER_COOLING_OFF_MS });
           } catch (queueError) {
             console.error("[OrderService] Non-fatal queue dispatch error:", queueError instanceof Error ? queueError.message : String(queueError));
           }
@@ -129511,7 +129681,7 @@ var init_order_service = __esm({
        */
       async cancelPendingOrderClient(orderId, userId, tenantId) {
         try {
-          return await runSerializableTransaction(async (tx) => {
+          const result = await runSerializableTransaction(async (tx) => {
             const order = await tx.order.findUnique({
               where: { id: orderId }
             });
@@ -129520,6 +129690,9 @@ var init_order_service = __esm({
             }
             if (order.status !== "PENDING" && order.status !== "AWAITING_PAYMENT") {
               return { success: false, error: "\u0417\u0430\u043A\u0430\u0437 \u0443\u0436\u0435 \u0443\u0448\u0435\u043B \u0432 \u0440\u0430\u0431\u043E\u0442\u0443 \u0438\u043B\u0438 \u043E\u0442\u043C\u0435\u043D\u0435\u043D" };
+            }
+            if (order.externalId || order.providerOrderId) {
+              return { success: false, error: "\u0417\u0430\u043A\u0430\u0437 \u0443\u0436\u0435 \u043F\u0435\u0440\u0435\u0434\u0430\u043D \u0432 \u043E\u0431\u0440\u0430\u0431\u043E\u0442\u043A\u0443 \u0438 \u043D\u0435 \u043C\u043E\u0436\u0435\u0442 \u0431\u044B\u0442\u044C \u043E\u0442\u043C\u0435\u043D\u0451\u043D" };
             }
             const charge = order.charge;
             const wasAwaitingPayment = order.status === "AWAITING_PAYMENT";
@@ -129566,17 +129739,29 @@ var init_order_service = __esm({
                 );
               }
             }
-            Promise.resolve().then(() => (init_smtp(), smtp_exports)).then(({ sendOrderCanceledMail: sendOrderCanceledMail2 }) => {
-              db.user.findUnique({ where: { id: userId }, select: { email: true } }).then((u) => {
-                if (u?.email) {
-                  db.service.findUnique({ where: { id: order.serviceId }, select: { name: true } }).then((s) => {
-                    if (s?.name) sendOrderCanceledMail2(u.email, order.numericId.toString(), s.name, order.tenantId).catch(console.error);
-                  });
-                }
-              });
-            });
-            return { success: true };
+            return {
+              success: true,
+              emailData: {
+                userId,
+                numericId: order.numericId,
+                serviceId: order.serviceId,
+                tenantId: order.tenantId
+              }
+            };
           });
+          if (result.success && result.emailData) {
+            try {
+              const { sendOrderCanceledMail: sendOrderCanceledMail2 } = await Promise.resolve().then(() => (init_smtp(), smtp_exports));
+              const user = await db.user.findUnique({ where: { id: result.emailData.userId }, select: { email: true } });
+              const service = await db.service.findUnique({ where: { id: result.emailData.serviceId }, select: { name: true } });
+              if (user?.email && service?.name) {
+                await sendOrderCanceledMail2(user.email, result.emailData.numericId.toString(), service.name, result.emailData.tenantId);
+              }
+            } catch (emailErr) {
+              console.error("[OrderService] Failed to send cancel email:", emailErr);
+            }
+          }
+          return { success: result.success, error: "error" in result ? result.error : void 0 };
         } catch (e) {
           console.error("[OrderService] cancelPendingOrderClient failed:", e instanceof Error ? e.message : String(e));
           return { success: false, error: "\u0412\u043D\u0443\u0442\u0440\u0435\u043D\u043D\u044F\u044F \u043E\u0448\u0438\u0431\u043A\u0430 \u043F\u0440\u0438 \u043E\u0442\u043C\u0435\u043D\u0435 \u0437\u0430\u043A\u0430\u0437\u0430" };
@@ -129624,8 +129809,10 @@ var init_order_service = __esm({
               return { success: true, orderId: order.id, status: order.status };
             }
             let refundCents = 0;
-            if (internalStatus === "PARTIAL" || internalStatus === "CANCELED") {
-              if (internalStatus === "CANCELED" && (remains <= 0 || order.quantity <= 0)) {
+            if (internalStatus === "PARTIAL" || internalStatus === "CANCELED" || internalStatus === "ERROR") {
+              if ((internalStatus === "CANCELED" || internalStatus === "ERROR") && (remains <= 0 || order.quantity <= 0)) {
+                refundCents = Number(order.charge);
+              } else if (internalStatus === "ERROR") {
                 refundCents = Number(order.charge);
               } else {
                 refundCents = calculatePartialRefund({ remains, quantity: order.quantity, charge: order.charge });
@@ -129918,18 +130105,10 @@ var init_cbr_rate_service = __esm({
     "use strict";
     init_settings();
     CBRRateService = class {
-      static {
-        this.CBR_OFFICIAL_XML_URL = "https://www.cbr.ru/scripts/XML_daily.asp";
-      }
-      static {
-        this.CBR_JSON_MIRROR_URL = "https://www.cbr-xml-daily.ru/daily_json.js";
-      }
-      static {
-        this.GLOBAL_FX_API_URL = "https://open.er-api.com/v6/latest/USD";
-      }
-      static {
-        this.SPREAD_MULTIPLIER = 1.03;
-      }
+      static CBR_OFFICIAL_XML_URL = "https://www.cbr.ru/scripts/XML_daily.asp";
+      static CBR_JSON_MIRROR_URL = "https://www.cbr-xml-daily.ru/daily_json.js";
+      static GLOBAL_FX_API_URL = "https://open.er-api.com/v6/latest/USD";
+      static SPREAD_MULTIPLIER = 1.03;
       // +3% Margin Safety Net (PB-003)
       /**
        * Fetches raw currency rates from CBR with multi-tiered fallback.
@@ -130141,6 +130320,7 @@ var MarketingService, marketingService;
 var init_marketing_service = __esm({
   "src/services/marketing.service.ts"() {
     "use strict";
+    init_tenant_resolver_edge();
     init_db();
     init_financial_constants();
     init_settings();
@@ -130181,7 +130361,7 @@ var init_marketing_service = __esm({
       async calculatePrice(userId, serviceId, quantity, promoCodeStr, preloadedContext) {
         if (promoCodeStr) {
           const clean = promoCodeStr.trim().toUpperCase();
-          promoCodeStr = clean.length <= 32 && /^[A-Z0-9_-]+$/.test(clean) ? clean : null;
+          promoCodeStr = clean.length <= 64 && /^[A-Z0-9_-]+$/.test(clean) ? clean : null;
         } else {
           promoCodeStr = null;
         }
@@ -130233,7 +130413,13 @@ var init_marketing_service = __esm({
         let promoDiscountPercent = 0;
         const promoFixedDiscountCents = 0;
         if (promoCodeStr) {
-          const promo = await db.promoCode.findUnique({ where: { code: promoCodeStr } });
+          const normalizedTenant = normalizeTenantId(service.tenantId);
+          const promo = await db.promoCode.findFirst({
+            where: {
+              code: promoCodeStr,
+              tenantId: normalizedTenant
+            }
+          });
           if (promo && promo.isActive && (promo.maxUses === 0 || promo.uses < promo.maxUses)) {
             if (!promo.expiresAt || promo.expiresAt > /* @__PURE__ */ new Date()) {
               if (promo.type === "VOUCHER") {
@@ -130280,10 +130466,11 @@ var init_marketing_service = __esm({
       /**
        * Applies the use of a promo code atomically if required.
        */
-      async consumePromoCode(tx, promoCodeStr) {
+      async consumePromoCode(tx, promoCodeStr, tenantId = "smmplan") {
         if (!promoCodeStr) return;
         const normalizedCode = promoCodeStr.trim().toUpperCase();
-        const promo = await tx.promoCode.findUnique({ where: { code: normalizedCode } });
+        const normalizedTenant = normalizeTenantId(tenantId);
+        const promo = await tx.promoCode.findFirst({ where: { code: normalizedCode, tenantId: normalizedTenant } });
         if (!promo || !promo.isActive) {
           throw new Error("\u041F\u0440\u043E\u043C\u043E\u043A\u043E\u0434 \u043D\u0435\u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0442\u0435\u043B\u0435\u043D");
         }
@@ -130487,6 +130674,8 @@ async function createProxyDispatcher(proxy) {
     const { SocksProxyAgent: SocksProxyAgent2 } = await Promise.resolve().then(() => (init_dist6(), dist_exports));
     const socksUrl = `socks5h://${auth}${proxy.host}:${proxy.port}`;
     const socksAgent = new SocksProxyAgent2(socksUrl);
+    socksAgent.on("error", () => {
+    });
     const connectFn = (opts, callback) => {
       try {
         const anyOpts = opts || {};
@@ -130495,14 +130684,34 @@ async function createProxyDispatcher(proxy) {
         const host = anyOpts.hostname || anyOpts.host || "localhost";
         const safeOpts = { ...anyOpts, port, host };
         const rawConnect = socksAgent.connect.bind(socksAgent);
-        rawConnect(
-          {},
+        const mockReq = {
+          emit: () => false,
+          on: () => {
+          },
+          once: () => {
+          },
+          removeListener: () => {
+          },
+          getHeader: () => void 0,
+          setHeader: () => {
+          }
+        };
+        const sock = rawConnect(
+          mockReq,
           safeOpts,
           (err, socket) => {
+            if (socket && typeof socket.on === "function") {
+              socket.on("error", () => {
+              });
+            }
             if (err) return callback(err, null);
             callback(null, socket || null);
           }
         );
+        if (sock && typeof sock.on === "function") {
+          sock.on("error", () => {
+          });
+        }
       } catch (err) {
         callback(err instanceof Error ? err : new Error(String(err)), null);
       }
@@ -130510,14 +130719,18 @@ async function createProxyDispatcher(proxy) {
     return new Agent5({
       connect: connectFn,
       connectTimeout: 8e3,
-      headersTimeout: 15e3
+      headersTimeout: 15e3,
+      keepAliveTimeout: 3e4,
+      keepAliveMaxTimeout: 6e4
     });
   }
   const proxyUrl = `${proxy.protocol}://${auth}${proxy.host}:${proxy.port}`;
   return new ProxyAgent2({
     uri: proxyUrl,
     connectTimeout: 8e3,
-    headersTimeout: 15e3
+    headersTimeout: 15e3,
+    keepAliveTimeout: 3e4,
+    keepAliveMaxTimeout: 6e4
   });
 }
 async function proxiedFetch(url, init) {
@@ -130550,16 +130763,10 @@ var init_proxy_pool_service = __esm({
     init_redis();
     init_vault();
     ProxyPoolService = class {
-      static {
-        this.QUARANTINE_DURATION_MS = 15 * 60 * 1e3;
-      }
-      static {
-        // 15 minutes
-        this.MAX_FAILURES_BEFORE_QUARANTINE = 3;
-      }
-      static {
-        this.REDIS_HEALTH_PREFIX = "proxy:health:";
-      }
+      static QUARANTINE_DURATION_MS = 15 * 60 * 1e3;
+      // 15 minutes
+      static MAX_FAILURES_BEFORE_QUARANTINE = 3;
+      static REDIS_HEALTH_PREFIX = "proxy:health:";
       /**
        * Fetch active, healthy proxies from database & cache.
        */
@@ -130769,16 +130976,10 @@ var init_security_alert_service = __esm({
     init_notifications();
     init_redis();
     SecurityAlertService = class {
-      static {
-        this.THROTTLE_PREFIX = "security:alert:throttle:";
-      }
-      static {
-        this.THROTTLE_TTL_SEC = 60;
-      }
-      static {
-        // 1 alert per minute per event+ip pair
-        this.STREAM_CHANNEL = "security:events:stream";
-      }
+      static THROTTLE_PREFIX = "security:alert:throttle:";
+      static THROTTLE_TTL_SEC = 60;
+      // 1 alert per minute per event+ip pair
+      static STREAM_CHANNEL = "security:events:stream";
       /**
        * Records a security event to DB, broadcasts via Redis Pub/Sub,
        * and sends an immediate Telegram alert to admins if CRITICAL/HIGH (with anti-flooding).
@@ -130873,23 +131074,37 @@ var init_security_alert_service = __esm({
        * Fetches paginated security events for the admin panel.
        */
       static async getRecentEvents(options) {
-        const { limit = 50, offset = 0, severity, event, ip, tenantId } = options || {};
+        const { limit = 50, offset = 0, cursor, severity, event, ip, tenantId } = options || {};
         const where = {};
         if (severity && severity !== "ALL") where.severity = severity;
         if (event && event !== "ALL") where.event = event;
         if (ip) where.ip = { contains: ip };
         if (tenantId && tenantId !== "ALL") where.tenantId = tenantId;
         try {
-          const [events, total] = await Promise.all([
-            db.securityEvent.findMany({
-              where,
-              orderBy: { createdAt: "desc" },
-              take: Math.min(limit, 100),
-              skip: offset
-            }),
+          const safeLimit = Math.min(Math.max(1, limit), 100);
+          const orderBy = [
+            { createdAt: "desc" },
+            { id: "desc" }
+          ];
+          const queryOptions = {
+            where,
+            orderBy,
+            take: safeLimit + 1
+          };
+          if (cursor) {
+            queryOptions.cursor = { id: cursor };
+            queryOptions.skip = 1;
+          } else if (offset > 0) {
+            queryOptions.skip = offset;
+          }
+          const [rawEvents, total] = await Promise.all([
+            db.securityEvent.findMany(queryOptions),
             db.securityEvent.count({ where })
           ]);
-          return { events, total };
+          const hasMore = rawEvents.length > safeLimit;
+          const events = hasMore ? rawEvents.slice(0, safeLimit) : rawEvents;
+          const nextCursor = hasMore && events.length > 0 ? events[events.length - 1].id : void 0;
+          return { events, total, nextCursor, hasMore };
         } catch (err) {
           console.error("[SecurityAlertService] Failed to query security events:", err);
           return { events: [], total: 0 };
@@ -131138,16 +131353,10 @@ var init_network_router = __esm({
         }
       ]
     };
-    UniversalNetworkRouter = class {
-      static {
-        this.cachedConfig = null;
-      }
-      static {
-        this.lastConfigFetch = 0;
-      }
-      static {
-        this.CONFIG_CACHE_TTL_MS = 3e4;
-      }
+    UniversalNetworkRouter = class _UniversalNetworkRouter {
+      static cachedConfig = null;
+      static lastConfigFetch = 0;
+      static CONFIG_CACHE_TTL_MS = 3e4;
       /**
        * Loads the current routing configuration from SystemSettings or returns default
        */
@@ -131368,6 +131577,21 @@ var init_network_router = __esm({
         }
         return null;
       }
+      static directKeepAliveAgent = null;
+      static async getDirectKeepAliveAgent() {
+        if (!_UniversalNetworkRouter.directKeepAliveAgent) {
+          const { Agent: Agent5 } = await Promise.resolve().then(() => __toESM(require_undici()));
+          _UniversalNetworkRouter.directKeepAliveAgent = new Agent5({
+            keepAliveTimeout: 3e4,
+            keepAliveMaxTimeout: 6e4,
+            connections: 50,
+            pipelining: 1,
+            connectTimeout: 8e3,
+            headersTimeout: 15e3
+          });
+        }
+        return _UniversalNetworkRouter.directKeepAliveAgent;
+      }
       /**
        * Universal fetch drop-in replacement with Clash-style routing dispatch & Multi-Proxy Failover
        */
@@ -131381,7 +131605,26 @@ var init_network_router = __esm({
           throw new Error(`[NetworkRouter] Connection blocked by policy (REJECT): ${url}`);
         }
         if (route.target === "DIRECT" || !route.proxyConfig) {
-          return fetch(url, init);
+          let undiciFetchFn = null;
+          let agent2 = null;
+          try {
+            const undici = await Promise.resolve().then(() => __toESM(require_undici()));
+            undiciFetchFn = undici.fetch;
+            agent2 = await this.getDirectKeepAliveAgent();
+          } catch {
+          }
+          const signal = init?.signal || AbortSignal.timeout(15e3);
+          if (undiciFetchFn && agent2) {
+            return await undiciFetchFn(url, {
+              ...init,
+              signal,
+              dispatcher: agent2
+            });
+          }
+          return fetch(url, {
+            ...init,
+            signal
+          });
         }
         try {
           const dispatcher = await createProxyDispatcher(route.proxyConfig);
@@ -131470,6 +131713,11 @@ __export2(payment_gateway_service_exports, {
 function invalidateVatThresholdCache(tenantId) {
   if (tenantId) {
     vatThresholdCache.delete(tenantId);
+    for (const key of vatThresholdCache.keys()) {
+      if (key === tenantId || key.startsWith(`${tenantId}:`)) {
+        vatThresholdCache.delete(key);
+      }
+    }
   } else {
     vatThresholdCache.clear();
   }
@@ -131493,12 +131741,14 @@ function toSafePaymentContextLog(ctx) {
 async function checkVatThreshold(tenantId = "smmplan") {
   const cleanTenant = tenantId || "smmplan";
   const now = Date.now();
-  const cached = vatThresholdCache.get(cleanTenant);
+  const currentYear = (/* @__PURE__ */ new Date()).getFullYear();
+  const cacheKey = `${cleanTenant}:${currentYear}`;
+  const cached = vatThresholdCache.get(cacheKey);
   if (cached && cached.expiresAt > now) {
     return cached.result;
   }
-  const currentYear = (/* @__PURE__ */ new Date()).getFullYear();
   const startOfYear = new Date(currentYear, 0, 1);
+  const endOfYear = new Date(currentYear + 1, 0, 1);
   const grossResult = await db.payment.aggregate({
     _sum: { amount: true },
     where: {
@@ -131512,14 +131762,15 @@ async function checkVatThreshold(tenantId = "smmplan") {
     _sum: { amount: true },
     where: {
       tenantId: cleanTenant,
-      transactionType: "REFUND",
+      transactionType: { in: ["REFUND", "ORDER_CANCEL"] },
       createdAt: { gte: startOfYear }
     }
   }).catch(() => ({ _sum: { amount: BigInt(0) } }));
   const refundKopecks = BigInt(refundResult._sum?.amount || 0);
   const netAnnualRevenueKopecks = grossKopecks > refundKopecks ? grossKopecks - refundKopecks : BigInt(0);
   const isExceeded = netAnnualRevenueKopecks >= VAT_THRESHOLD_KOPECKS;
-  vatThresholdCache.set(cleanTenant, { result: isExceeded, expiresAt: now + 3600 * 1e3 });
+  const expiresAt = Math.min(now + 3600 * 1e3, endOfYear.getTime());
+  vatThresholdCache.set(cacheKey, { result: isExceeded, expiresAt });
   return isExceeded;
 }
 var import_crypto3, VAT_THRESHOLD_KOPECKS, vatThresholdCache, BasePaymentGateway, YooKassaGateway, CryptoBotGateway, BalanceGateway, RobokassaGateway, MockGateway, PaymentGatewayFactory;
@@ -131532,6 +131783,7 @@ var init_payment_gateway_service = __esm({
     init_wallet_ops();
     import_crypto3 = __toESM(require("crypto"));
     init_network_router();
+    init_order_constants();
     VAT_THRESHOLD_KOPECKS = BigInt(2e7) * BigInt(100);
     vatThresholdCache = /* @__PURE__ */ new Map();
     BasePaymentGateway = class {
@@ -131965,7 +132217,7 @@ var init_payment_gateway_service = __esm({
           return ids;
         }, { isolationLevel: "Serializable", timeout: 15e3 });
         for (const id of updatedOrderIds) {
-          await ordersQueue2.add("order-dispatch", { orderId: id }, { jobId: `dispatch-${id}`, delay: 3 * 60 * 1e3 });
+          await ordersQueue2.add("order-dispatch", { orderId: id }, { jobId: `dispatch-${id}`, delay: ORDER_COOLING_OFF_MS });
         }
         return {
           paymentUrl: params.successUrl,
@@ -132056,9 +132308,9 @@ var init_payment_gateway_service = __esm({
       }
     };
     PaymentGatewayFactory = class {
-      static getGateway(gatewayName, options) {
+      static getGateway(gatewayName, _options) {
         const normalizedName = gatewayName.toLowerCase();
-        if (options?.isMockPayment && normalizedName !== "balance") {
+        if (normalizedName === "mock") {
           return new MockGateway();
         }
         switch (normalizedName) {
@@ -132078,8 +132330,6 @@ var init_payment_gateway_service = __esm({
             return new CryptoBotGateway();
           case "balance":
             return new BalanceGateway();
-          case "mock":
-            return new MockGateway();
           default:
             return new YooKassaGateway();
         }
@@ -132260,9 +132510,7 @@ var init_bot_settings_service = __esm({
     init_telegram();
     CACHE_TTL_MS2 = 3e4;
     BotSettingsService = class {
-      static {
-        this.cache = /* @__PURE__ */ new Map();
-      }
+      static cache = /* @__PURE__ */ new Map();
       /**
        * Invalidate settings cache (called by admin actions on update)
        */
@@ -132418,9 +132666,10 @@ var init_deposit_wizard = __esm({
     import_telegraf = __toESM(require_lib3());
     init_db();
     init_unified_payment_service();
+    init_tenant_resolver_edge();
     init_menu_navigation();
     DEPOSIT_WIZARD = "deposit-wizard";
-    botTenantId = process.env.BOT_TENANT_ID || "smmplan";
+    botTenantId = normalizeTenantId(process.env.BOT_TENANT_ID) || "smmplan";
     depositWizard = new import_telegraf.Scenes.WizardScene(
       DEPOSIT_WIZARD,
       // ШАГ 1: Запрос суммы
@@ -132521,7 +132770,7 @@ var init_deposit_wizard = __esm({
           return ctx.scene.leave();
         }
         await ctx.editMessageText("\u{1F504} \u0421\u043E\u0437\u0434\u0430\u044E \u043F\u043B\u0430\u0442\u0435\u0436, \u043F\u043E\u0434\u043E\u0436\u0434\u0438\u0442\u0435...");
-        const siteName = botTenantId === "flux" || botTenantId === "lovable" ? "SMMflux" : "SMMplan";
+        const siteName = botTenantId === "flux" ? "SMMflux" : "SMMplan";
         const res = await UnifiedPaymentService.createPayment(
           void 0,
           user.id,
@@ -132662,9 +132911,10 @@ var init_referral_wizard = __esm({
     "use strict";
     import_telegraf2 = __toESM(require_lib3());
     init_get_base_url();
+    init_tenant_resolver_edge();
     init_db();
     REFERRAL_WIZARD = "referral-wizard";
-    botTenantId2 = process.env.BOT_TENANT_ID || "smmplan";
+    botTenantId2 = normalizeTenantId(process.env.BOT_TENANT_ID) || "smmplan";
     referralWizard = new import_telegraf2.Scenes.WizardScene(
       REFERRAL_WIZARD,
       // ШАГ 1: Показать статистику и ссылку
@@ -132690,7 +132940,7 @@ var init_referral_wizard = __esm({
             });
             user.referralCode = newCode;
           }
-          const host = botTenantId2 === "flux" || botTenantId2 === "lovable" ? process.env.FLUX_APP_URL || "https://smmflux.ru" : getBaseUrlSync();
+          const host = botTenantId2 === "flux" ? process.env.FLUX_APP_URL || "https://smmflux.ru" : getBaseUrlSync();
           const link = `${host}/?ref=${user.referralCode}`;
           const earned = (user.referralBalance ?? 0) / 100;
           const refsCount = user._count?.referrals ?? 0;
@@ -132722,7 +132972,7 @@ var init_referral_wizard = __esm({
           return ctx.scene.leave();
         }
       },
-      async (ctx) => {
+      async () => {
         return;
       }
     );
@@ -137723,12 +137973,10 @@ var init_unified_link_engine = __esm({
     init_ssrf_guard();
     init_prohibited_content();
     UnifiedLinkEngineImpl = class {
-      constructor() {
-        this.analyzer = new IntelligenceLinkAnalyzer();
-        this.cache = /* @__PURE__ */ new Map();
-        this.MAX_CACHE_SIZE = 2e3;
-        this.CACHE_TTL_MS = 6e4;
-      }
+      analyzer = new IntelligenceLinkAnalyzer();
+      cache = /* @__PURE__ */ new Map();
+      MAX_CACHE_SIZE = 2e3;
+      CACHE_TTL_MS = 6e4;
       // 1 minute
       /**
        * Fast In-Memory Analysis with LRU Caching and Security Guard.
@@ -138678,12 +138926,8 @@ var init_p0_alert_debouncer = __esm({
     inMemoryLocks = /* @__PURE__ */ new Map();
     inMemoryCounters = /* @__PURE__ */ new Map();
     P0AlertDebouncer = class {
-      static {
-        this.PREFIX = "p0:debounce:";
-      }
-      static {
-        this.THRESHOLD_PREFIX = "p0:threshold:";
-      }
+      static PREFIX = "p0:debounce:";
+      static THRESHOLD_PREFIX = "p0:threshold:";
       /**
        * Attempts to acquire an alert lock.
        * Returns TRUE if this is the first alert in the window (lock acquired -> ALLOW SEND).
@@ -138823,17 +139067,11 @@ var init_circuit_breaker = __esm({
       }
     };
     CircuitBreaker = class {
-      static {
-        this.FAILURE_THRESHOLD = 5;
-      }
-      static {
-        // failures
-        this.FAILURE_WINDOW_SEC = 60;
-      }
-      static {
-        // window to accumulate failures
-        this.COOL_DOWN_SEC = 30;
-      }
+      static FAILURE_THRESHOLD = 5;
+      // failures
+      static FAILURE_WINDOW_SEC = 60;
+      // window to accumulate failures
+      static COOL_DOWN_SEC = 30;
       // time before half-open state
       /**
        * Checks if a request to the given URL is allowed.
@@ -138956,9 +139194,11 @@ var init_universal_provider = __esm({
     }).passthrough();
     ProviderServicesArraySchema = external_exports.array(ProviderServiceSchema);
     UniversalProvider = class {
+      apiUrl;
+      apiKey;
+      mapping = null;
+      proxyConfig = null;
       constructor(apiUrl, apiKey, metadata, proxyConfig) {
-        this.mapping = null;
-        this.proxyConfig = null;
         this.apiUrl = apiUrl;
         this.apiKey = apiKey;
         if (metadata && typeof metadata === "object" && metadata.mapping) {
@@ -138983,6 +139223,35 @@ var init_universal_provider = __esm({
         return current;
       }
       async request(paramsOrPayload, retries = 2) {
+        if (this.apiUrl.includes("mock-provider") || this.apiUrl.includes("mock.smmplan.internal")) {
+          const action = String(paramsOrPayload.action || "");
+          if (action === "services") {
+            return [
+              { service: "mock_boost_7d", name: "Telegram \u0411\u0443\u0441\u0442\u044B \u0434\u043B\u044F \u043A\u0430\u043D\u0430\u043B\u043E\u0432 \u2014 \u041D\u0430 7 \u0434\u043D\u0435\u0439 (\u0422\u0435\u0441\u0442)", category: "\u0411\u0443\u0441\u0442\u044B \u0434\u043B\u044F \u043A\u0430\u043D\u0430\u043B\u043E\u0432", rate: "1.00", min: "1", max: "100000", dripfeed: true, cancel: true, refill: false },
+              { service: "mock_boost_14d", name: "Telegram \u0411\u0443\u0441\u0442\u044B \u0434\u043B\u044F \u043A\u0430\u043D\u0430\u043B\u043E\u0432 \u2014 \u041D\u0430 14 \u0434\u043D\u0435\u0439 (\u0422\u0435\u0441\u0442)", category: "\u0411\u0443\u0441\u0442\u044B \u0434\u043B\u044F \u043A\u0430\u043D\u0430\u043B\u043E\u0432", rate: "1.00", min: "1", max: "100000", dripfeed: true, cancel: true, refill: false },
+              { service: "mock_boost_30d", name: "Telegram \u0411\u0443\u0441\u0442\u044B \u0434\u043B\u044F \u043A\u0430\u043D\u0430\u043B\u043E\u0432 \u2014 \u041D\u0430 30 \u0434\u043D\u0435\u0439 (\u0422\u0435\u0441\u0442)", category: "\u0411\u0443\u0441\u0442\u044B \u0434\u043B\u044F \u043A\u0430\u043D\u0430\u043B\u043E\u0432", rate: "1.00", min: "1", max: "100000", dripfeed: true, cancel: true, refill: false }
+            ];
+          }
+          if (action === "balance") {
+            return { balance: "999999.00", currency: "RUB" };
+          }
+          if (action === "add") {
+            return { order: `mock_${Date.now()}_${Math.floor(Math.random() * 1e4)}` };
+          }
+          if (action === "status") {
+            if (paramsOrPayload.orders) {
+              const ids = String(paramsOrPayload.orders).split(",").map((s) => s.trim()).filter(Boolean);
+              const multi = {};
+              for (const id of ids) {
+                multi[id] = { order: id, status: "Completed", charge: "1.00", start_count: "100", remains: "0", currency: "RUB" };
+              }
+              return multi;
+            }
+            const orderId = String(paramsOrPayload.order || "");
+            return { order: orderId, status: "Completed", charge: "1.00", start_count: "100", remains: "0", currency: "RUB" };
+          }
+          return { success: true };
+        }
         await assertSafeUrl(this.apiUrl);
         await CircuitBreaker.check(this.apiUrl);
         let httpMethod = "POST";
@@ -139133,15 +139402,17 @@ var init_universal_provider = __esm({
           if (balanceVal === void 0) {
             throw new Error(`Schema Drift Error: \u041E\u0436\u0438\u0434\u0430\u043B\u0441\u044F \u043A\u043B\u044E\u0447 \u0431\u0430\u043B\u0430\u043D\u0441\u0430 '${bPath}', \u043D\u043E \u043E\u043D \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D \u0432 \u043E\u0442\u0432\u0435\u0442\u0435.`);
           }
+          const parsedMappedCurrency = currencyVal !== void 0 && currencyVal !== null && String(currencyVal).trim() !== "" ? String(currencyVal).trim() : "";
           return {
             balance: String(balanceVal || "0"),
-            currency: String(currencyVal || "USD")
+            currency: parsedMappedCurrency
           };
         }
         if (res.error) throw new Error(String(res.error));
+        const parsedCurrency = res.currency !== void 0 && res.currency !== null && String(res.currency).trim() !== "" ? String(res.currency).trim() : "";
         return {
           balance: String(res.balance || "0"),
-          currency: String(res.currency || "USD")
+          currency: parsedCurrency
         };
       }
       async getServices() {
@@ -139287,6 +139558,166 @@ var init_universal_provider = __esm({
   }
 });
 
+// src/services/providers/mock.provider.ts
+var MockProvider;
+var init_mock_provider = __esm({
+  "src/services/providers/mock.provider.ts"() {
+    "use strict";
+    MockProvider = class _MockProvider {
+      name;
+      apiUrl;
+      apiKey;
+      static orderStore = /* @__PURE__ */ new Map();
+      constructor(name = "Mock Provider (\u041F\u0435\u0441\u043E\u0447\u043D\u0438\u0446\u0430 API)", apiUrl = "https://mock-provider.internal/api/v2", apiKey = "dev_mock_provider_secret_key_2026") {
+        this.name = name;
+        this.apiUrl = apiUrl;
+        this.apiKey = apiKey;
+      }
+      /**
+       * Clears in-memory mock order storage (for test teardowns)
+       */
+      static resetOrderStore() {
+        _MockProvider.orderStore.clear();
+      }
+      async getBalance() {
+        return {
+          balance: "999999.00",
+          currency: "RUB"
+        };
+      }
+      async getServices() {
+        return [
+          {
+            service: "mock_boost_7d",
+            name: "Telegram \u0411\u0443\u0441\u0442\u044B \u0434\u043B\u044F \u043A\u0430\u043D\u0430\u043B\u043E\u0432 \u2014 \u041D\u0430 7 \u0434\u043D\u0435\u0439 (\u0422\u0435\u0441\u0442)",
+            category: "\u0411\u0443\u0441\u0442\u044B \u0434\u043B\u044F \u043A\u0430\u043D\u0430\u043B\u043E\u0432",
+            rate: "1.00",
+            min: "1",
+            max: "100000",
+            type: "Default",
+            desc: "\u0411\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u044B\u0439 \u0442\u0435\u0441\u0442\u043E\u0432\u044B\u0439 \u0431\u0443\u0441\u0442 \u043D\u0430 7 \u0434\u043D\u0435\u0439 \u0434\u043B\u044F \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0438 \u0432\u0438\u0442\u0440\u0438\u043D\u044B \u0438 \u0447\u0435\u043A\u0430\u0443\u0442\u0430.",
+            dripfeed: true,
+            cancel: true,
+            refill: false
+          },
+          {
+            service: "mock_boost_14d",
+            name: "Telegram \u0411\u0443\u0441\u0442\u044B \u0434\u043B\u044F \u043A\u0430\u043D\u0430\u043B\u043E\u0432 \u2014 \u041D\u0430 14 \u0434\u043D\u0435\u0439 (\u0422\u0435\u0441\u0442)",
+            category: "\u0411\u0443\u0441\u0442\u044B \u0434\u043B\u044F \u043A\u0430\u043D\u0430\u043B\u043E\u0432",
+            rate: "1.00",
+            min: "1",
+            max: "100000",
+            type: "Default",
+            desc: "\u0411\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u044B\u0439 \u0442\u0435\u0441\u0442\u043E\u0432\u044B\u0439 \u0431\u0443\u0441\u0442 \u043D\u0430 14 \u0434\u043D\u0435\u0439 \u0434\u043B\u044F \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0438 \u0432\u0438\u0442\u0440\u0438\u043D\u044B \u0438 \u0447\u0435\u043A\u0430\u0443\u0442\u0430.",
+            dripfeed: true,
+            cancel: true,
+            refill: false
+          },
+          {
+            service: "mock_boost_30d",
+            name: "Telegram \u0411\u0443\u0441\u0442\u044B \u0434\u043B\u044F \u043A\u0430\u043D\u0430\u043B\u043E\u0432 \u2014 \u041D\u0430 30 \u0434\u043D\u0435\u0439 (\u0422\u0435\u0441\u0442)",
+            category: "\u0411\u0443\u0441\u0442\u044B \u0434\u043B\u044F \u043A\u0430\u043D\u0430\u043B\u043E\u0432",
+            rate: "1.00",
+            min: "1",
+            max: "100000",
+            type: "Default",
+            desc: "\u0411\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u044B\u0439 \u0442\u0435\u0441\u0442\u043E\u0432\u044B\u0439 \u0431\u0443\u0441\u0442 \u043D\u0430 30 \u0434\u043D\u0435\u0439 \u0434\u043B\u044F \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0438 \u0432\u0438\u0442\u0440\u0438\u043D\u044B \u0438 \u0447\u0435\u043A\u0430\u0443\u0442\u0430.",
+            dripfeed: true,
+            cancel: true,
+            refill: false
+          },
+          {
+            service: "mock_subscribers_std",
+            name: "Telegram \u041F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A\u0438 (\u0422\u0435\u0441\u0442)",
+            category: "\u041F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A\u0438",
+            rate: "0.10",
+            min: "10",
+            max: "100000",
+            type: "Default",
+            desc: "\u0422\u0435\u0441\u0442\u043E\u0432\u044B\u0435 \u043F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A\u0438 \u0434\u043B\u044F \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0438 \u043E\u0444\u043E\u0440\u043C\u043B\u0435\u043D\u0438\u044F \u0437\u0430\u043A\u0430\u0437\u0430.",
+            dripfeed: true,
+            cancel: true,
+            refill: false
+          }
+        ];
+      }
+      async createOrder(params) {
+        const link = params.link || "";
+        if (link.includes("fail-create")) {
+          return { error: "Mock Provider: Simulated order creation failure" };
+        }
+        if (link.includes("timeout")) {
+          throw new Error("Mock Provider: Simulated network timeout");
+        }
+        const externalOrderId = `mock_${Date.now()}_${Math.floor(Math.random() * 1e4)}`;
+        const initialStatus = {
+          order: externalOrderId,
+          status: "Completed",
+          charge: "1.00",
+          start_count: "100",
+          remains: "0"
+        };
+        _MockProvider.orderStore.set(externalOrderId, initialStatus);
+        return {
+          order: externalOrderId,
+          status: "pending"
+        };
+      }
+      async getOrderStatus(orderId) {
+        const idStr = String(orderId);
+        const existing = _MockProvider.orderStore.get(idStr);
+        if (existing) {
+          return existing;
+        }
+        return {
+          order: idStr,
+          status: "Completed",
+          charge: "1.00",
+          start_count: "100",
+          remains: "0"
+        };
+      }
+      async getMultiOrderStatus(orderIds) {
+        const result = {};
+        for (const id of orderIds) {
+          const idStr = String(id);
+          const existing = _MockProvider.orderStore.get(idStr);
+          result[idStr] = existing || {
+            order: idStr,
+            status: "Completed",
+            charge: "1.00",
+            start_count: "100",
+            remains: "0"
+          };
+        }
+        return result;
+      }
+      async cancelOrder(orderId) {
+        const idStr = String(orderId);
+        const existing = _MockProvider.orderStore.get(idStr);
+        if (existing) {
+          existing.status = "Canceled";
+        } else {
+          _MockProvider.orderStore.set(idStr, {
+            order: idStr,
+            status: "Canceled",
+            charge: "0.00",
+            start_count: "0",
+            remains: "0"
+          });
+        }
+        return { success: true };
+      }
+      async refill(orderId) {
+        return { refill: `mock_refill_${orderId}_${Date.now()}` };
+      }
+      async getRefillStatus(refillId) {
+        return { status: "Completed" };
+      }
+    };
+  }
+});
+
 // src/services/providers/provider.service.ts
 var ProviderService, providerService;
 var init_provider_service = __esm({
@@ -139295,6 +139726,7 @@ var init_provider_service = __esm({
     init_db();
     init_settings();
     init_universal_provider();
+    init_mock_provider();
     init_vault();
     init_redis();
     ProviderService = class {
@@ -139354,17 +139786,9 @@ var init_provider_service = __esm({
         } catch {
           decryptedKey = config2.apiKey;
         }
-        if (apiUrl.includes("mock.smmplan.internal") || apiUrl.includes("mock-provider") || config2.name.toLowerCase().includes("mock provider")) {
-          const port = process.env.PORT || "3000";
-          const internalBase = process.env.INTERNAL_WEB_URL || (process.env.NODE_ENV === "production" ? "http://web:3000" : `http://127.0.0.1:${port}`);
-          const internalUrl = `${internalBase}/api/dev/mock-provider`;
-          decryptedKey = process.env.MOCK_PROVIDER_KEY || decryptedKey || "mock_master_key_2026";
-          return new UniversalProvider(
-            internalUrl,
-            decryptedKey,
-            config2.metadata,
-            null
-          );
+        const lowerName = (config2.name || "").toLowerCase();
+        if (apiUrl.includes("mock.smmplan.internal") || apiUrl.includes("mock-provider") || apiUrl.includes("mock") || lowerName.includes("mock") || lowerName.includes("\u0442\u0435\u0441\u0442") || lowerName.includes("\u043F\u0435\u0441\u043E\u0447\u043D\u0438\u0446")) {
+          return new MockProvider(config2.name, config2.apiUrl, decryptedKey || config2.apiKey);
         }
         const proxyConfig = await this.resolveProxyConfig(config2);
         return new UniversalProvider(
@@ -139404,9 +139828,29 @@ var init_provider_service = __esm({
        * This protects real provider balance from being charged during QA testing.
        */
       async getWorkerProviderInstance(config2, tenantId) {
-        const isMockProvider = await SettingsManager.isMockProviderEnabled(tenantId);
+        let decryptedKey;
+        try {
+          decryptedKey = VaultService.decrypt(config2.apiKey);
+        } catch {
+          decryptedKey = config2.apiKey;
+        }
+        const lowerName = (config2.name || "").toLowerCase();
+        const isMockConfig = config2.apiUrl.includes("mock.smmplan.internal") || config2.apiUrl.includes("mock-provider") || config2.apiUrl.includes("mock") || lowerName.includes("mock") || lowerName.includes("\u0442\u0435\u0441\u0442") || lowerName.includes("\u043F\u0435\u0441\u043E\u0447\u043D\u0438\u0446");
+        if (isMockConfig) {
+          return new MockProvider(config2.name, config2.apiUrl, decryptedKey || config2.apiKey);
+        }
+        let isMockProvider = false;
+        try {
+          if (typeof SettingsManager?.isMockProviderEnabled === "function") {
+            isMockProvider = await SettingsManager.isMockProviderEnabled(tenantId);
+          } else if (typeof SettingsManager?.isTestMode === "function") {
+            isMockProvider = await SettingsManager.isTestMode(tenantId);
+          }
+        } catch {
+          isMockProvider = false;
+        }
         if (isMockProvider) {
-          const mockKey = process.env.MOCK_PROVIDER_KEY || "mock_master_key_2026";
+          const mockKey = process.env.MOCK_PROVIDER_KEY || "dev_mock_provider_secret_key_2026";
           const port = process.env.PORT || "3000";
           const internalBase = process.env.INTERNAL_WEB_URL || (process.env.NODE_ENV === "production" ? "http://web:3000" : `http://127.0.0.1:${port}`);
           return new UniversalProvider(
@@ -139414,12 +139858,6 @@ var init_provider_service = __esm({
             mockKey,
             config2.metadata
           );
-        }
-        let decryptedKey;
-        try {
-          decryptedKey = VaultService.decrypt(config2.apiKey);
-        } catch {
-          decryptedKey = config2.apiKey;
         }
         const proxyConfig = await this.resolveProxyConfig(config2);
         return new UniversalProvider(
@@ -139657,9 +140095,7 @@ var init_geo_availability_service = __esm({
   "src/services/telemetry/geo-availability.service.ts"() {
     "use strict";
     GeoAvailabilityService = class _GeoAvailabilityService {
-      static {
-        this.DEFAULT_TARGET = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "https://test.smmplan.pro";
-      }
+      static DEFAULT_TARGET = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "https://test.smmplan.pro";
       /**
        * Performs an asynchronous geo-distributed HTTP probe across Russian and international probe nodes.
        */
@@ -139813,16 +140249,18 @@ var init_geo_availability_service = __esm({
 });
 
 // src/bot/scenes/owner-hub.wizard.ts
-async function isOwnerOrAdmin(tgId) {
+async function isOwnerOrAdmin(tgId, specificTenantId) {
   const strId = String(tgId);
   const adminChatId = process.env.ADMIN_ALERT_CHAT_ID;
   if (adminChatId && strId === String(adminChatId)) {
     return true;
   }
+  const tenantToUse = specificTenantId || normalizeTenantId(process.env.BOT_TENANT_ID) || "smmplan";
   try {
     const user = await db.user.findFirst({
       where: {
         telegramId: strId,
+        tenantId: tenantToUse,
         role: { in: ["OWNER", "ADMIN", "SUPER_ADMIN", "DEVELOPER"] }
       },
       select: { role: true }
@@ -139890,6 +140328,7 @@ var init_owner_hub_wizard = __esm({
     init_p0_threat_sensor_service();
     init_geo_availability_service();
     init_provider_service();
+    init_tenant_resolver_edge();
     ownerHubWizard = new import_telegraf4.Scenes.WizardScene(
       "owner-hub",
       async (ctx) => {
@@ -140507,10 +140946,11 @@ var init_promo_automation_service = __esm({
               const uniqueHash = import_crypto5.default.createHmac("sha256", secret).update(userId + rule.percent).digest("hex").substring(0, 8).toUpperCase();
               const deterministicCode = `VIP${rule.percent}-${uniqueHash}`;
               await db.promoCode.upsert({
-                where: { code: deterministicCode },
+                where: { tenantId_code: { tenantId: user.tenantId, code: deterministicCode } },
                 update: {},
                 // Do nothing if it exists
                 create: {
+                  tenantId: user.tenantId,
                   code: deterministicCode,
                   discountPercent: rule.percent,
                   maxUses: 1,
@@ -140550,7 +140990,7 @@ function safeRevalidatePath(path3, type) {
   try {
     (0, import_cache2.revalidatePath)(path3, type);
   } catch (err) {
-    const msg = err instanceof Error ? err instanceof Error ? err.message : String(err) : String(err);
+    const msg = err instanceof Error ? err.message : String(err);
     console.warn(`[Cache] revalidatePath failed for ${path3}:`, msg);
   }
 }
@@ -140566,6 +141006,7 @@ var init_payment_service = __esm({
     init_marketing_utils();
     init_promo_automation_service();
     init_security_alert_service();
+    init_order_constants();
     PaymentService = class {
       /**
        * Confirms a payment and activates the linked order.
@@ -140669,7 +141110,7 @@ var init_payment_service = __esm({
                 console.warn(`[Payment] User mismatch: caller passed ${userId}, payment bound to ${currentPayment.userId}. Using payment.userId.`);
               }
               const updated = await tx.payment.updateMany({
-                where: { id: currentPayment.id, tenantId: currentPayment.tenantId, status: "PENDING" },
+                where: { id: currentPayment.id, tenantId: currentPayment.tenantId, status: { in: ["PENDING", "FRAUD_HOLD"] } },
                 data: { status: "SUCCEEDED", gatewayId, receiptId: receiptId || void 0 }
               });
               if (updated.count === 0) {
@@ -140695,7 +141136,7 @@ var init_payment_service = __esm({
                 where: { id: linkedOrderId },
                 include: { user: { select: { email: true } }, service: { select: { name: true } } }
               });
-              if (order && order.status === "AWAITING_PAYMENT") {
+              if (order && (order.status === "AWAITING_PAYMENT" || order.status === "PENDING_CHECK")) {
                 if (creditAmount < order.charge) {
                   console.error(`[SECURITY] Underpaid order activation blocked: order #${order.numericId} requires ${order.charge} kopecks, but payment credited only ${creditAmount} kopecks.`);
                   void SecurityAlertService.record({
@@ -140746,7 +141187,7 @@ var init_payment_service = __esm({
             const basketOrders = await tx.order.findMany({
               where: {
                 paymentId: processedPaymentId,
-                status: "AWAITING_PAYMENT",
+                status: { in: ["AWAITING_PAYMENT", "PENDING_CHECK"] },
                 ...basketTenantId ? { tenantId: basketTenantId } : {}
               },
               include: { user: { select: { email: true } }, service: { select: { name: true } } }
@@ -140755,7 +141196,7 @@ var init_payment_service = __esm({
               await tx.order.updateMany({
                 where: {
                   paymentId: processedPaymentId,
-                  status: "AWAITING_PAYMENT",
+                  status: { in: ["AWAITING_PAYMENT", "PENDING_CHECK"] },
                   ...basketTenantId ? { tenantId: basketTenantId } : {}
                 },
                 data: { status: "PENDING" }
@@ -140809,7 +141250,7 @@ var init_payment_service = __esm({
           if (activatedOrders.length > 0) {
             const { ordersQueue: ordersQueue2 } = await Promise.resolve().then(() => (init_queue_manager(), queue_manager_exports));
             for (const activated of activatedOrders) {
-              await ordersQueue2.add("order-dispatch", { orderId: activated.id }, { jobId: `dispatch-${activated.id}`, delay: 3 * 60 * 1e3 });
+              await ordersQueue2.add("order-dispatch", { orderId: activated.id }, { jobId: `dispatch-${activated.id}`, delay: ORDER_COOLING_OFF_MS });
               if (activated.userEmail && activated.serviceName) {
                 void sendOrderPaidMail(
                   activated.userEmail,
@@ -141020,7 +141461,7 @@ var init_payment_service = __esm({
           if (activatedOrders.length > 0) {
             const { ordersQueue: ordersQueue2 } = await Promise.resolve().then(() => (init_queue_manager(), queue_manager_exports));
             for (const activated of activatedOrders) {
-              await ordersQueue2.add("order-dispatch", { orderId: activated.id }, { jobId: `dispatch-${activated.id}`, delay: 3 * 60 * 1e3 });
+              await ordersQueue2.add("order-dispatch", { orderId: activated.id }, { jobId: `dispatch-${activated.id}`, delay: ORDER_COOLING_OFF_MS });
               if (activated.userEmail && activated.serviceName) {
                 void sendOrderPaidMail(
                   activated.userEmail,
@@ -141051,9 +141492,7 @@ var init_sse_broadcaster = __esm({
   "src/lib/sse-broadcaster.ts"() {
     "use strict";
     SSEBroadcaster = class {
-      constructor() {
-        this.channels = /* @__PURE__ */ new Map();
-      }
+      channels = /* @__PURE__ */ new Map();
       /**
        * Subscribe a listener to a ticket's message stream.
        * Returns an unsubscribe function for cleanup.
@@ -141215,6 +141654,7 @@ var init_ticket_service = __esm({
     init_settings();
     init_sse_service();
     init_mime();
+    init_tenant_resolver_edge();
     TicketService = class {
       /**
        * Create a new ticket from an incoming customer email.
@@ -141226,9 +141666,7 @@ var init_ticket_service = __esm({
         if (!resolvedTenant && params.toEmail) {
           resolvedTenant = params.toEmail.toLowerCase().includes("flux") ? "flux" : "smmplan";
         }
-        if (!resolvedTenant) {
-          resolvedTenant = "smmplan";
-        }
+        resolvedTenant = normalizeTenantId(resolvedTenant) || "smmplan";
         let user = await db.user.findFirst({
           where: {
             email: { equals: normalizedEmail, mode: "insensitive" },
@@ -141302,7 +141740,7 @@ var init_ticket_service = __esm({
             where: { id: userId },
             select: { tenantId: true }
           });
-          const resolvedTenant = tenantId || user.tenantId || "smmplan";
+          const resolvedTenant = normalizeTenantId(tenantId || user.tenantId) || "smmplan";
           const existing = await tx.ticket.findFirst({
             where: { userId, tenantId: resolvedTenant, status: { not: "CLOSED" } },
             orderBy: { updatedAt: "desc" }
@@ -141368,8 +141806,8 @@ var init_ticket_service = __esm({
         }
         const resolvedMediaUrl = mediaUrl || attachmentsToCreate[0]?.url || null;
         const resolvedMediaType = mediaType || attachmentsToCreate[0]?.type || null;
-        let telegramError = null;
         if (sender === "STAFF" && ticketToUpdate.user.telegramId) {
+          let telegramError;
           try {
             const { supportBotService: supportBotService2 } = await Promise.resolve().then(() => (init_support_bot_service(), support_bot_service_exports));
             let replyToTgMsgId = void 0;
@@ -141385,7 +141823,7 @@ var init_ticket_service = __esm({
               replyToTgMsgId,
               resolvedMediaUrl || void 0,
               resolvedMediaType || void 0,
-              ticketToUpdate.tenantId || "smmplan"
+              normalizeTenantId(ticketToUpdate.tenantId) || "smmplan"
             );
             if (tgId) {
               telegramMsgId = tgId;
@@ -141433,7 +141871,7 @@ var init_ticket_service = __esm({
             ...sender === "STAFF" && !ticketToUpdate.firstRespondedAt ? { firstRespondedAt: /* @__PURE__ */ new Date() } : {}
           }
         });
-        if (sender === "STAFF" && message.ticket.user.email && !message.ticket.user.telegramId) {
+        if (sender === "STAFF" && ticketToUpdate.user?.email && !ticketToUpdate.user?.telegramId) {
           const actionText = `
         <p style="color: #4f46e5; font-size: 14px; font-weight: bold; margin-top: 20px;">
           \u270D\uFE0F \u0412\u044B \u043C\u043E\u0436\u0435\u0442\u0435 \u043E\u0442\u0432\u0435\u0442\u0438\u0442\u044C \u043D\u0430 \u044D\u0442\u043E \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435 \u043F\u0440\u044F\u043C\u043E \u0447\u0435\u0440\u0435\u0437 \u043F\u043E\u0447\u0442\u0443 \u2014 \u043F\u0440\u043E\u0441\u0442\u043E \u043D\u0430\u043F\u0438\u0448\u0438\u0442\u0435 \u043E\u0442\u0432\u0435\u0442\u043D\u043E\u0435 \u043F\u0438\u0441\u044C\u043C\u043E.
@@ -141442,9 +141880,10 @@ var init_ticket_service = __esm({
           \u0418\u043B\u0438 \u0432\u044B \u043C\u043E\u0436\u0435\u0442\u0435 \u0432\u043E\u0439\u0442\u0438 \u0432 \u043F\u0430\u043D\u0435\u043B\u044C \u0443\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F (Dashboard) \u0434\u043B\u044F \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u0430 \u0432\u0441\u0435\u0439 \u043F\u0435\u0440\u0435\u043F\u0438\u0441\u043A\u0438.
         </p>
       `;
-          const supportDomain = await SettingsProvider.getSupportEmailDomain();
-          const settings = await SettingsProvider.getContactAndLegalSettings();
-          const companyName = settings.COMPANY_NAME || "SMMplan";
+          const ticketTenant = normalizeTenantId(ticketToUpdate.tenantId) || "smmplan";
+          const supportDomain = await SettingsProvider.getSupportEmailDomain(ticketTenant);
+          const settings = await SettingsProvider.getContactAndLegalSettings(ticketTenant);
+          const companyName = settings.COMPANY_NAME || (ticketTenant === "flux" ? "SMMflux" : "SMMplan");
           const replyToAddress = `support+${message.ticket.id}@${supportDomain}`;
           const escapeHtml4 = (unsafe) => (unsafe ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;").replace(/\n/g, "<br>");
           const previousMessages = await db.ticketMessage.findMany({
@@ -141512,9 +141951,8 @@ var init_support_bot_service = __esm({
     import_fs2 = __toESM(require("fs"));
     import_path = __toESM(require("path"));
     SupportBotService = class {
+      UPLOAD_DIR_BASE = import_path.default.join(process.cwd(), "private", "uploads", "tickets");
       constructor() {
-        this.UPLOAD_DIR_BASE = import_path.default.join(process.cwd(), "private", "uploads", "tickets");
-        this.lastError = null;
         try {
           if (!import_fs2.default.existsSync(this.UPLOAD_DIR_BASE)) {
             import_fs2.default.mkdirSync(this.UPLOAD_DIR_BASE, { recursive: true });
@@ -141638,6 +142076,7 @@ var init_support_bot_service = __esm({
         }
         return json;
       }
+      lastError = null;
       getLastError() {
         return this.lastError;
       }
@@ -141919,7 +142358,7 @@ async function sendMainMenu(ctx, isEdit = false) {
   });
 }
 async function getDynamicInlineKeyboard(tgId) {
-  const isOwner = tgId ? await isOwnerOrAdmin(tgId) : false;
+  const isOwner = tgId ? await isOwnerOrAdmin(tgId, botTenantId4) : false;
   let baseRows = [
     [import_telegraf5.Markup.button.callback("\u{1F680} \u0411\u044B\u0441\u0442\u0440\u044B\u0439 \u0437\u0430\u043A\u0430\u0437 \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435", "start_fast_order")],
     [import_telegraf5.Markup.button.callback("\u{1F6CD} \u041A\u0430\u0442\u0430\u043B\u043E\u0433 \u0443\u0441\u043B\u0443\u0433", "shop"), import_telegraf5.Markup.button.callback("\u{1F4B0} \u041F\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u044C \u0431\u0430\u043B\u0430\u043D\u0441", "deposit")],
@@ -142108,7 +142547,7 @@ async function sendUserProfile(ctx) {
 \u{1F465} \u0420\u0435\u0444\u0435\u0440\u0430\u043B\u044C\u043D\u044B\u0439 \u043A\u043E\u0434: <code>${user.referralCode || "\u2014"}</code>
 
 <i>\u0423\u043F\u0440\u0430\u0432\u043B\u044F\u0439\u0442\u0435 \u0431\u0430\u043B\u0430\u043D\u0441\u043E\u043C, \u0437\u0430\u043A\u0430\u0437\u0430\u043C\u0438 \u0438 \u0440\u0435\u0444\u0435\u0440\u0430\u043B\u0430\u043C\u0438:</i>`;
-  const isOwner = await isOwnerOrAdmin(tgId);
+  const isOwner = await isOwnerOrAdmin(tgId, botTenantId4);
   const profileRows = [
     [import_telegraf5.Markup.button.callback("\u{1F4B0} \u041F\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u044C \u0431\u0430\u043B\u0430\u043D\u0441", "deposit"), import_telegraf5.Markup.button.callback("\u{1F4E6} \u041C\u043E\u0438 \u0437\u0430\u043A\u0430\u0437\u044B", "my_orders")],
     [import_telegraf5.Markup.button.callback("\u{1F4DC} \u0418\u0441\u0442\u043E\u0440\u0438\u044F \u043E\u043F\u0435\u0440\u0430\u0446\u0438\u0439", "my_tx"), import_telegraf5.Markup.button.callback("\u{1F465} \u0420\u0435\u0444\u0435\u0440\u0430\u043B\u044B", "referral")],
@@ -142150,7 +142589,7 @@ async function sendUserTransactions(ctx) {
   await ctx.reply(text, { parse_mode: "HTML" });
 }
 async function sendBindInstructions(ctx) {
-  const host = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || (botTenantId4 === "flux" || botTenantId4 === "lovable" ? "https://smmflux.ru" : "https://test.smmplan.pro");
+  const host = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || (botTenantId4 === "flux" ? "https://smmflux.ru" : "https://test.smmplan.pro");
   await ctx.reply(
     `\u{1F517} <b>\u0421\u0432\u044F\u0437\u044B\u0432\u0430\u043D\u0438\u0435 \u0430\u043A\u043A\u0430\u0443\u043D\u0442\u0430 ${botSiteName}</b>
 
@@ -142501,6 +142940,7 @@ var init_index = __esm({
     init_db();
     init_wallet_ops();
     init_admin_audit();
+    init_tenant_resolver_edge();
     init_order_wizard();
     init_deposit_wizard();
     init_referral_wizard();
@@ -142530,8 +142970,8 @@ var init_index = __esm({
         agent
       }
     });
-    botTenantId4 = process.env.BOT_TENANT_ID || "smmplan";
-    botSiteName = botTenantId4 === "flux" || botTenantId4 === "lovable" ? "SMMflux" : "SMMplan";
+    botTenantId4 = normalizeTenantId(process.env.BOT_TENANT_ID) || "smmplan";
+    botSiteName = botTenantId4 === "flux" ? "SMMflux" : "SMMplan";
     stage = new import_telegraf5.Scenes.Stage([
       orderWizard,
       depositWizard,
@@ -142542,7 +142982,7 @@ var init_index = __esm({
     bot.use(stage.middleware());
     bot.use(async (ctx, next) => {
       if (!ctx.from) return next();
-      const isOwner = await isOwnerOrAdmin(ctx.from.id);
+      const isOwner = await isOwnerOrAdmin(ctx.from.id, botTenantId4);
       if (!isOwner) {
         const isMaint = await BotSettingsService.isMaintenanceActive(botTenantId4);
         if (isMaint) {
@@ -142639,6 +143079,19 @@ var init_index = __esm({
                 throw new Error("\u0422\u043E\u043A\u0435\u043D \u043F\u0440\u0438\u0432\u044F\u0437\u043A\u0438 \u0443\u0436\u0435 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D");
               }
               const tempUser = await tx.user.findFirst({ where: { telegramId: tgId, tenantId: botTenantId4 } });
+              const webUser = await tx.user.findUnique({ where: { id: webUserId } });
+              if (!webUser) {
+                throw new Error("\u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044C \u0432\u0435\u0431-\u043A\u0430\u0431\u0438\u043D\u0435\u0442\u0430 \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D");
+              }
+              if (tempUser && tempUser.role && tempUser.role !== "USER") {
+                throw new Error("\u0417\u0430\u043F\u0440\u0435\u0449\u0435\u043D\u043E \u043E\u0431\u044A\u0435\u0434\u0438\u043D\u044F\u0442\u044C \u0441\u043B\u0443\u0436\u0435\u0431\u043D\u044B\u0435 \u0430\u043A\u043A\u0430\u0443\u043D\u0442\u044B \u043F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u0430");
+              }
+              if (tempUser && tempUser.tenantId !== webUser.tenantId) {
+                throw new Error("\u041D\u0435\u043B\u044C\u0437\u044F \u043E\u0431\u044A\u0435\u0434\u0438\u043D\u044F\u0442\u044C \u0430\u043A\u043A\u0430\u0443\u043D\u0442\u044B \u0440\u0430\u0437\u043D\u044B\u0445 \u0431\u0440\u0435\u043D\u0434\u043E\u0432. \u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0439\u0442\u0435 \u0431\u043E\u0442\u0430, \u0441\u043E\u043E\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0443\u044E\u0449\u0435\u0433\u043E \u0441\u0430\u0439\u0442\u0443.");
+              }
+              if (webUser.tenantId !== botTenantId4) {
+                throw new Error("\u042D\u0442\u043E\u0442 \u0442\u043E\u043A\u0435\u043D \u0432\u044B\u043F\u0443\u0449\u0435\u043D \u0434\u043B\u044F \u0434\u0440\u0443\u0433\u043E\u0433\u043E \u0431\u0440\u0435\u043D\u0434\u0430. \u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0439\u0442\u0435 \u0441\u043E\u043E\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0443\u044E\u0449\u0435\u0433\u043E \u0431\u043E\u0442\u0430.");
+              }
               if (tempUser && tempUser.id !== webUserId) {
                 await tx.ticket.updateMany({
                   where: { userId: tempUser.id },
@@ -142649,7 +143102,7 @@ var init_index = __esm({
                 await tx.invoice.updateMany({ where: { userId: tempUser.id }, data: { userId: webUserId } });
                 await tx.auditLog.updateMany({ where: { userId: tempUser.id }, data: { userId: webUserId } });
                 if (tempUser.balance > BigInt(0)) {
-                  const amount = Number(tempUser.balance);
+                  const amount = tempUser.balance;
                   const reasonDebit = `\u0421\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u0431\u0430\u043B\u0430\u043D\u0441\u0430 \u043F\u0440\u0438 \u0430\u0432\u0442\u043E-\u0441\u043B\u0438\u044F\u043D\u0438\u0438 Telegram ${tempUser.email} \u0441 ${webUserId}`;
                   const reasonCredit = `\u041F\u0435\u0440\u0435\u043D\u043E\u0441 \u0431\u0430\u043B\u0430\u043D\u0441\u0430 \u0441\u043E \u0441\u0442\u0430\u0440\u043E\u0433\u043E \u0430\u043A\u043A\u0430\u0443\u043D\u0442\u0430 Telegram ${tempUser.email}`;
                   await WalletOps.charge(tx, tempUser.id, amount, reasonDebit, {
@@ -142931,7 +143384,7 @@ var init_index = __esm({
       const tgId = String(ctx.from.id);
       const user = await db.user.findFirst({ where: { telegramId: tgId } });
       const role = user?.role || "\u0413\u043E\u0441\u0442\u044C (\u043D\u0435 \u043F\u0440\u0438\u0432\u044F\u0437\u0430\u043D)";
-      const isOwner = await isOwnerOrAdmin(ctx.from.id);
+      const isOwner = await isOwnerOrAdmin(ctx.from.id, botTenantId4);
       await ctx.reply(
         `\u{1F194} <b>\u0412\u0430\u0448 Telegram ID:</b> <code>${tgId}</code>
 \u{1F464} <b>\u041F\u0440\u0438\u0432\u044F\u0437\u0430\u043D\u043D\u044B\u0439 \u0430\u043A\u043A\u0430\u0443\u043D\u0442:</b> ${user?.email || "\u041D\u0435 \u043F\u0440\u0438\u0432\u044F\u0437\u0430\u043D"}
@@ -142945,7 +143398,7 @@ var init_index = __esm({
       const tgId = String(ctx.from.id);
       const user = await db.user.findFirst({ where: { telegramId: tgId } });
       const role = user?.role || "\u0413\u043E\u0441\u0442\u044C (\u043D\u0435 \u043F\u0440\u0438\u0432\u044F\u0437\u0430\u043D)";
-      const isOwner = await isOwnerOrAdmin(ctx.from.id);
+      const isOwner = await isOwnerOrAdmin(ctx.from.id, botTenantId4);
       await ctx.reply(
         `\u{1F194} <b>\u0412\u0430\u0448 Telegram ID:</b> <code>${tgId}</code>
 \u{1F464} <b>Email:</b> ${user?.email || "\u041D\u0435 \u043F\u0440\u0438\u0432\u044F\u0437\u0430\u043D"}

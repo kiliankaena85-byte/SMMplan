@@ -1,32 +1,23 @@
 import React from 'react';
 import Link from 'next/link';
-import { Users, ArrowRight, ExternalLink, Award } from 'lucide-react';
+import { ArrowRight, Award } from 'lucide-react';
 import { formatKopecks } from '@/utils/format-kopecks';
-import { TenantBrandBadge } from '@/app/admin/orders/components/columns';
-
-interface TopSpender {
-  id: string;
-  email: string;
-  role: string;
-  balance: bigint | number;
-  totalSpent: bigint | number;
-  tenantId: string;
-  createdAt: Date;
-  _count: { orders: number };
-}
+import { adminUserService } from '@/services/admin/user.service';
 
 interface Props {
-  clients: TopSpender[];
+  tenantFilter?: string;
+  limit?: number;
 }
 
-export function TopSpendersWidget({ clients }: Props) {
+export async function TopSpendersWidget({ tenantFilter, limit = 6 }: Props) {
+  const clients = await adminUserService.getTopSpenders(limit, tenantFilter);
   return (
     <div className="bg-card text-card-foreground rounded-lg p-5 border border-border/70 shadow-sm flex flex-col justify-between space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border/50 pb-3">
         <div className="flex items-center gap-2">
           <div className="p-1.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400">
-            <Award className="w-4 h-4" />
+            <Award className="w-4 h-4 shrink-0" />
           </div>
           <div>
             <h4 className="font-bold text-xs uppercase tracking-wider text-foreground">
@@ -42,7 +33,7 @@ export function TopSpendersWidget({ clients }: Props) {
           className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-1"
         >
           <span>Все клиенты</span>
-          <ArrowRight className="w-3 h-3" />
+          <ArrowRight className="w-3 h-3 shrink-0" />
         </Link>
       </div>
 
@@ -67,7 +58,7 @@ export function TopSpendersWidget({ clients }: Props) {
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <Link
                       href={`/admin/clients?q=${encodeURIComponent(c.email)}`}
-                      className="font-semibold text-foreground hover:text-primary transition-colors truncate max-w-[180px] sm:max-w-[220px]"
+                      className="font-semibold text-foreground hover:text-primary transition-colors truncate max-w-[180px] sm:max-w-[220px] min-w-0"
                       title={c.email}
                     >
                       {c.email}

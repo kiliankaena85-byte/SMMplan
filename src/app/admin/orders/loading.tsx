@@ -1,6 +1,7 @@
 'use client';
 import { Skeleton } from "@heroui/react";
 import { AdminTabbedHeader } from "@/components/admin/tabbed-header";
+import { ORDERS_TABS, ONBOARDING_CONFIGS } from "@/components/admin/navigation-data";
 import { Package } from "lucide-react";
 
 export default function OrdersLoading() {
@@ -11,6 +12,9 @@ export default function OrdersLoading() {
         icon={Package}
         title="Заказы"
         description="Загрузка списка заказов..."
+        tabs={ORDERS_TABS}
+        onboardingKey="orders"
+        onboarding={ONBOARDING_CONFIGS.orders}
       />
 
       {/* Filter and Table Container Skeleton */}
@@ -45,13 +49,13 @@ export default function OrdersLoading() {
 
         <div className="p-4 sm:p-5 pt-4">
           <div className="flex justify-between items-center pb-3 border-b border-border/40">
-            <Skeleton className="h-5 w-44 rounded-md" />
+            <Skeleton className="h-5 w-44 rounded-md shrink-0" />
             <Skeleton className="h-7 w-28 rounded-md" />
           </div>
           <div className="divide-y divide-border/40">
             {[...Array(8)].map((_, i) => (
               <div key={i} className="py-3 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3 w-[180px]">
+                <div className="flex items-center gap-3 w-full max-w-[180px]">
                   <Skeleton className="h-4 w-12 rounded-md" />
                   <Skeleton className="h-4 w-28 rounded-md" />
                 </div>

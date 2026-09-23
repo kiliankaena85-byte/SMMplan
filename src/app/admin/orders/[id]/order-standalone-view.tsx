@@ -319,7 +319,7 @@ export function OrderStandaloneView({
         <div className="bg-amber-500/5 border border-amber-500/30 rounded-2xl p-5 space-y-4 shadow-xs">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-amber-500" />
+              <Zap className="w-4 h-4 text-amber-500 shrink-0" />
               <h3 className="font-extrabold text-sm text-foreground">
                 Резервные маршруты (Failover Provider Switch)
               </h3>
@@ -444,7 +444,7 @@ export function OrderStandaloneView({
         {/* Секция 1: Клиент и Ссылка */}
         <div className="p-5 sm:p-6 space-y-4">
           <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-muted-foreground">
-            <User className="w-4 h-4 text-primary" />
+            <User className="w-4 h-4 text-primary shrink-0" />
             <span>1. Клиент и Целевая ссылка</span>
           </div>
 
@@ -463,7 +463,7 @@ export function OrderStandaloneView({
                   href={currentOrder.link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-mono text-xs text-primary hover:underline break-all truncate font-semibold"
+                  className="font-mono text-xs text-primary hover:underline break-all truncate font-semibold min-w-0"
                   title={currentOrder.link}
                 >
                   {currentOrder.link || '—'}
@@ -504,7 +504,7 @@ export function OrderStandaloneView({
         {/* Секция 2: Финансы & Юнит-экономика */}
         <div className="p-5 sm:p-6 space-y-4">
           <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-muted-foreground">
-            <TrendingUp className="w-4 h-4 text-emerald-500" />
+            <TrendingUp className="w-4 h-4 text-emerald-500 shrink-0" />
             <span>2. Финансы и Расчет маржи</span>
           </div>
 
@@ -548,7 +548,7 @@ export function OrderStandaloneView({
         {/* Секция 3: Исполнение и Управление провайдером */}
         <div className="p-5 sm:p-6 space-y-4">
           <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-muted-foreground">
-            <Layers className="w-4 h-4 text-sky-500" />
+            <Layers className="w-4 h-4 text-sky-500 shrink-0" />
             <span>3. Исполнение и Провайдер</span>
           </div>
 
@@ -568,7 +568,7 @@ export function OrderStandaloneView({
             <div className="p-3.5 rounded-xl bg-muted/30 border border-border/50 flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <span className="text-[10px] font-bold uppercase text-muted-foreground block">Сменить статус вручную</span>
-                <span className="text-[11px] text-muted-foreground truncate block">Для оператора поддержки</span>
+                <span className="text-[11px] text-muted-foreground truncate block min-w-0">Для оператора поддержки</span>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <select

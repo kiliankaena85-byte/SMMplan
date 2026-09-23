@@ -5,10 +5,12 @@ import { requireStaffPermission } from '@/lib/server/rbac';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { getClientIp } from '@/utils/ip';
-import { auditAdmin } from '@/lib/admin-audit';
+import { auditAdmin, auditAdminAwaitable } from '@/lib/admin-audit';
+import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 
 const templateSchema = z.object({
   id: z.string().optional(),
+  tenantId: z.string().optional(),
   shortcut: z.string()
     .min(1, 'Шорткат обязателен')
     .regex(/^[a-zA-Z0-9_-]+$/, 'Шорткат может содержать только латинские буквы, цифры, дефис и подчеркивание')
@@ -21,9 +23,13 @@ const templateSchema = z.object({
   sort: z.number().int().default(0)
 });
 
-export async function getTemplates() {
+export async function getTemplates(targetTenantId?: string) {
   return requireStaffPermission('tickets', 'view', async () => {
+    const { SettingsProvider } = await import('@/lib/settings');
+    const headerTenant = await SettingsProvider.getTenantId();
+    const tenantId = normalizeTenantId(targetTenantId || headerTenant || 'smmplan') || 'smmplan';
     return db.supportTemplate.findMany({
+      where: { tenantId },
       orderBy: { sort: 'asc' }
     });
   });
@@ -47,8 +53,21 @@ export async function incrementTemplateUsage(id: string) {
 export async function upsertTemplate(formData: FormData) {
   return requireStaffPermission('tickets', 'edit', async (admin) => {
     try {
+      const formTenant = formData.get('tenantId') as string | null;
+      const activeTenantId = normalizeTenantId(formTenant || admin.tenantId || 'smmplan') || 'smmplan';
+
+      if (admin.role !== 'OWNER') {
+        const allowed = (admin.allowedTenants && admin.allowedTenants.length > 0)
+          ? admin.allowedTenants
+          : [admin.tenantId || 'smmplan'];
+        if (!allowed.includes(activeTenantId)) {
+          return { success: false, error: 'Запрещено управлять шаблонами другого бренда' };
+        }
+      }
+
       const parsed = templateSchema.safeParse({
         id: formData.get('id') || undefined,
+        tenantId: activeTenantId,
         shortcut: formData.get('shortcut') || null,
         label: formData.get('label'),
         text: formData.get('text'),
@@ -70,6 +89,14 @@ export async function upsertTemplate(formData: FormData) {
           where: { id: data.id }
         });
 
+        if (!oldTemplate) {
+          return { success: false, error: 'Шаблон не найден' };
+        }
+
+        if (oldTemplate.tenantId !== activeTenantId && admin.role !== 'OWNER') {
+          return { success: false, error: 'Запрещено изменять шаблон другого бренда' };
+        }
+
         resultTemplate = await db.supportTemplate.update({
           where: { id: data.id },
           data: {
@@ -82,7 +109,7 @@ export async function upsertTemplate(formData: FormData) {
           }
         });
 
-        auditAdmin({
+        await auditAdminAwaitable({
           adminId: admin.id,
           adminEmail: admin.email,
           action: 'SUPPORT_TEMPLATE_UPDATE',
@@ -90,11 +117,13 @@ export async function upsertTemplate(formData: FormData) {
           targetType: 'SETTINGS',
           oldValue: oldTemplate,
           newValue: resultTemplate,
-          ipAddress
+          ipAddress,
+          tenantId: resultTemplate.tenantId || activeTenantId,
         });
       } else {
         resultTemplate = await db.supportTemplate.create({
           data: {
+            tenantId: data.tenantId || activeTenantId || 'smmplan',
             shortcut: data.shortcut,
             label: data.label,
             text: data.text,
@@ -104,14 +133,15 @@ export async function upsertTemplate(formData: FormData) {
           }
         });
 
-        auditAdmin({
+        await auditAdminAwaitable({
           adminId: admin.id,
           adminEmail: admin.email,
           action: 'SUPPORT_TEMPLATE_CREATE',
           target: resultTemplate.id,
           targetType: 'SETTINGS',
           newValue: resultTemplate,
-          ipAddress
+          ipAddress,
+          tenantId: resultTemplate.tenantId || activeTenantId,
         });
       }
 
@@ -149,19 +179,32 @@ export async function deleteTemplate(formData: FormData) {
         return { success: false, error: 'Шаблон не найден' };
       }
 
+      const formTenant = formData.get('tenantId') as string | null;
+      const activeTenantId = normalizeTenantId(formTenant || admin.tenantId || 'smmplan') || 'smmplan';
+
+      if (admin.role !== 'OWNER') {
+        const allowed = (admin.allowedTenants && admin.allowedTenants.length > 0)
+          ? admin.allowedTenants
+          : [admin.tenantId || 'smmplan'];
+        if (oldTemplate.tenantId !== activeTenantId || !allowed.includes(oldTemplate.tenantId)) {
+          return { success: false, error: 'Запрещено удалять шаблон другого бренда' };
+        }
+      }
+
       await db.supportTemplate.delete({
         where: { id }
       });
 
       const ipAddress = await getClientIp('unknown');
-      auditAdmin({
+      await auditAdminAwaitable({
         adminId: admin.id,
         adminEmail: admin.email,
         action: 'SUPPORT_TEMPLATE_DELETE',
         target: id,
         targetType: 'SETTINGS',
         oldValue: oldTemplate,
-        ipAddress
+        ipAddress,
+        tenantId: oldTemplate.tenantId || activeTenantId,
       });
 
       revalidatePath('/admin/settings');

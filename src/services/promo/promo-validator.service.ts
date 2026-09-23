@@ -1,3 +1,4 @@
+import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 /**
  * (c) 2024-2026 SMMplan. All rights reserved.
  * Hardened Promo Code Validator with Anti-Brute-Force Rate Limiting.
@@ -30,7 +31,7 @@ export class PromoValidatorService {
     tenantId?: string
   ): Promise<PromoValidationResult> {
     const cleanCode = code.trim().toUpperCase();
-    if (!cleanCode || cleanCode.length < 3 || cleanCode.length > 32) {
+    if (!cleanCode || cleanCode.length < 3 || cleanCode.length > 64) {
       return { valid: false, error: 'Неверный формат промокода' };
     }
 
@@ -44,8 +45,13 @@ export class PromoValidatorService {
       };
     }
 
-    const promo = await db.promoCode.findUnique({
-      where: { code: cleanCode },
+    const normalizedTenant = normalizeTenantId(tenantId) || 'smmplan';
+
+    const promo = await db.promoCode.findFirst({
+      where: { 
+        code: cleanCode,
+        tenantId: normalizedTenant,
+      },
     });
 
     if (!promo || !promo.isActive) {

@@ -24,9 +24,10 @@ export type TemplateWithUseCount = SupportTemplate;
 
 interface SupportTemplatesSettingsProps {
   initialTemplates: TemplateWithUseCount[];
+  tenantId?: string;
 }
 
-export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesSettingsProps) {
+export function SupportTemplatesSettings({ initialTemplates, tenantId = 'smmplan' }: SupportTemplatesSettingsProps) {
   const [templates, setTemplates] = useState<TemplateWithUseCount[]>(initialTemplates);
   const [editingTemplate, setEditingTemplate] = useState<TemplateWithUseCount | null>(null);
   const [templateToDelete, setTemplateToDelete] = useState<TemplateWithUseCount | null>(null);
@@ -80,6 +81,7 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
         if (editingTemplate) {
           formData.append('id', editingTemplate.id);
         }
+        formData.append('tenantId', tenantId);
         formData.append('label', label.trim());
         formData.append('text', text.trim());
         formData.append('shortcut', shortcut.trim().toLowerCase().replace(/[^a-z0-9_-]/g, ''));
@@ -134,6 +136,7 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
       try {
         const formData = new FormData();
         formData.append('id', id);
+        formData.append('tenantId', tenantId);
         const res = await deleteTemplate(formData);
         if (!res.success) {
           toast.error(res.error || 'Ошибка удаления шаблона');
@@ -155,7 +158,7 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
         <DialogContent className="sm:max-w-md bg-card border-border">
           <DialogHeader>
             <div className="flex items-center gap-3 text-rose-500 pb-2">
-              <AlertTriangle className="w-6 h-6" />
+              <AlertTriangle className="w-6 h-6 shrink-0" />
               <DialogTitle className="text-lg font-bold">Удаление шаблона</DialogTitle>
             </div>
             <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
@@ -177,7 +180,7 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
               type="button"
               size="sm"
               onClick={confirmDelete}
-              className="font-bold bg-rose-600 hover:bg-rose-700 text-white gap-1.5"
+              className="font-bold bg-rose-600 hover:bg-rose-700 text-destructive-foreground gap-1.5"
             >
               Удалить шаблон
             </Button>
@@ -190,7 +193,7 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
         <Card className="rounded-2xl border-border shadow-sm bg-card">
           <CardHeader className="border-b border-border/60 bg-muted/20 p-6">
             <CardTitle className="text-sm font-bold uppercase tracking-widest text-foreground flex items-center gap-2">
-              <Zap className="w-4 h-4 text-primary" />
+              <Zap className="w-4 h-4 text-primary shrink-0" />
               <span>{editingTemplate ? 'Редактировать шаблон' : 'Создать умный шаблон'}</span>
             </CardTitle>
           </CardHeader>
@@ -294,7 +297,7 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
               {text && text.includes('{') && (
                 <div className="p-3 rounded-xl bg-muted/30 border border-border/60 text-xs space-y-1">
                   <div className="flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                    <Eye className="w-3 h-3 text-primary" />
+                    <Eye className="w-3 h-3 text-primary shrink-0" />
                     <span>Пример отображения для клиента:</span>
                   </div>
                   <p className="text-[11px] text-foreground font-normal leading-relaxed whitespace-pre-wrap">
@@ -343,7 +346,7 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
         <Card className="rounded-2xl border-border shadow-sm bg-card overflow-hidden">
           <CardHeader className="border-b border-border/60 bg-muted/20 p-6 flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-bold uppercase tracking-widest text-foreground flex items-center gap-2">
-              <Tag className="w-4 h-4 text-primary" />
+              <Tag className="w-4 h-4 text-primary shrink-0" />
               <span>Список шаблонов ответов</span>
             </CardTitle>
             <span className="text-[10px] font-bold bg-muted text-muted-foreground px-2 py-1 rounded-full uppercase tracking-wider">

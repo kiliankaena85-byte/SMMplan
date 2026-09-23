@@ -121,13 +121,16 @@ export function UniversalIcon({
   }
 
   // Activity type fallback
-  if (lower === 'followers') return <Users className={combinedClass} size={size} color={color} />;
-  if (lower === 'likes') return <Heart className={combinedClass} size={size} color={color} />;
-  if (lower === 'views') return <Eye className={combinedClass} size={size} color={color} />;
-  if (lower === 'reposts') return <Share2 className={combinedClass} size={size} color={color} />;
-  if (lower === 'comments') return <MessageCircle className={combinedClass} size={size} color={color} />;
-  if (lower === 'votes') return <BarChart2 className={combinedClass} size={size} color={color} />;
-  if (lower === 'boosts') return <Rocket className={combinedClass} size={size} color={color} />;
+  if (['followers', 'subscribers', 'subs', 'members', 'подписчики'].includes(lower)) return <Users className={combinedClass} size={size} color={color} />;
+  if (['likes', 'like', 'лайки'].includes(lower)) return <Heart className={combinedClass} size={size} color={color} />;
+  if (['views', 'view', 'просмотры'].includes(lower)) return <Eye className={combinedClass} size={size} color={color} />;
+  if (['reposts', 'repost', 'shares', 'share', 'репосты'].includes(lower)) return <Share2 className={combinedClass} size={size} color={color} />;
+  if (['comments', 'comment', 'комментарии'].includes(lower)) return <MessageCircle className={combinedClass} size={size} color={color} />;
+  if (['votes', 'vote', 'polls', 'poll', 'голоса', 'опросы'].includes(lower)) return <BarChart2 className={combinedClass} size={size} color={color} />;
+  if (['boosts', 'boost', 'busty', 'level', 'levels', 'бусты', 'буст', 'уровни', 'уровень'].includes(lower)) return <Rocket className={combinedClass} size={size} color={color} />;
+  if (['reactions', 'reaction', 'реакции'].includes(lower)) return <ThumbsUp className={combinedClass} size={size} color={color} />;
+  if (['stars', 'star', 'звезды', 'звёзды'].includes(lower)) return <Star className={combinedClass} size={size} color={color} />;
+  if (['premium', 'премиум'].includes(lower)) return <Crown className={combinedClass} size={size} color={color} />;
 
   // Lucide plain name
   if (LUCIDE_ICON_MAP[lower]) {

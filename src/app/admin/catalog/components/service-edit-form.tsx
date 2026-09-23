@@ -11,6 +11,7 @@ import { applyBeautifulRounding, SAFETY_FLOOR_MARKUP } from '@/lib/financial-con
 import { IconPicker } from '@/components/admin/icon-picker/IconPicker';
 import { ProviderServiceSearchModal } from '@/components/admin/catalog/provider-service-search-modal';
 import { ServiceIdBadge } from '@/components/ui/service-id-badge';
+import { resolveServiceTargetType } from '@/utils/target-type-mapper';
 import {
   TargetTypeEnum,
   inferTargetTypeFromName,
@@ -110,7 +111,7 @@ export function ServiceEditForm({
   const [icon, setIcon] = useState<string | null>(initialData.icon || null);
   const [categoryId, setCategoryId] = useState(initialData.categoryId);
   const [targetType, setTargetType] = useState<string>(
-    initialData.targetType || inferTargetTypeFromName(initialData.name)
+    resolveServiceTargetType(initialData)
   );
   const [linkPlaceholder, setLinkPlaceholder] = useState(initialData.linkPlaceholder || '');
   const [linkHint, setLinkHint] = useState(initialData.linkHint || '');
@@ -341,7 +342,7 @@ export function ServiceEditForm({
           {/* Basic Info */}
           <div className="bg-card border border-border rounded-2xl p-5 space-y-4 shadow-2xs">
             <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-              <Layers className="w-4 h-4 text-primary" /> Основные параметры
+              <Layers className="w-4 h-4 text-primary shrink-0" /> Основные параметры
             </h2>
 
             <div>
@@ -371,7 +372,7 @@ export function ServiceEditForm({
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-xs font-semibold text-foreground block">Категория</label>
                   <Link href="/admin/catalog/categories" target="_blank" className="text-[11px] text-primary hover:underline flex items-center gap-1 font-medium">
-                    <Plus className="w-3 h-3" /> Создать категорию
+                    <Plus className="w-3 h-3 shrink-0" /> Создать категорию
                   </Link>
                 </div>
                 <select
@@ -458,7 +459,7 @@ export function ServiceEditForm({
           {/* Limits & Options */}
           <div className="bg-card border border-border rounded-2xl p-5 space-y-4 shadow-2xs">
             <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-primary" /> Лимиты и опции
+              <ShieldCheck className="w-4 h-4 text-primary shrink-0" /> Лимиты и опции
             </h2>
 
             <div className="grid grid-cols-2 gap-4">
@@ -725,7 +726,7 @@ export function ServiceEditForm({
                     className="h-6 px-2 text-[11px] font-bold text-primary flex items-center gap-1 cursor-pointer bg-primary/5 hover:bg-primary/10 border-primary/20"
                     title="Найти услугу в кэше API провайдера и заполнить форму"
                   >
-                    <Search className="w-3 h-3" />
+                    <Search className="w-3 h-3 shrink-0" />
                     <span>Выбрать из API</span>
                   </Button>
                 )}

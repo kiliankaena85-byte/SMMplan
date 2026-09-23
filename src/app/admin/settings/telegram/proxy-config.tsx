@@ -129,9 +129,9 @@ export function ProxyConfig({ diagnostics, onRefresh }: Props) {
         <div className="mt-4 p-3 rounded-xl bg-muted/20 border border-border/60">
           <div className="flex items-center gap-2">
             {diagnostics?.proxy?.isActive ? (
-              <><ShieldCheck className="w-4 h-4 text-emerald-400" /><span className="text-xs font-bold text-emerald-400">Прокси активен: {diagnostics.proxy.label}</span></>
+              <><ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" /><span className="text-xs font-bold text-emerald-400">Прокси активен: {diagnostics.proxy.label}</span></>
             ) : (
-              <><Server className="w-4 h-4 text-zinc-400" /><span className="text-xs font-bold text-zinc-400">Прямое подключение (без прокси)</span></>
+              <><Server className="w-4 h-4 text-zinc-400 shrink-0" /><span className="text-xs font-bold text-zinc-400">Прямое подключение (без прокси)</span></>
             )}
           </div>
         </div>
@@ -158,7 +158,7 @@ export function ProxyConfig({ diagnostics, onRefresh }: Props) {
               <div className="flex items-center gap-3 mt-1.5">
                 {p.lastTestAt && (
                   <span className={`text-[10px] font-mono ${p.lastTestSuccess ? 'text-emerald-400' : 'text-rose-400'}`}>
-                    {p.lastTestSuccess ? <><CheckCircle className="w-3 h-3 inline" /> {p.lastTestLatencyMs}ms</> : <><XCircle className="w-3 h-3 inline" /> Failed</>}
+                    {p.lastTestSuccess ? <><CheckCircle className="w-3 h-3 inline shrink-0" /> {p.lastTestLatencyMs}ms</> : <><XCircle className="w-3 h-3 inline" /> Failed</>}
                   </span>
                 )}
               </div>

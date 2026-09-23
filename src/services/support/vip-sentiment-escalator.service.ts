@@ -21,7 +21,6 @@ export class VipSentimentEscalatorService {
     userId: string,
     messageText: string
   ): Promise<EscalationVerdict> {
-    // tenant-isolation-ignore: manual IDOR check
     const user = await db.user.findUnique({
       where: { id: userId },
       select: {

@@ -234,7 +234,7 @@ export function ArticleForm({ initialData }: ArticleFormProps) {
             href="/admin/knowledge"
             className="text-muted-foreground hover:text-foreground transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5 shrink-0" />
           </Link>
           <div>
             <h1 className="text-xl font-extrabold text-foreground tracking-tight">
@@ -395,7 +395,7 @@ export function ArticleForm({ initialData }: ArticleFormProps) {
         <div className="lg:col-span-1 space-y-6">
           <div className="bg-card border border-border/60 rounded-2xl p-6 shadow-sm space-y-6">
             <h2 className="text-sm font-black text-foreground uppercase tracking-wider border-b border-border/40 pb-2 flex items-center gap-1.5">
-              <CheckCircle className="w-4 h-4 text-primary" />
+              <CheckCircle className="w-4 h-4 text-primary shrink-0" />
               Параметры публикации
             </h2>
 

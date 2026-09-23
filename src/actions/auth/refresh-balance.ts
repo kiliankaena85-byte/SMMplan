@@ -1,27 +1,29 @@
 'use server';
 
+import { headers } from 'next/headers';
 import { verifySession } from '@/lib/session';
-import { db } from '@/lib/db';
 import { formatBalance } from '@/lib/utils';
+import { resolveTenantUser } from '@/lib/tenant-user-resolver';
+import { resolveTenantFromRequest, normalizeTenantId } from '@/lib/tenant-resolver-edge';
 
-export async function refreshBalanceAction() {
+export async function refreshBalanceAction(explicitTenantId?: string) {
   const session = await verifySession();
   if (!session) {
     return { success: false, error: 'Unauthorized' };
   }
 
-  // tenant-isolation-ignore: manual IDOR check
-  const user = await db.user.findUnique({
-    where: { id: session.userId },
-    select: { balance: true },
-  });
+  const reqHeaders = await headers();
+  const resolvedTenant = normalizeTenantId(explicitTenantId) || resolveTenantFromRequest(reqHeaders) || 'smmplan';
 
-  if (!user) {
+  const tenantUser = await resolveTenantUser(session.userId, resolvedTenant, true);
+  if (!tenantUser) {
     return { success: false, error: 'User not found' };
   }
 
   return {
     success: true,
-    balanceRub: formatBalance(user.balance),
+    tenantId: resolvedTenant,
+    balanceRub: formatBalance(tenantUser.balance),
+    balanceCents: Number(tenantUser.balance),
   };
 }

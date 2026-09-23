@@ -1,19 +1,22 @@
 import { accountingService } from '@/services/financial/accounting.service';
+import { Suspense } from 'react';
 import { adminOrderService } from '@/services/admin/order.service';
 import { adminUserService } from '@/services/admin/user.service';
 import { adminTicketService } from '@/services/admin/ticket.service';
 import { adminCatalogService } from '@/services/admin/catalog.service';
 import { verifySession } from '@/lib/session';
+import { getCachedStaffUserWithPermissions } from '@/lib/server/rbac';
 import { db } from '@/lib/db';
+import { cookies, headers } from 'next/headers';
 import { unstable_cache } from 'next/cache';
-import nextDynamic from 'next/dynamic';
 
-const getCachedHealthData = unstable_cache(
+const getCachedHealthData = (tenantId?: string) => unstable_cache(
   async () => {
     return db.service.groupBy({
       by: ['isQuarantined', 'cooldownReason'],
       _count: true,
       where: {
+        ...(tenantId && tenantId !== 'all' ? { OR: [{ tenantId }, { tenantId: 'all' }] } : {}),
         OR: [
           { isQuarantined: true },
           { cooldownReason: 'ZOMBIE_AUTO_DISABLED' },
@@ -22,32 +25,18 @@ const getCachedHealthData = unstable_cache(
       }
     });
   },
-  ['admin_dashboard_catalog_health'],
-  { revalidate: 60, tags: ['catalog', 'health'] }
-);
+  [`admin_dashboard_catalog_health_${tenantId || 'all'}`],
+  { revalidate: 60, tags: ['catalog', 'health', `catalog-${tenantId || 'all'}`] }
+)();
 
-const OrdersChart = nextDynamic(() => import('./orders-chart').then(mod => mod.OrdersChart), {
-  loading: () => <div className="h-64 w-full animate-pulse rounded-xl bg-card/50 border border-border flex items-center justify-center text-xs text-muted-foreground">Загрузка графиков...</div>,
-});
-import { 
-  Check, 
-  Clock, 
-  ChevronDown, 
-  Bell, 
-  Settings, 
+import {
   Home, 
   AlertTriangle, 
-  TrendingUp, 
-  DollarSign, 
-  Package, 
-  Users, 
-  Layers, 
-  ShieldCheck, 
   ArrowRight 
 } from 'lucide-react';
 import Link from 'next/link';
 import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
-import { OPERATIONS_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
+import { DASHBOARD_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 import { RecentAuditTable } from './recent-audit-table';
 import { ProviderLiquidityWidget } from './ProviderLiquidityWidget';
 import { WebhookLatencyWidget } from './WebhookLatencyWidget';
@@ -58,11 +47,9 @@ import { TopServicesWidget } from './TopServicesWidget';
 import { PaymentGatewaysWidget } from './PaymentGatewaysWidget';
 import { RefundMonitorWidget } from './RefundMonitorWidget';
 import { StormRadarWidget } from './StormRadarWidget';
-import { stormDetectorService } from '@/services/admin/storm-detector.service';
 import { CollapsibleWaveChart } from './CollapsibleWaveChart';
 import { PeriodSelector } from './PeriodSelector';
 import { ExecutiveAiDigestCard } from '@/components/admin/dashboard/executive-ai-digest-card';
-import { formatEta } from '@/utils/format-eta';
 import { formatKopecks } from '@/utils/format-kopecks';
 
 export const dynamic = 'force-dynamic';
@@ -73,19 +60,18 @@ export default async function AdminDashboardPage({
   searchParams: Promise<{ period?: string; tenant?: string }>;
 }) {
   const session = await verifySession();
-  const user = session ? await db.user.findUnique({
-    where: { id: session.userId },
-    include: {
-      staffRole: {
-        include: { permissions: true }
-      }
-    }
-  }) : null;
+  const user = session ? await getCachedStaffUserWithPermissions(session.userId) : null;
 
   const resolvedSearchParams = await searchParams;
   const period = resolvedSearchParams.period || 'all';
+  const cookieStore = await cookies();
+  const reqHeaders = await headers();
+  const cookieTenant = cookieStore.get('x_admin_tenant')?.value;
+  const headerTenant = reqHeaders.get('x-tenant-id') || undefined;
+  const effectiveParamTenant = resolvedSearchParams.tenant || cookieTenant || headerTenant;
+
   const { resolveAdminTenantContext } = await import('@/utils/admin-tenant');
-  const resolvedTenant = resolveAdminTenantContext(user, resolvedSearchParams.tenant);
+  const resolvedTenant = resolveAdminTenantContext(user, effectiveParamTenant, cookieTenant || headerTenant);
   const tenantFilter = resolvedTenant !== 'all' ? resolvedTenant : undefined;
 
   // Calculate start and end date boundaries in local timezone
@@ -134,13 +120,7 @@ export default async function AdminDashboardPage({
     ticketStats,
     catalogStats,
     recentAudit,
-    timeseries,
-    topSpenders,
-    recentOrders,
-    topServices,
-    gatewayStats,
-    refundStats,
-    stormReport
+    timeseries
   ] = await Promise.all([
     accountingService.getMetrics(filterStart, filterEnd, tenantFilter),
     adminOrderService.getOrderStats(filterStart, filterEnd, tenantFilter),
@@ -153,12 +133,6 @@ export default async function AdminDashboardPage({
       take: 5,
     }),
     adminOrderService.getOrdersTimeseries(startDate, endDate, step, tenantFilter),
-    adminUserService.getTopSpenders(6, tenantFilter),
-    adminOrderService.getRecentOrders(6, tenantFilter),
-    adminOrderService.getTopServices(6, filterStart, filterEnd, tenantFilter),
-    accountingService.getGatewayBreakdown(filterStart, filterEnd, tenantFilter),
-    adminOrderService.getRefundAndFailureStats(filterStart, filterEnd, tenantFilter),
-    stormDetectorService.auditServiceStorms({ windowHours: 72, tenantId: tenantFilter }),
   ]);
 
   const { getRolePermissions } = await import('@/lib/permissions');
@@ -175,17 +149,12 @@ export default async function AdminDashboardPage({
 
   const revenueGross = metrics.revenueGross;
   const profitNet = metrics.profitNet;
-  let marginPercentage = metrics.marginPercentage;
   const totalLiability = userStats.totalLiability;
   
   const oStats = { ...orderStats };
   const uStats = { ...userStats };
   const cStats = { ...catalogStats };
   const tStats = { ...ticketStats };
-
-  if (isNaN(marginPercentage) || !isFinite(marginPercentage)) {
-    marginPercentage = 0;
-  }
 
   const netPositionBigInt = BigInt(revenueGross) - BigInt(totalLiability);
   const netPositionStr = formatKopecks(netPositionBigInt);
@@ -217,20 +186,20 @@ export default async function AdminDashboardPage({
             ? 'Оперативный мониторинг потока заказов, контроль очереди тикетов и радар сбоев.'
             : 'Оперативный пульс платформы, динамика потоков заказов и финансовый мониторинг.'
         }
-        tabs={OPERATIONS_TABS}
+        tabs={DASHBOARD_TABS}
         onboardingKey="dashboard"
         onboarding={ONBOARDING_CONFIGS.dashboard}
         currentTenant={tenantFilter}
         action={<PeriodSelector period={period} />}
       />
 
-      <SystemHealthBanner />
+      <SystemHealthBanner tenantFilter={tenantFilter} />
 
       {/* ── 1. HERO SECTION: COLLAPSIBLE FULL-WIDTH WAVE CHART ── */}
       <CollapsibleWaveChart data={timeseries} step={step} />
 
       {/* ── 2. CRITICAL RADAR: SOCIAL NETWORK STORMS & ALGORITHM WATCHDOG (SHADOW MODE) ── */}
-      <StormRadarWidget report={stormReport} />
+      <Suspense fallback={<div className="h-[280px] w-full animate-pulse bg-card/50 rounded-xl" />}><StormRadarWidget tenantFilter={tenantFilter} /></Suspense>
 
       {/* ── 3. KPI STRIP: 4 BENTO CARDS ── */}
       {canSeeFinancials ? (
@@ -369,12 +338,12 @@ export default async function AdminDashboardPage({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Left 6 col: Live Recent Orders Feed */}
         <div className="lg:col-span-6">
-          <RecentOrdersFeedWidget orders={recentOrders} />
+          <Suspense fallback={<div className="h-[400px] w-full animate-pulse bg-card/50 rounded-xl" />}><RecentOrdersFeedWidget tenantFilter={tenantFilter} /></Suspense>
         </div>
 
         {/* Right 6 col: Top Spenders VIP */}
         <div className="lg:col-span-6">
-          <TopSpendersWidget clients={topSpenders} />
+          <Suspense fallback={<div className="h-[400px] w-full animate-pulse bg-card/50 rounded-xl" />}><TopSpendersWidget tenantFilter={tenantFilter} /></Suspense>
         </div>
       </div>
 
@@ -401,12 +370,12 @@ export default async function AdminDashboardPage({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Left 6 col: Top Performing Services */}
         <div className="lg:col-span-6">
-          <TopServicesWidget services={topServices} />
+          <Suspense fallback={<div className="h-[400px] w-full animate-pulse bg-card/50 rounded-xl" />}><TopServicesWidget filterStart={filterStart} filterEnd={filterEnd} tenantFilter={tenantFilter} /></Suspense>
         </div>
 
         {/* Right 6 col: Payment Gateways Breakdown */}
         <div className="lg:col-span-6">
-          <PaymentGatewaysWidget gateways={gatewayStats} />
+          <Suspense fallback={<div className="h-[400px] w-full animate-pulse bg-card/50 rounded-xl" />}><PaymentGatewaysWidget filterStart={filterStart} filterEnd={filterEnd} tenantFilter={tenantFilter} /></Suspense>
         </div>
       </div>
 
@@ -482,7 +451,7 @@ export default async function AdminDashboardPage({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Left 6 col: Refund & Drop Monitor */}
         <div className="lg:col-span-6">
-          <RefundMonitorWidget stats={refundStats} />
+          <Suspense fallback={<div className="h-[400px] w-full animate-pulse bg-card/50 rounded-xl" />}><RefundMonitorWidget filterStart={filterStart} filterEnd={filterEnd} tenantFilter={tenantFilter} /></Suspense>
         </div>
 
         {/* Right 6 col: Webhook Latency Radar */}
@@ -504,7 +473,7 @@ export default async function AdminDashboardPage({
               className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-1"
             >
               <span>Полный журнал</span>
-              <ArrowRight className="w-3 h-3" />
+              <ArrowRight className="w-3 h-3 shrink-0" />
             </Link>
           </div>
 
@@ -516,8 +485,8 @@ export default async function AdminDashboardPage({
   );
 }
 
-async function SystemHealthBanner() {
-  const healthData = await getCachedHealthData();
+async function SystemHealthBanner({ tenantFilter }: { tenantFilter?: string }) {
+  const healthData = await getCachedHealthData(tenantFilter);
 
   if (!healthData || healthData.length === 0) return null;
 
@@ -541,7 +510,7 @@ async function SystemHealthBanner() {
     <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
       <div className="flex items-start gap-3">
         <div className="p-2 bg-amber-500/10 rounded-md text-amber-600 shrink-0">
-          <AlertTriangle className="w-4 h-4" />
+          <AlertTriangle className="w-4 h-4 shrink-0" />
         </div>
         <div>
           <h4 className="font-bold text-foreground text-xs">Обнаружены аномалии в каталоге</h4>

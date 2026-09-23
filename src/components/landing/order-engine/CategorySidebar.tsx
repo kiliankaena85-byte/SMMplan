@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useMemo } from "react";
 import { OrderEngine } from "@/hooks/useOrderEngine";
 import { CategoryIcon, cleanCategoryName } from "@/components/ui/CategoryIcon";

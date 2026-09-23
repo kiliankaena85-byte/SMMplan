@@ -185,7 +185,7 @@ export function ClassicDashboardHome({
         {/* Карточка 1: Финансовый кошелёк */}
         <div className="group relative overflow-hidden bg-card/85 backdrop-blur-xl border border-border/80 rounded-3xl p-5 sm:p-6 shadow-md hover:shadow-xl hover:border-primary/40 transition-all duration-300 flex flex-col justify-between space-y-4 min-w-0">
           <div className="flex items-center justify-between gap-2 min-w-0">
-            <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground truncate">
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground truncate min-w-0">
               Доступный баланс
             </span>
             <div className="flex items-center gap-1.5 shrink-0">
@@ -218,7 +218,7 @@ export function ClassicDashboardHome({
         {/* Карточка 2: Оборот & Лояльность */}
         <div className="group relative overflow-hidden bg-card/85 backdrop-blur-xl border border-border/80 rounded-3xl p-5 sm:p-6 shadow-md hover:shadow-xl hover:border-border transition-all duration-300 flex flex-col justify-between space-y-4 min-w-0">
           <div className="flex items-center justify-between gap-2 min-w-0">
-            <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground truncate">
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground truncate min-w-0">
               Оборот & Статус
             </span>
             <div className="flex items-center gap-1.5 shrink-0">
@@ -266,7 +266,7 @@ export function ClassicDashboardHome({
         {/* Карточка 3: Заказы в работе */}
         <div className="group relative overflow-hidden bg-card/85 backdrop-blur-xl border border-border/80 rounded-3xl p-5 sm:p-6 shadow-md hover:shadow-xl hover:border-sky-500/40 transition-all duration-300 flex flex-col justify-between space-y-4 min-w-0">
           <div className="flex items-center justify-between gap-2 min-w-0">
-            <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground truncate">
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground truncate min-w-0">
               Заказы в работе
             </span>
             <div className="relative flex items-center justify-center w-8 h-8 rounded-xl bg-sky-500/10 text-sky-500 shrink-0">
@@ -306,7 +306,7 @@ export function ClassicDashboardHome({
         {/* Карточка 4: Реферальная сеть */}
         <div className="group relative overflow-hidden bg-card/85 backdrop-blur-xl border border-border/80 rounded-3xl p-5 sm:p-6 shadow-md hover:shadow-xl hover:border-emerald-500/40 transition-all duration-300 flex flex-col justify-between space-y-4 min-w-0">
           <div className="flex items-center justify-between gap-2 min-w-0">
-            <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground truncate">
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground truncate min-w-0">
               Партнёрка
             </span>
             <div className="flex items-center gap-1.5 shrink-0">

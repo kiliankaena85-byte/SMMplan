@@ -1,5 +1,6 @@
 'use server';
 
+import crypto from 'crypto';
 import { db } from '@/lib/db';
 import { adminUserService } from '@/services/admin/user.service';
 import { escrowService } from '@/services/admin/escrow.service';
@@ -18,6 +19,7 @@ import { getEncodedKey, SESSION_COOKIE_NAME } from '@/lib/session';
 import { resolveContourFromHost } from '@/lib/tenant-resolver-edge';
 import { SupportBalancePolicyService } from '@/services/financial/support-balance-policy.service';
 import { sendAdminAlert } from '@/lib/notifications';
+import { isTenantAllowedForUser } from '@/utils/admin-tenant';
 
 export async function updateBalanceAction(formData: FormData) {
   return requireStaffPermission('finance', 'edit', async (admin) => {
@@ -41,7 +43,6 @@ export async function updateBalanceAction(formData: FormData) {
     }
 
     // 2. Staff-Targeting Guard: Non-OWNER staff cannot adjust balance of other staff members
-    // tenant-isolation-ignore: manual IDOR check
     const targetUser = await db.user.findUnique({ where: { id: userId }, select: { id: true, role: true, balance: true, tenantId: true } });
     if (!targetUser) {
       return { success: false as const, error: 'Пользователь не найден' };
@@ -50,6 +51,11 @@ export async function updateBalanceAction(formData: FormData) {
     if (admin.role !== 'OWNER' && (targetUser.role === 'OWNER' || targetUser.role === 'ADMIN' || targetUser.role === 'MANAGER' || targetUser.role === 'SUPPORT')) {
       console.warn(`[SECURITY] Non-owner ${admin.id} (${admin.role}) attempted balance adjustment on staff target ${targetUser.id} (${targetUser.role})`);
       return { success: false as const, error: 'Только OWNER может изменять баланс других сотрудников' };
+    }
+
+    if (!isTenantAllowedForUser(admin, targetUser.tenantId || 'smmplan')) {
+      console.warn(`[SECURITY] Cross-tenant balance adjustment blocked: staff ${admin.id} -> target ${targetUser.id} (${targetUser.tenantId})`);
+      return { success: false as const, error: 'Доступ запрещен: клиент принадлежит другой витрине' };
     }
 
     // Overdraft Protection: prevent debiting more than available balance
@@ -76,7 +82,7 @@ export async function updateBalanceAction(formData: FormData) {
     const userAgent = reqHeaders.get('user-agent') || 'Unknown';
     
     const clientKey = (formData.get('idempotencyKey') as string)?.trim();
-    const idempotencyKey = clientKey || `direct-adjust-${userId}-${amount}-${Date.now()}`;
+    const idempotencyKey = clientKey || `direct-adjust-${userId}-${amount}-${crypto.randomUUID()}`;
 
     // Anti-Double-Click & Idempotency Lock
     if (clientKey) {
@@ -257,7 +263,6 @@ export async function requestCardRefundAction(formData: FormData) {
     }
 
     // 1. Verify target payment
-    // tenant-isolation-ignore: manual IDOR check
     const payment = await db.payment.findUnique({
       where: { id: paymentId },
     });
@@ -278,7 +283,10 @@ export async function requestCardRefundAction(formData: FormData) {
       }
     });
     const alreadyRefundedOrPendingKopecks = existingRefunds.reduce((acc, r) => acc + r.amount, BigInt(0));
-    const availableForRefundKopecks = payment.amount - alreadyRefundedOrPendingKopecks;
+    const paymentTotalKopecks = typeof payment.amount === 'bigint'
+      ? payment.amount
+      : BigInt(payment.amount);
+    const availableForRefundKopecks = paymentTotalKopecks - alreadyRefundedOrPendingKopecks;
 
     if (amountKopecks > availableForRefundKopecks) {
       return { 
@@ -290,8 +298,13 @@ export async function requestCardRefundAction(formData: FormData) {
     // 2. Verify target user balance
     const user = await db.user.findUniqueOrThrow({
       where: { id: userId },
-      select: { id: true, balance: true, email: true },
+      select: { id: true, balance: true, email: true, tenantId: true },
     });
+
+    const refundTenant = payment.tenantId || user.tenantId || 'smmplan';
+    if (!isTenantAllowedForUser(admin, refundTenant)) {
+      return { success: false as const, error: 'У вас нет доступа к возвратам платежей данного сайта/бренда' };
+    }
 
     if (user.balance < amountKopecks) {
       return { 
@@ -302,8 +315,6 @@ export async function requestCardRefundAction(formData: FormData) {
 
     const ipAddress = await getClientIp('unknown');
     const clientKey = (formData.get('idempotencyKey') as string)?.trim();
-    const idempotencyKey = clientKey || `card-refund-${userId}-${paymentId}-${Date.now()}`;
-
     if (clientKey) {
       const existingAdj = await db.manualBalanceAdjustment.findFirst({
         where: { idempotencyKey: clientKey }
@@ -312,6 +323,7 @@ export async function requestCardRefundAction(formData: FormData) {
         return { success: true as const, message: 'Заявка на возврат уже создана (защита от двойного клика)' };
       }
     }
+    const idempotencyKey = clientKey || `card-refund-${userId}-${paymentId}-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
 
     const gwName = (payment.gateway || 'эквайринг').toUpperCase();
     const isAutomatedGateway = payment.gateway.toLowerCase() === 'yookassa';
@@ -324,13 +336,14 @@ export async function requestCardRefundAction(formData: FormData) {
         userId,
         -amountKopecks,
         `REFUND_TO_CARD: Запрос на возврат через ${gwName} (${payment.gatewayId || payment.id})`,
-        { idempotencyKey, adminId: admin.id, transactionType: 'REFUND', allowElevatedCap: admin.role === 'OWNER' || admin.role === 'ADMIN' }
+        { idempotencyKey, adminId: admin.id, transactionType: 'REFUND', allowElevatedCap: admin.role === 'OWNER' || admin.role === 'ADMIN', tenantId: refundTenant }
       );
 
       // Step B: Create adjustment / refund ticket for financier
       const adj = await tx.manualBalanceAdjustment.create({
         data: {
           userId,
+          tenantId: refundTenant,
           requestedBy: admin.id,
           direction: 'DEBIT',
           amount: amountKopecks,
@@ -362,6 +375,7 @@ export async function requestCardRefundAction(formData: FormData) {
         isAutomatedGateway,
       },
       ipAddress,
+      tenantId: refundTenant,
     });
 
     revalidatePath(`/admin/clients/${userId}`);
@@ -404,7 +418,6 @@ export async function updateUserApiAction(formData: FormData) {
 
     await db.$transaction(async (tx) => {
       // 1. Update user fields
-      // tenant-isolation-ignore: manual IDOR check
       await tx.user.update({
         where: { id: userId },
         data: {
@@ -456,6 +469,21 @@ export async function banUserAction(formData: FormData) {
     
     const { userId } = parsed.data;
 
+    const targetUser = await db.user.findUnique({ where: { id: userId }, select: { id: true, role: true, tenantId: true } });
+    if (!targetUser) return { success: false as const, error: 'Пользователь не найден' };
+
+    if (targetUser.id === admin.id) {
+      return { success: false as const, error: 'Запрещено блокировать самого себя' };
+    }
+
+    if (admin.role !== 'OWNER' && (targetUser.role === 'OWNER' || targetUser.role === 'ADMIN')) {
+      return { success: false as const, error: 'Только OWNER может заблокировать администратора' };
+    }
+
+    if (!isTenantAllowedForUser(admin, targetUser.tenantId || 'smmplan')) {
+      return { success: false as const, error: 'Доступ запрещен: клиент принадлежит другой витрине' };
+    }
+
     const ipAddress = await getClientIp('unknown');
 
     await adminUserService.banUser(userId, {
@@ -490,6 +518,13 @@ export async function unbanUserAction(formData: FormData) {
     if (!parsed.success) return { success: false as const, error: 'Missing userId' };
     
     const { userId } = parsed.data;
+
+    const targetUser = await db.user.findUnique({ where: { id: userId }, select: { id: true, role: true, tenantId: true } });
+    if (!targetUser) return { success: false as const, error: 'Пользователь не найден' };
+
+    if (!isTenantAllowedForUser(admin, targetUser.tenantId || 'smmplan')) {
+      return { success: false as const, error: 'Доступ запрещен: клиент принадлежит другой витрине' };
+    }
 
     const ipAddress = await getClientIp('unknown');
 
@@ -538,6 +573,9 @@ export async function loginAsAction(formData: FormData) {
     if (admin.role !== 'OWNER' && (targetUser.role === 'OWNER' || targetUser.role === 'ADMIN')) {
       return { success: false as const, error: 'Запрещено входить от имени администраторов и владельцев' };
     }
+    if (!isTenantAllowedForUser(admin, targetUser.tenantId || 'smmplan')) {
+      return { success: false as const, error: 'Доступ запрещен: клиент принадлежит другой витрине' };
+    }
     const expiresAt = new Date(Date.now() + 1 * 60 * 60 * 1000);
 
     // SD-07 SECURITY FIX: Record impersonation origin for audit trail integrity.
@@ -554,7 +592,9 @@ export async function loginAsAction(formData: FormData) {
     try {
       const reqHeaders = await headers();
       host = reqHeaders.get('host') || reqHeaders.get('x-forwarded-host') || '';
-    } catch {}
+    } catch (headerErr) {
+      console.warn('[Users] Could not inspect headers for impersonation session contour:', headerErr);
+    }
 
     const contour = resolveContourFromHost(host);
     const tenantId = targetUser.tenantId || 'smmplan';
@@ -619,6 +659,16 @@ export async function approveQuarantineAction(formData: FormData) {
       return { success: false as const, error: 'Только Владелец и Админ могут одобрять карантин' };
     }
 
+    const entry = await db.ledgerEntry.findUnique({
+      where: { id: entryId },
+      select: { tenantId: true }
+    });
+    if (!entry) return { success: false as const, error: 'Запись карантина не найдена' };
+    const entryTenant = entry.tenantId || 'smmplan';
+    if (!isTenantAllowedForUser(admin, entryTenant)) {
+      return { success: false as const, error: 'У вас нет прав на подтверждение карантина данного бренда' };
+    }
+
     const ipAddress = await getClientIp('unknown');
 
     await escrowService.resolveQuarantine(entryId, 'APPROVE', {
@@ -639,6 +689,16 @@ export async function rejectQuarantineAction(formData: FormData) {
 
     if (!['OWNER', 'ADMIN'].includes(admin.role)) {
       return { success: false as const, error: 'Только Владелец и Админ могут отклонять карантин' };
+    }
+
+    const entry = await db.ledgerEntry.findUnique({
+      where: { id: entryId },
+      select: { tenantId: true }
+    });
+    if (!entry) return { success: false as const, error: 'Запись карантина не найдена' };
+    const entryTenant = entry.tenantId || 'smmplan';
+    if (!isTenantAllowedForUser(admin, entryTenant)) {
+      return { success: false as const, error: 'У вас нет прав на отклонение карантина данного бренда' };
     }
 
     const ipAddress = await getClientIp('unknown');
@@ -662,9 +722,12 @@ export async function adminChangeUserPasswordAction(userId: string, newPass: str
     const { hashPassword } = await import('@/lib/auth/password');
     const hashed = await hashPassword(newPass);
 
-    // tenant-isolation-ignore: manual IDOR check
-    const targetUser = await db.user.findUnique({ where: { id: userId }, select: { email: true, role: true } });
+    const targetUser = await db.user.findUnique({ where: { id: userId }, select: { email: true, role: true, tenantId: true } });
     if (!targetUser) return { success: false as const, error: 'Пользователь не найден' };
+
+    if (!isTenantAllowedForUser(admin, targetUser.tenantId || 'smmplan')) {
+      return { success: false as const, error: 'Доступ запрещен: клиент принадлежит другой витрине' };
+    }
 
     // Hierarchy Guard: Protecting OWNER & Staff accounts from unauthorized password resets
     if (targetUser.role === 'OWNER' && admin.role !== 'OWNER') {
@@ -674,7 +737,6 @@ export async function adminChangeUserPasswordAction(userId: string, newPass: str
       return { success: false as const, error: 'Только Владелец и Администратор могут сбрасывать пароли сотрудников' };
     }
 
-    // tenant-isolation-ignore: manual IDOR check
     await db.user.update({
       where: { id: userId },
       data: { 
@@ -730,9 +792,12 @@ export async function adminDeleteUserAction(formData: FormData) {
       return { success: false as const, error: 'Вы не можете удалить собственный профиль' };
     }
 
-    // tenant-isolation-ignore: manual IDOR check
-    const targetUser = await db.user.findUnique({ where: { id: userId }, select: { email: true, role: true } });
+    const targetUser = await db.user.findUnique({ where: { id: userId }, select: { email: true, role: true, tenantId: true } });
     if (!targetUser) return { success: false as const, error: 'Пользователь не найден' };
+
+    if (!isTenantAllowedForUser(admin, targetUser.tenantId || 'smmplan')) {
+      return { success: false as const, error: 'Доступ запрещен: клиент принадлежит другой витрине' };
+    }
 
     // Hierarchy Guard: OWNER cannot be deleted, ADMIN can only be deleted by OWNER
     if (targetUser.role === 'OWNER') {
@@ -743,7 +808,6 @@ export async function adminDeleteUserAction(formData: FormData) {
     }
 
     await db.$transaction(async (tx) => {
-      // tenant-isolation-ignore: manual IDOR check
       await tx.user.update({
         where: { id: userId },
         data: {
@@ -810,12 +874,15 @@ export async function adminChangeUserEmailAction(userId: string, newEmail: strin
 
     const cleanNewEmail = parsed.data.newEmail.toLowerCase().trim();
 
-    // tenant-isolation-ignore: manual IDOR check
     const targetUser = await db.user.findUnique({
       where: { id: parsed.data.userId },
       select: { id: true, email: true, balance: true, tenantId: true, role: true }
     });
     if (!targetUser) return { success: false as const, error: 'Пользователь не найден' };
+
+    if (!isTenantAllowedForUser(admin, targetUser.tenantId || 'smmplan')) {
+      return { success: false as const, error: 'Доступ запрещен: клиент принадлежит другой витрине' };
+    }
 
     // Hierarchy Guard: Protecting OWNER & Staff accounts from unauthorized email changes
     if (targetUser.role === 'OWNER' && admin.role !== 'OWNER') {
@@ -845,7 +912,6 @@ export async function adminChangeUserEmailAction(userId: string, newEmail: strin
     }
 
     await db.$transaction(async (tx) => {
-      // tenant-isolation-ignore: manual IDOR check
       await tx.user.update({
         where: { id: parsed.data.userId },
         data: { email: cleanNewEmail }
@@ -890,7 +956,6 @@ export async function adminGenerateMagicLinkAction(userId: string) {
   return requireStaffPermission('clients', 'edit', async (admin) => {
     if (!userId) return { success: false as const, error: 'Missing userId' };
 
-    // tenant-isolation-ignore: manual IDOR check
     const targetUser = await db.user.findUnique({
       where: { id: userId },
       select: { id: true, email: true, isActive: true, isDeleted: true, tenantId: true }
@@ -898,6 +963,10 @@ export async function adminGenerateMagicLinkAction(userId: string) {
 
     if (!targetUser || targetUser.isDeleted || !targetUser.isActive) {
       return { success: false as const, error: 'Пользователь не найден или заблокирован' };
+    }
+
+    if (!isTenantAllowedForUser(admin, targetUser.tenantId || 'smmplan')) {
+      return { success: false as const, error: 'Доступ запрещен: клиент принадлежит другой витрине' };
     }
 
     const crypto = await import('crypto');
@@ -951,9 +1020,12 @@ export async function adminRevokeUserSessionsAction(userId: string) {
   return requireStaffPermission('clients', 'edit', async (admin) => {
     if (!userId) return { success: false as const, error: 'Missing userId' };
 
-    // tenant-isolation-ignore: manual IDOR check
-    const targetUser = await db.user.findUnique({ where: { id: userId }, select: { email: true } });
+    const targetUser = await db.user.findUnique({ where: { id: userId }, select: { email: true, tenantId: true } });
     if (!targetUser) return { success: false as const, error: 'Пользователь не найден' };
+
+    if (!isTenantAllowedForUser(admin, targetUser.tenantId || 'smmplan')) {
+      return { success: false as const, error: 'Доступ запрещен: клиент принадлежит другой витрине' };
+    }
 
     await db.$transaction(async (tx) => {
       await tx.session.deleteMany({ where: { userId } });

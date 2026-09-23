@@ -477,6 +477,23 @@ export class UniversalNetworkRouter {
     return null;
   }
 
+  private static directKeepAliveAgent: unknown = null;
+
+  private static async getDirectKeepAliveAgent() {
+    if (!UniversalNetworkRouter.directKeepAliveAgent) {
+      const { Agent } = await import('undici');
+      UniversalNetworkRouter.directKeepAliveAgent = new Agent({
+        keepAliveTimeout: 30000,
+        keepAliveMaxTimeout: 60000,
+        connections: 50,
+        pipelining: 1,
+        connectTimeout: 8000,
+        headersTimeout: 15000,
+      });
+    }
+    return UniversalNetworkRouter.directKeepAliveAgent;
+  }
+
   /**
    * Universal fetch drop-in replacement with Clash-style routing dispatch & Multi-Proxy Failover
    */
@@ -502,7 +519,30 @@ export class UniversalNetworkRouter {
     }
 
     if (route.target === 'DIRECT' || !route.proxyConfig) {
-      return fetch(url, init);
+      let undiciFetchFn: typeof import('undici').fetch | null = null;
+      let agent: unknown = null;
+      try {
+        const undici = await import('undici');
+        undiciFetchFn = undici.fetch;
+        agent = await this.getDirectKeepAliveAgent();
+      } catch {
+        // Fallback if undici is unavailable in edge/isolated runtime
+      }
+
+      const signal = init?.signal || AbortSignal.timeout(15000);
+
+      if (undiciFetchFn && agent) {
+        return (await undiciFetchFn(url, {
+          ...init,
+          signal: signal as unknown as AbortSignal,
+          dispatcher: agent as any,
+        } as any)) as unknown as Response;
+      }
+
+      return fetch(url, {
+        ...init,
+        signal,
+      });
     }
 
     // Try primary proxy, automatically failover to secondary if connection drops

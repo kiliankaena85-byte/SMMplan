@@ -12,9 +12,10 @@ import {
   Users, ShieldCheck, Clock, Moon, MessageSquare, 
   Activity, AlertCircle, Coffee, Search, RefreshCw,
   X, Check, Lock, ChevronRight, UserCheck, Shield,
-  Calendar, DollarSign
+  Calendar, DollarSign, Globe, Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { TENANTS, TenantId } from '@/config/tenants';
 import { StaffScheduleTab } from './components/staff-schedule-tab';
 import { StaffPayrollTab } from './components/staff-payroll-tab';
 
@@ -30,6 +31,7 @@ const ROLE_BADGES: Record<string, { label: string; bg: string; text: string; bor
   ADMIN: { label: 'Админ', bg: 'bg-sky-500/10', text: 'text-sky-600 dark:text-sky-400', border: 'border-sky-500/20' },
   MANAGER: { label: 'Менеджер', bg: 'bg-emerald-500/10', text: 'text-emerald-600 dark:text-emerald-400', border: 'border-emerald-500/20' },
   SUPPORT: { label: 'Саппорт', bg: 'bg-amber-500/10', text: 'text-amber-600 dark:text-amber-400', border: 'border-amber-500/20' },
+  OPERATOR: { label: 'Оператор', bg: 'bg-cyan-500/10', text: 'text-cyan-600 dark:text-cyan-400', border: 'border-cyan-500/20' },
 };
 
 export function StaffClient({
@@ -51,6 +53,7 @@ export function StaffClient({
   const [editRole, setEditRole] = useState('SUPPORT');
   const [editStaffRoleId, setEditStaffRoleId] = useState<string | null>(null);
   const [editLimitRubles, setEditLimitRubles] = useState(5000);
+  const [editAllowedTenants, setEditAllowedTenants] = useState<string[]>(['smmplan']);
   const [isPending, startTransition] = useTransition();
 
   // Open personal logs drawer
@@ -76,22 +79,31 @@ export function StaffClient({
     setEditRole(staff.role);
     setEditStaffRoleId(staff.staffRoleId);
     setEditLimitRubles((staff.supportLimitCents || 0) / 100);
+    const initialTenants = staff.allowedTenants && staff.allowedTenants.length > 0 
+      ? [...staff.allowedTenants] 
+      : ['smmplan'];
+    setEditAllowedTenants(initialTenants);
   }
 
   // Save Role and Limits
   function handleSaveStaffRole() {
     if (!editingStaff) return;
+    if (editAllowedTenants.length === 0) {
+      toast.error('Сотрудник должен иметь доступ хотя бы к одной витрине');
+      return;
+    }
     startTransition(async () => {
       try {
         const res = await updateStaffMemberAction({
           userId: editingStaff.id,
-          role: editRole as 'SUPPORT' | 'MANAGER' | 'ADMIN' | 'OWNER' | 'USER' | 'BANNED',
+          role: editRole as 'SUPPORT' | 'OPERATOR' | 'MANAGER' | 'ADMIN' | 'OWNER' | 'USER' | 'BANNED',
           staffRoleId: editStaffRoleId,
           supportLimitRubles: editLimitRubles,
+          allowedTenants: editAllowedTenants,
         });
 
         if (res.success) {
-          toast.success('Права и лимиты сотрудника обновлены');
+          toast.success('Права и доступные витрины сотрудника обновлены');
           setStaffList((prev) =>
             prev.map((s) =>
               s.id === editingStaff.id
@@ -100,6 +112,7 @@ export function StaffClient({
                     role: editRole,
                     staffRoleId: editStaffRoleId,
                     supportLimitCents: Math.round(editLimitRubles * 100),
+                    allowedTenants: [...editAllowedTenants],
                   }
                 : s
             )
@@ -181,7 +194,7 @@ export function StaffClient({
             {/* Metric 1: Total Staff */}
             <div className="bg-card border border-border/60 rounded-xl p-4 shadow-sm flex items-center gap-3.5">
               <div className="w-11 h-11 rounded-lg bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
-                <Users className="w-5 h-5" />
+                <Users className="w-5 h-5 shrink-0" />
               </div>
               <div>
                 <div className="text-2xl font-black text-foreground">{totalStaff}</div>
@@ -192,7 +205,7 @@ export function StaffClient({
             {/* Metric 2: Active on shift today */}
             <div className="bg-card border border-border/60 rounded-xl p-4 shadow-sm flex items-center gap-3.5">
               <div className="w-11 h-11 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 flex-shrink-0">
-                <UserCheck className="w-5 h-5" />
+                <UserCheck className="w-5 h-5 shrink-0" />
               </div>
               <div>
                 <div className="text-2xl font-black text-foreground">{activeTodayCount}</div>
@@ -203,7 +216,7 @@ export function StaffClient({
             {/* Metric 3: Tickets handled today */}
             <div className="bg-card border border-border/60 rounded-xl p-4 shadow-sm flex items-center gap-3.5">
               <div className="w-11 h-11 rounded-lg bg-sky-500/10 flex items-center justify-center text-sky-600 dark:text-sky-400 flex-shrink-0">
-                <MessageSquare className="w-5 h-5" />
+                <MessageSquare className="w-5 h-5 shrink-0" />
               </div>
               <div>
                 <div className="text-2xl font-black text-foreground">{totalTicketsClosedToday}</div>
@@ -218,7 +231,7 @@ export function StaffClient({
                   ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' 
                   : 'bg-muted/40 text-muted-foreground'
               }`}>
-                <Moon className="w-5 h-5" />
+                <Moon className="w-5 h-5 shrink-0" />
               </div>
               <div>
                 <div className="text-2xl font-black text-foreground">{nightAlertCount}</div>
@@ -230,7 +243,7 @@ export function StaffClient({
           {/* ── SEARCH & FILTER CONTROLS ── */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-card border border-border/60 rounded-xl p-3.5 shadow-sm">
             <div className="relative flex-1 max-w-md">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground shrink-0" />
               <input
                 type="text"
                 placeholder="Поиск сотрудника по email..."
@@ -295,7 +308,7 @@ export function StaffClient({
                                 </span>
                               )}
                             </div>
-                            <div className="flex items-center gap-1.5 mt-0.5">
+                            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                               <span className={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-bold rounded-md border ${roleBadge.bg} ${roleBadge.text} ${roleBadge.border}`}>
                                 {roleBadge.label}
                               </span>
@@ -304,13 +317,31 @@ export function StaffClient({
                                   {staff.staffRoleName}
                                 </span>
                               )}
+                              {(staff.allowedTenants && staff.allowedTenants.length > 0 ? staff.allowedTenants : ['smmplan']).map((tId) => {
+                                const tConfig = TENANTS.find((t) => t.id === tId);
+                                const isFlux = tId === 'flux';
+                                return (
+                                  <span
+                                    key={tId}
+                                    title={`Доступ к сайту: ${tConfig?.domain || tId}`}
+                                    className={`inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-bold rounded-md border ${
+                                      isFlux
+                                        ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20'
+                                        : 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20'
+                                    }`}
+                                  >
+                                    {isFlux ? <Sparkles className="w-2.5 h-2.5 shrink-0" /> : <Globe className="w-2.5 h-2.5 shrink-0" />}
+                                    {tConfig?.name || tId}
+                                  </span>
+                                );
+                              })}
                             </div>
                           </div>
                         </div>
                       </td>
 
                       {/* 2. 24h Activity Timeline Bar */}
-                      <td className="px-4 py-3.5 align-middle min-w-[240px]">
+                      <td className="px-4 py-3.5 align-middle min-w-[240px] max-w-full">
                         <div className="space-y-1">
                           <div className="flex items-end gap-[2px] h-6 bg-muted/20 p-1 rounded-md border border-border/40">
                             {staff.activityHours.map((hourObj) => {
@@ -354,13 +385,13 @@ export function StaffClient({
                         {hasActions ? (
                           <div className="space-y-0.5">
                             <div className="text-xs font-bold text-foreground flex items-center justify-center gap-1">
-                              <Clock className="w-3 h-3 text-muted-foreground" />
+                              <Clock className="w-3 h-3 text-muted-foreground shrink-0" />
                               {new Date(staff.firstActionAt!).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
                               {' — '}
                               {new Date(staff.lastActionAt!).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
                             </div>
                             <div className="text-[11px] text-muted-foreground flex items-center justify-center gap-1">
-                              <Coffee className="w-3 h-3 text-amber-500/80" />
+                              <Coffee className="w-3 h-3 text-amber-500/80 shrink-0" />
                               Простой: {staff.maxIdleMinutes > 0 ? `${staff.maxIdleMinutes} мин` : 'без пауз'}
                             </div>
                           </div>
@@ -441,7 +472,7 @@ export function StaffClient({
                     {selectedStaff.email}
                     {selectedStaff.hasNightActivity && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 border border-amber-500/20">
-                        <Moon className="w-3 h-3" /> Ночные действия
+                        <Moon className="w-3 h-3 shrink-0" /> Ночные действия
                       </span>
                     )}
                   </h3>
@@ -462,7 +493,7 @@ export function StaffClient({
             <div className="flex-1 overflow-y-auto p-5 space-y-3">
               {isLoadingLogs ? (
                 <div className="flex flex-col items-center justify-center py-16 text-muted-foreground space-y-3">
-                  <RefreshCw className="w-6 h-6 animate-spin text-primary" />
+                  <RefreshCw className="w-6 h-6 animate-spin text-primary shrink-0" />
                   <span className="text-sm font-medium">Загрузка журнала аудита...</span>
                 </div>
               ) : logs.length === 0 ? (
@@ -558,6 +589,7 @@ export function StaffClient({
                   className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
                 >
                   <option value="SUPPORT">Саппорт (Оператор поддержки)</option>
+                  <option value="OPERATOR">Оператор (Заказы и тикеты)</option>
                   <option value="MANAGER">Менеджер (Заказы и модерация)</option>
                   {currentUserRole === 'OWNER' && (
                     <>
@@ -589,6 +621,86 @@ export function StaffClient({
                   </select>
                 </div>
               )}
+
+              {/* Multi-Tenant / Allowed Sites Selector */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                    <Globe className="w-3.5 h-3.5 text-primary" />
+                    Доступные сайты (Мульти-тенантность)
+                  </label>
+                  <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                    {editAllowedTenants.length} {editAllowedTenants.length === 1 ? 'сайт' : 'сайта'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {TENANTS.map((tenant) => {
+                    const isChecked = editAllowedTenants.includes(tenant.id);
+                    const isFlux = tenant.id === 'flux';
+
+                    const toggleTenant = () => {
+                      if (isChecked) {
+                        if (editAllowedTenants.length <= 1) {
+                          toast.error('Сотрудник должен иметь доступ хотя бы к одной витрине');
+                          return;
+                        }
+                        setEditAllowedTenants(editAllowedTenants.filter((id) => id !== tenant.id));
+                      } else {
+                        setEditAllowedTenants([...editAllowedTenants, tenant.id]);
+                      }
+                    };
+
+                    return (
+                      <button
+                        key={tenant.id}
+                        type="button"
+                        onClick={toggleTenant}
+                        className={`flex items-center justify-between p-2.5 min-h-[46px] rounded-xl border text-left transition-all duration-150 cursor-pointer ${
+                          isChecked
+                            ? isFlux
+                              ? 'bg-purple-500/10 border-purple-500/40 text-foreground ring-1 ring-purple-500/20'
+                              : 'bg-primary/10 border-primary/40 text-foreground ring-1 ring-primary/20'
+                            : 'bg-muted/20 border-border/60 text-muted-foreground hover:bg-muted/40 hover:text-foreground'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div
+                            className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs shrink-0 ${
+                              isChecked
+                                ? isFlux
+                                  ? 'bg-purple-500 text-white shadow-xs'
+                                  : 'bg-primary text-primary-foreground shadow-xs'
+                                : 'bg-muted text-muted-foreground'
+                            }`}
+                          >
+                            {isFlux ? <Sparkles className="w-3.5 h-3.5" /> : <Globe className="w-3.5 h-3.5" />}
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-xs font-bold truncate min-w-0">{tenant.name}</span>
+                            <span className="text-[10px] text-muted-foreground font-mono truncate min-w-0">{tenant.domain}</span>
+                          </div>
+                        </div>
+
+                        <div
+                          className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors shrink-0 ${
+                            isChecked
+                              ? isFlux
+                                ? 'bg-purple-500 border-purple-500 text-white'
+                                : 'bg-primary border-primary text-primary-foreground'
+                              : 'border-border bg-background'
+                          }`}
+                        >
+                          {isChecked && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Сотрудник сможет переключаться между выбранными сайтами в шапке панели.
+                </p>
+              </div>
 
               {/* Support Daily Limit in Rubles */}
               <div className="space-y-1.5">

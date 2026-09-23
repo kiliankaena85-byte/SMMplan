@@ -217,7 +217,6 @@ export async function alignPricesAction(input: z.infer<typeof alignSchema>): Pro
               ? Math.round((targetPrice / (target.rate * 100)) * 100) / 100
               : target.markup;
 
-          // tenant-isolation-ignore: manual IDOR check
           await tx.service.update({
             where: { id: target.id },
             data: { pricePer1000Cents: targetPrice, markup: newMarkup },

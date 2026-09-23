@@ -111,9 +111,9 @@ export function renderMobilePayments(table: Table<PaymentDTO>) {
           <div key={item.id} className="p-4 rounded-2xl border border-border/70 bg-card/80 backdrop-blur-sm shadow-xs space-y-2.5 text-foreground transition-all hover:border-border">
             <div className="flex justify-between items-start gap-2">
               <div className="min-w-0 flex-1">
-                <div className="text-xs font-bold font-mono truncate">{item.userEmail}</div>
+                <div className="text-xs font-bold font-mono truncate min-w-0">{item.userEmail}</div>
                 <div className="flex items-center gap-1 mt-0.5">
-                  <span className="text-[10px] text-muted-foreground font-mono truncate max-w-[130px]" title={displayId}>
+                  <span className="text-[10px] text-muted-foreground font-mono truncate max-w-[130px] min-w-0" title={displayId}>
                     ID: {displayId.slice(0, 8)}...
                   </span>
                   <CopyButton value={displayId} />
@@ -173,9 +173,9 @@ export function renderMobileLedger(table: Table<LedgerEntryDTO>) {
           <div key={item.id} className="p-4 rounded-2xl border border-border/70 bg-card/80 backdrop-blur-sm shadow-xs space-y-2.5 text-foreground transition-all hover:border-border">
             <div className="flex justify-between items-start gap-2">
               <div className="min-w-0 flex-1">
-                <div className="text-xs font-bold font-mono truncate">{item.userEmail}</div>
+                <div className="text-xs font-bold font-mono truncate min-w-0">{item.userEmail}</div>
                 <div className="flex items-center gap-1 mt-0.5">
-                  <span className="text-[10px] text-muted-foreground font-mono truncate max-w-[130px]" title={item.id}>
+                  <span className="text-[10px] text-muted-foreground font-mono truncate max-w-[130px] min-w-0" title={item.id}>
                     ID: {item.id.slice(0, 8)}...
                   </span>
                   <CopyButton value={item.id} />

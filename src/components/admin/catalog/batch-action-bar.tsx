@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 import {
   batchToggleServicesAction,
   batchSetMarkupAction,
@@ -47,6 +49,7 @@ function ReassignCategoryModal({
   isPending: boolean;
   startTransition: (cb: () => void) => void;
 }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [targetCategoryId, setTargetCategoryId] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -66,6 +69,7 @@ function ReassignCategoryModal({
         toast.success(`Успешно перенесено ${res.count} услуг`);
         setOpen(false);
         onSuccess();
+        router.refresh();
       } else {
         toast.error(res.error || "Произошла ошибка при переносе");
       }
@@ -149,6 +153,7 @@ export function BatchActionBar({
   categories: Array<{ id: string; name: string }>;
   onDeleted?: (ids: string[]) => void;
 }) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [markupPercentInput, setMarkupPercentInput] = useState('');
 
@@ -167,6 +172,7 @@ export function BatchActionBar({
           onDeleted(selectedIds);
         }
         onClear();
+        router.refresh();
       } else {
         toast.error(r.error || 'Ошибка удаления');
       }
@@ -176,16 +182,26 @@ export function BatchActionBar({
   function handleEnable() {
     startTransition(async () => {
       const r = await batchToggleServicesAction(selectedIds, true);
-      if (r.success) { toast.success(`✅ Включено ${r.count} услуг`); onClear(); }
-      else toast.error(r.error ?? 'Ошибка');
+      if (r.success) {
+        toast.success(`✅ Включено ${r.count} услуг`);
+        onClear();
+        router.refresh();
+      } else {
+        toast.error(r.error ?? 'Ошибка');
+      }
     });
   }
 
   function handleDisable() {
     startTransition(async () => {
       const r = await batchToggleServicesAction(selectedIds, false);
-      if (r.success) { toast.success(`🚫 Отключено ${r.count} услуг`); onClear(); }
-      else toast.error(r.error ?? 'Ошибка');
+      if (r.success) {
+        toast.success(`🚫 Отключено ${r.count} услуг`);
+        onClear();
+        router.refresh();
+      } else {
+        toast.error(r.error ?? 'Ошибка');
+      }
     });
   }
 
@@ -198,75 +214,128 @@ export function BatchActionBar({
     }
     startTransition(async () => {
       const r = await batchSetMarkupAction(selectedIds, m);
-      if (r.success) { toast.success(`💰 Наценка +${percent}% для ${r.count} услуг`); onClear(); }
-      else toast.error(r.error ?? 'Ошибка');
+      if (r.success) {
+        toast.success(`💰 Наценка +${percent}% для ${r.count} услуг`);
+        onClear();
+        router.refresh();
+      } else {
+        toast.error(r.error ?? 'Ошибка');
+      }
     });
   }
 
   function handleResetMarkup() {
     startTransition(async () => {
       const r = await batchResetMarkupAction(selectedIds);
-      if (r.success) { toast.success(`⚡ Сброшена наценка для ${r.count} услуг по лестнице цен`); onClear(); }
-      else toast.error(r.error ?? 'Ошибка');
+      if (r.success) {
+        toast.success(`⚡ Сброшена наценка для ${r.count} услуг по лестнице цен`);
+        onClear();
+        router.refresh();
+      } else {
+        toast.error(r.error ?? 'Ошибка');
+      }
     });
   }
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3 bg-primary/5 border border-primary/20 rounded-xl mb-4 animate-in slide-in-from-top-2 duration-300">
-      <span className="text-sm font-semibold text-primary">{selectedIds.length} выбрано</span>
-      <div className="flex-1 h-px bg-border" />
-      <button
-        onClick={handleEnable} disabled={isPending}
-        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-success/15 text-success border border-emerald-500/30 hover:bg-success/25 transition-all duration-200 disabled:opacity-50 cursor-pointer"
-      >✅ Включить</button>
-      <button
-        onClick={handleDisable} disabled={isPending}
-        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-muted text-muted-foreground border border-border/40 hover:bg-muted/80 transition-all duration-200 disabled:opacity-50 cursor-pointer"
-      >🚫 Скрыть (Выкл)</button>
-      <button
-        onClick={() => setConfirmBulkDeleteOpen(true)} disabled={isPending}
-        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-destructive/15 text-destructive border border-rose-500/30 hover:bg-destructive/25 transition-all duration-200 disabled:opacity-50 cursor-pointer"
-      >🗑️ Удалить / В архив</button>
-      <button
-        onClick={handleResetMarkup} disabled={isPending}
-        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-warning/15 text-warning border border-amber-500/30 hover:bg-warning/25 transition-all duration-200 disabled:opacity-50 cursor-pointer"
-      >⚡ Сбросить наценку</button>
+    <div className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3 px-3.5 py-2.5 sm:px-4 sm:py-3 bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-xl animate-in slide-in-from-top-2 duration-200 w-full shadow-xs">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs sm:text-sm font-bold text-primary shrink-0">
+          {selectedIds.length} выбрано
+        </span>
 
-      <ReassignCategoryModal
-        selectedIds={selectedIds}
-        categories={categories}
-        onSuccess={onClear}
-        isPending={isPending}
-        startTransition={startTransition}
-      />
+        <button
+          type="button"
+          onClick={handleEnable}
+          disabled={isPending}
+          className="inline-flex items-center justify-center px-2.5 py-1.5 rounded-lg text-xs font-medium bg-success/15 text-success border border-emerald-500/30 hover:bg-success/25 transition-all duration-200 disabled:opacity-50 cursor-pointer"
+        >
+          {isPending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
+          ✅ Включить
+        </button>
 
-      {canEditFinance && (
-        <div className="flex items-center gap-1 group relative">
-          <span className="text-xs font-medium text-muted-foreground">+</span>
-          <input
-            type="number" step="1" placeholder={`Наценка в % (мин ${minPercent})`}
-            value={markupPercentInput} onChange={e => setMarkupPercentInput(e.target.value)}
-            className="w-44 px-2 py-1.5 text-xs font-mono rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20"
-          />
-          <span className="text-xs font-medium text-muted-foreground">%</span>
-          
-          {/* Preview Tooltip */}
-          {parseFloat(markupPercentInput) > 0 && (
-            <div className="absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap bg-foreground text-background text-[10px] px-2 py-1 rounded-md shadow-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50">
-              Пример: при закупе 100₽ клиент заплатит {(100 * ((parseFloat(markupPercentInput) / 100) + 1)).toFixed(0)}₽
-            </div>
-          )}
+        <button
+          type="button"
+          onClick={handleDisable}
+          disabled={isPending}
+          className="inline-flex items-center justify-center px-2.5 py-1.5 rounded-lg text-xs font-medium bg-muted text-muted-foreground border border-border/40 hover:bg-muted/80 transition-all duration-200 disabled:opacity-50 cursor-pointer"
+        >
+          {isPending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
+          🚫 Скрыть (Выкл)
+        </button>
 
-          <button
-            onClick={handleSetMarkup} disabled={isPending}
-            className="ml-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:opacity-90 transition-all duration-200 disabled:opacity-50 cursor-pointer"
-          >Применить наценку</button>
-        </div>
-      )}
-      <button
-        onClick={onClear}
-        className="px-3 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-foreground transition-all duration-200 cursor-pointer"
-      >✕ Сбросить</button>
+        <button
+          type="button"
+          onClick={() => setConfirmBulkDeleteOpen(true)}
+          disabled={isPending}
+          className="inline-flex items-center justify-center px-2.5 py-1.5 rounded-lg text-xs font-medium bg-destructive/15 text-destructive border border-rose-500/30 hover:bg-destructive/25 transition-all duration-200 disabled:opacity-50 cursor-pointer"
+        >
+          {isPending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
+          🗑️ Удалить / В архив
+        </button>
+
+        <button
+          type="button"
+          onClick={handleResetMarkup}
+          disabled={isPending}
+          className="inline-flex items-center justify-center px-2.5 py-1.5 rounded-lg text-xs font-medium bg-warning/15 text-warning border border-amber-500/30 hover:bg-warning/25 transition-all duration-200 disabled:opacity-50 cursor-pointer"
+        >
+          {isPending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
+          ⚡ Сбросить наценку
+        </button>
+
+        <ReassignCategoryModal
+          selectedIds={selectedIds}
+          categories={categories}
+          onSuccess={onClear}
+          isPending={isPending}
+          startTransition={startTransition}
+        />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        {canEditFinance && (
+          <div className="flex items-center gap-1 group relative">
+            <span className="text-xs font-medium text-muted-foreground">+</span>
+            <input
+              type="number"
+              step="1"
+              placeholder={`Наценка % (мин ${minPercent})`}
+              value={markupPercentInput}
+              onChange={e => setMarkupPercentInput(e.target.value)}
+              disabled={isPending}
+              className="w-36 sm:w-44 px-2 py-1.5 text-xs font-mono rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+            />
+            <span className="text-xs font-medium text-muted-foreground">%</span>
+            
+            {/* Preview Tooltip */}
+            {parseFloat(markupPercentInput) > 0 && (
+              <div className="absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap bg-foreground text-background text-[10px] px-2 py-1 rounded-md shadow-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50">
+                Пример: при закупе 100₽ клиент заплатит {(100 * ((parseFloat(markupPercentInput) / 100) + 1)).toFixed(0)}₽
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleSetMarkup}
+              disabled={isPending}
+              className="ml-1 sm:ml-2 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:opacity-90 transition-all duration-200 disabled:opacity-50 cursor-pointer inline-flex items-center"
+            >
+              {isPending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
+              Применить
+            </button>
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={onClear}
+          disabled={isPending}
+          className="px-2.5 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-foreground transition-all duration-200 cursor-pointer disabled:opacity-50"
+        >
+          ✕ Сбросить
+        </button>
+      </div>
 
       {confirmBulkDeleteOpen && (
         <ConfirmModal

@@ -36,6 +36,7 @@ export interface ApiKeyActionResult {
   success: boolean;
   apiKey?: string;
   error?: string;
+  requiresPassword?: boolean;
 }
 
 export interface TelegramBindDetailsResult {

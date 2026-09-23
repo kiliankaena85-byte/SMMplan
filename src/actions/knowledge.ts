@@ -1,4 +1,5 @@
 'use server';
+import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 
 import { db as prisma } from "@/lib/db";
 import { requireStaffPermission } from "@/lib/server/rbac";
@@ -9,6 +10,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { pillarPages, glossaryTerms, clusterArticles } from "@/data/seo";
+import { IndexNowService } from "@/services/seo/indexnow.service";
+import { absoluteCanonical } from "@/lib/seo-helpers";
 
 // Zod Schema for Article validation at runtime
 const articleSchema = z.object({
@@ -33,7 +36,7 @@ const articleSchema = z.object({
     z.string().min(2, "Имя автора должно состоять минимум из 2 символов").max(100).optional()
   ),
   authorRole: z.preprocess(
-    (val) => (val === "" || val === undefined || val === null) ? "Ведущий специалист по продвижению" : val,
+    (val) => (val === "" || val === undefined || val === null) ? "Системный архитектор прокси-сетей SMMplan" : val,
     z.string().min(2, "Роль автора должна состоять минимум из 2 символов").max(200).optional()
   ),
   priority: z.preprocess(
@@ -67,7 +70,11 @@ async function isAdmin() {
 /**
  * @public Fetch all published articles with optional category filtering and search.
  */
-export async function getArticles(categoryFilter?: string, searchQuery?: string) {
+export async function getArticles(
+  categoryFilter?: string,
+  searchQuery?: string,
+  options?: { includeStatic?: boolean; tenantId?: string }
+) {
   try {
     const whereClause: Prisma.ArticleWhereInput = {
       status: "PUBLISHED"
@@ -91,14 +98,60 @@ export async function getArticles(categoryFilter?: string, searchQuery?: string)
       }
     });
 
+    let allArticles = [...articles];
+
+    if (options?.includeStatic) {
+      const isFlux = options?.tenantId === 'flux' || options?.tenantId === 'smmflux';
+      const fallbackAuthorName = isFlux ? "Команда SMMflux" : "Команда SMMplan";
+      const fallbackAuthorRole = isFlux ? "Экспертная редакция SMMflux" : "Экспертная редакция SMMplan";
+
+      const staticPillars = pillarPages.map((pillar) => ({
+        id: `static-${pillar.slug}`,
+        slug: pillar.slug,
+        title: pillar.title,
+        description: pillar.excerpt,
+        content: pillar.contentHtml,
+        status: "PUBLISHED" as const,
+        category: pillar.category,
+        viewCount: 154,
+        createdAt: new Date("2026-01-01T00:00:00.000Z"),
+        updatedAt: new Date("2026-02-01T00:00:00.000Z"),
+        authorName: fallbackAuthorName,
+        authorRole: fallbackAuthorRole,
+        priority: 10,
+      }));
+
+      const filteredStatic = staticPillars.filter((p) => {
+        if (categoryFilter && categoryFilter !== "Все" && p.category !== categoryFilter) {
+          return false;
+        }
+        if (searchQuery) {
+          const q = searchQuery.toLowerCase();
+          return p.title.toLowerCase().includes(q) || p.description.toLowerCase().includes(q);
+        }
+        return true;
+      });
+
+      const existingSlugs = new Set(articles.map((a) => a.slug));
+      for (const p of filteredStatic) {
+        if (!existingSlugs.has(p.slug)) {
+          allArticles.push(p as any);
+        }
+      }
+    }
+
     // Extract unique categories for filter tabs/dropdowns
     const allPublished = await prisma.article.findMany({
       where: { status: "PUBLISHED" },
       select: { category: true }
     });
-    const categories = Array.from(new Set(allPublished.map(a => a.category)));
+    const categoriesSet = new Set(allPublished.map(a => a.category));
+    if (options?.includeStatic) {
+      pillarPages.forEach(p => categoriesSet.add(p.category));
+    }
+    const categories = Array.from(categoriesSet);
 
-    return { success: true, articles, categories };
+    return { success: true, articles: allArticles, categories };
   } catch (error) {
     console.error("Failed to get articles:", error);
     return { success: false, articles: [], categories: [], error: "Не удалось загрузить статьи" };
@@ -108,11 +161,16 @@ export async function getArticles(categoryFilter?: string, searchQuery?: string)
 /**
  * @public Fetch article details by slug and increment view count.
  */
-export async function getArticleBySlug(slug: string) {
+export async function getArticleBySlug(slug: string, tenantId?: string) {
   try {
-    const article = await prisma.article.findUnique({
-      where: { slug }
+    const normalizedTenant = normalizeTenantId(tenantId) || 'smmplan';
+    const article = await prisma.article.findFirst({
+      where: { slug, tenantId: normalizedTenant }
     });
+
+    const isFlux = tenantId === 'flux' || tenantId === 'smmflux';
+    const fallbackAuthorName = isFlux ? "Команда SMMflux" : "Команда SMMplan";
+    const fallbackAuthorRole = isFlux ? "Экспертная редакция SMMflux" : "Экспертная редакция SMMplan";
 
     if (!article) {
       // Fallback: check static SEO pillars and glossary
@@ -131,8 +189,8 @@ export async function getArticleBySlug(slug: string) {
             viewCount: 154,
             createdAt: new Date(),
             updatedAt: new Date(),
-            authorName: "Команда SMMplan",
-            authorRole: "Редакция SMMplan",
+            authorName: fallbackAuthorName,
+            authorRole: fallbackAuthorRole,
             priority: 10,
           }
         };
@@ -153,8 +211,8 @@ export async function getArticleBySlug(slug: string) {
             viewCount: 112,
             createdAt: new Date(),
             updatedAt: new Date(),
-            authorName: "Команда SMMplan",
-            authorRole: "Редакция SMMplan",
+            authorName: fallbackAuthorName,
+            authorRole: fallbackAuthorRole,
             priority: 5,
           }
         };
@@ -257,7 +315,11 @@ export async function getArticleBySlug(slug: string) {
 /**
  * @public Fetch 3 related articles from the same category, excluding the current one.
  */
-export async function getRelatedArticles(currentArticleId: string, category: string) {
+export async function getRelatedArticles(
+  currentArticleId: string, 
+  category: string,
+  options?: { includeStatic?: boolean }
+) {
   try {
     const articles = await prisma.article.findMany({
       where: {
@@ -270,7 +332,35 @@ export async function getRelatedArticles(currentArticleId: string, category: str
         createdAt: "desc"
       }
     });
-    return { success: true, articles };
+
+    const combined = [...articles];
+    if (options?.includeStatic && combined.length < 3) {
+      const currentSlug = currentArticleId.startsWith("static-") 
+        ? currentArticleId.replace("static-", "") 
+        : "";
+
+      const staticMatches = pillarPages
+        .filter(p => p.slug !== currentSlug)
+        .sort((a, b) => (a.category === category ? -1 : 1) - (b.category === category ? -1 : 1))
+        .slice(0, 3 - combined.length)
+        .map(p => ({
+          id: `static-${p.slug}`,
+          slug: p.slug,
+          title: p.title,
+          category: p.category,
+          viewCount: 124,
+          createdAt: new Date("2026-01-01T00:00:00.000Z"),
+          updatedAt: new Date("2026-02-01T00:00:00.000Z"),
+        }));
+
+      for (const m of staticMatches) {
+        if (!combined.some(c => c.slug === m.slug)) {
+          combined.push(m as any);
+        }
+      }
+    }
+
+    return { success: true, articles: combined };
   } catch (error) {
     console.error("Failed to fetch related articles:", error);
     return { success: false, articles: [], error: "Не удалось загрузить похожие статьи" };
@@ -280,7 +370,7 @@ export async function getRelatedArticles(currentArticleId: string, category: str
 /**
  * @public Fetch all published articles grouped by target tree categories.
  */
-export async function getGroupedArticlesForTree() {
+export async function getGroupedArticlesForTree(options?: { includeStatic?: boolean }) {
   try {
     const articles = await prisma.article.findMany({
       where: { status: "PUBLISHED" },
@@ -288,21 +378,35 @@ export async function getGroupedArticlesForTree() {
       orderBy: { createdAt: "desc" }
     });
 
-    const grouped: Record<string, typeof articles> = {
+    const combinedArticles = [...articles];
+    if (options?.includeStatic) {
+      const existingSlugs = new Set(articles.map((a) => a.slug));
+      for (const pillar of pillarPages) {
+        if (!existingSlugs.has(pillar.slug)) {
+          combinedArticles.push({
+            id: `static-${pillar.slug}`,
+            slug: pillar.slug,
+            title: pillar.title,
+            category: pillar.category,
+          });
+        }
+      }
+    }
+
+    const grouped: Record<string, typeof combinedArticles> = {
       "Безопасность соцсетей": [],
       "Продвижение и Органика": [],
-      "Биллинг и Лимиты": []
+      "Биллинг и Лимиты": [],
+      "Блогерам и Авторам": [],
+      "Маркетологам и KPI": [],
+      "SMM-агентствам и B2B": [],
     };
 
-    articles.forEach(a => {
-      if (grouped[a.category]) {
-        grouped[a.category].push(a);
-      } else {
-        if (!grouped[a.category]) {
-          grouped[a.category] = [];
-        }
-        grouped[a.category].push(a);
+    combinedArticles.forEach(a => {
+      if (!grouped[a.category]) {
+        grouped[a.category] = [];
       }
+      grouped[a.category].push(a);
     });
 
     return { success: true, grouped };
@@ -313,27 +417,86 @@ export async function getGroupedArticlesForTree() {
 }
 
 /**
+ * @public Enqueue knowledge base URLs for instant search indexing via IndexNow.
+ */
+export async function enqueueKnowledgeUrlsAction(slugs: string[]) {
+  try {
+    if (!Array.isArray(slugs) || slugs.length === 0) {
+      return { success: false, count: 0, error: 'Список slug не должен быть пустым' };
+    }
+
+    const smmplanUrls: string[] = [];
+    const smmfluxUrls: string[] = [];
+
+    for (const slug of slugs) {
+      smmplanUrls.push(absoluteCanonical('smmplan', `/knowledge/${slug}`));
+      smmfluxUrls.push(absoluteCanonical('flux', `/knowledge/${slug}`));
+    }
+
+    await Promise.allSettled([
+      IndexNowService.enqueueUrls({
+        host: 'smmplan.pro',
+        urls: smmplanUrls,
+      }),
+      IndexNowService.enqueueUrls({
+        host: 'smmflux.ru',
+        urls: smmfluxUrls,
+      }),
+    ]);
+
+    return { success: true, count: slugs.length };
+  } catch (error) {
+    console.error('Failed to enqueue knowledge URLs to IndexNow:', error);
+    return { success: false, count: 0, error: 'Ошибка постановки в очередь IndexNow' };
+  }
+}
+
+
+/**
  * @public Get up to 3 recommended active services matching the article's category.
  * Calculates retail unit pricing strictly matching standard SMMplan markup guidelines:
  * pricePerUnitRub = applyBeautifulRounding(s.rate * s.markup * usdToRub) / 1000
  */
 export async function getRecommendedServicesForArticle(articleId: string) {
   try {
-    const article = await prisma.article.findUnique({
-      where: { id: articleId }
-    });
+    let categoryName = "";
+    let networkSlug = "";
 
-    if (!article) return [];
+    if (articleId.startsWith("static-")) {
+      const slug = articleId.replace("static-", "");
+      const pillar = pillarPages.find(p => p.slug === slug);
+      if (pillar) {
+        categoryName = pillar.category;
+        networkSlug = pillar.network;
+      } else {
+        const cluster = clusterArticles.find(c => c.slug === slug);
+        if (cluster) {
+          categoryName = cluster.category;
+          const parent = pillarPages.find(p => p.slug === cluster.parentPillar);
+          if (parent) networkSlug = parent.network;
+        }
+      }
+    } else {
+      const article = await prisma.article.findUnique({
+        where: { id: articleId }
+      });
+      if (article) {
+        categoryName = article.category;
+      }
+    }
+
+    if (!categoryName && !networkSlug) return [];
 
     const usdToRub = await SettingsProvider.getExchangeRateUSD();
 
-    const services = await prisma.service.findMany({
+    // 1. Try category name match
+    let services = categoryName ? await prisma.service.findMany({
       where: {
         isActive: true,
         isQuarantined: false,
         category: {
           name: {
-            contains: article.category,
+            contains: categoryName,
             mode: "insensitive"
           }
         }
@@ -342,7 +505,40 @@ export async function getRecommendedServicesForArticle(articleId: string) {
       include: {
         category: true
       }
-    });
+    }) : [];
+
+    // 2. If no services matched category name, try network match if available
+    if (services.length === 0 && networkSlug && networkSlug !== 'general') {
+      services = await prisma.service.findMany({
+        where: {
+          isActive: true,
+          isQuarantined: false,
+          category: {
+            network: {
+              slug: networkSlug
+            }
+          }
+        },
+        take: 3,
+        include: {
+          category: true
+        }
+      });
+    }
+
+    // 3. Fallback to active services if still empty
+    if (services.length === 0) {
+      services = await prisma.service.findMany({
+        where: {
+          isActive: true,
+          isQuarantined: false,
+        },
+        take: 3,
+        include: {
+          category: true
+        }
+      });
+    }
 
     return services.map(s => {
       const exchangeRate = s.providerCurrency === 'RUB' ? 1.0 : usdToRub;
@@ -395,6 +591,25 @@ export async function createArticle(data: {
       revalidatePath("/knowledge");
       revalidatePath(`/knowledge/${article.slug}`);
       revalidatePath("/admin/knowledge");
+
+      if (article.status === 'PUBLISHED') {
+        const smmplanUrl = absoluteCanonical('smmplan', `/knowledge/${article.slug}`);
+        const smmfluxUrl = absoluteCanonical('flux', `/knowledge/${article.slug}`);
+
+        IndexNowService.enqueueUrls({
+          host: 'smmplan.pro',
+          urls: [smmplanUrl],
+        }).catch((err) => {
+          console.warn('[IndexNow] Background enqueuing failed for smmplan.pro', err);
+        });
+
+        IndexNowService.enqueueUrls({
+          host: 'smmflux.ru',
+          urls: [smmfluxUrl],
+        }).catch((err) => {
+          console.warn('[IndexNow] Background enqueuing failed for smmflux.ru', err);
+        });
+      }
 
       return { success: true, article };
     } catch (error: unknown) {
@@ -449,6 +664,25 @@ export async function updateArticle(id: string, data: {
       }
       revalidatePath("/admin/knowledge");
 
+      if (article.status === 'PUBLISHED') {
+        const smmplanUrl = absoluteCanonical('smmplan', `/knowledge/${article.slug}`);
+        const smmfluxUrl = absoluteCanonical('flux', `/knowledge/${article.slug}`);
+
+        IndexNowService.enqueueUrls({
+          host: 'smmplan.pro',
+          urls: [smmplanUrl],
+        }).catch((err) => {
+          console.warn('[IndexNow] Background enqueuing failed for smmplan.pro', err);
+        });
+
+        IndexNowService.enqueueUrls({
+          host: 'smmflux.ru',
+          urls: [smmfluxUrl],
+        }).catch((err) => {
+          console.warn('[IndexNow] Background enqueuing failed for smmflux.ru', err);
+        });
+      }
+
       return { success: true, article };
     } catch (error: unknown) {
       console.error("Failed to update article:", error);
@@ -482,3 +716,4 @@ export async function deleteArticle(id: string) {
     }
   });
 }
+

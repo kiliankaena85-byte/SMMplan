@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "ES2017",
+    "target": "ES2022",
     "lib": [
       "dom",
       "dom.iterable",
@@ -39,6 +39,7 @@
     "node_modules",
     "scratch/**/*",
     "prisma/seed.ts",
+    "prisma/seed-admin-audit.ts",
     "test/**/*",
     "scripts/**/*",
     "teamwork_projects/**/*",

@@ -78,7 +78,7 @@ export function AlfaBankStatusCard({
                 title="Скопировать маскированный счет"
               >
                 <span>Счет: <strong className="font-mono text-foreground">{bankAccount.maskedAccountNumber}</strong></span>
-                {copied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3 text-muted-foreground" />}
+                {copied ? <Check className="w-3 h-3 text-emerald-500 shrink-0" /> : <Copy className="w-3 h-3 text-muted-foreground" />}
               </button>
             ) : (
               <span className="text-muted-foreground">Счет: <span className="font-mono text-foreground">Не подключен</span></span>

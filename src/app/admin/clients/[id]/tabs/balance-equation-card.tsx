@@ -67,7 +67,7 @@ export function BalanceEquationCard({
       </div>
       {isOverdraft && (
         <p className="text-xs font-bold text-rose-600 mt-2.5 flex items-center justify-center gap-1.5">
-          <AlertTriangle className="w-4 h-4" /> Внимание: списание превышает
+          <AlertTriangle className="w-4 h-4 shrink-0" /> Внимание: списание превышает
           текущий баланс клиента!
         </p>
       )}

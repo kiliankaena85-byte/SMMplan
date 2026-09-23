@@ -20,12 +20,10 @@ interface SummaryDashboardProps {
   syncing: boolean;
   importProgress: { current: number; total: number } | null;
   providerName: string;
-  /* PATCH P0-2: tab switching props */
-  activeTab?: 'ready' | 'attention';
-  onTabChange?: (tab: 'ready' | 'attention') => void;
+  activeTab?: 'all' | 'ready' | 'attention' | 'selected';
+  onTabChange?: (tab: 'all' | 'ready' | 'attention' | 'selected') => void;
 }
 
-/** PATCH P1-7: unified markup label */
 function formatMarkupHint(markupStr: string): string {
   const p = parseFloat(markupStr);
   if (isNaN(p) || p < 0) return '×3.0';
@@ -34,9 +32,32 @@ function formatMarkupHint(markupStr: string): string {
   return '×' + m.toFixed(2).replace(/.?0+$/, '');
 }
 
+interface TabCardProps {
+  active: boolean; onClick?: () => void; title: string; icon: React.ReactNode;
+  label: string; value: number; sub: string; colorClass: string; activeClass: string; inactiveClass: string;
+}
+
+function TabCard({ active, onClick, title, icon, label, value, sub, colorClass, activeClass, inactiveClass }: TabCardProps) {
+  return (
+    <div
+      onClick={onClick}
+      title={title}
+      className={`rounded-xl p-3 border transition-all duration-150 cursor-pointer ${active ? activeClass : inactiveClass}`}
+    >
+      <div className={`flex items-center gap-1.5 ${colorClass} mb-1`}>
+        {icon}
+        <span className="text-[10px] font-bold uppercase tracking-wider">{label}</span>
+      </div>
+      <div className="flex items-baseline gap-1.5">
+        <span className={`text-xl font-bold tabular-nums ${colorClass}`}>{value}</span>
+        <span className="text-[10px] opacity-70">{sub}</span>
+      </div>
+    </div>
+  );
+}
+
 export function SummaryDashboard({
   totalInCache,
-  newServices,
   aiReady,
   needsAttention,
   alreadyImported,
@@ -49,39 +70,21 @@ export function SummaryDashboard({
   syncing,
   importProgress,
   providerName,
-  activeTab = 'ready',
+  activeTab = 'all',
   onTabChange,
 }: SummaryDashboardProps) {
-  const stats = [
-    {
-      label: 'Всего в каталоге',
-      value: totalInCache,
-      icon: <Package className="w-4 h-4" />,
-      color: 'text-foreground',
-      bg: 'bg-muted/50',
-    },
-    {
-      label: 'Новых услуг',
-      value: newServices,
-      icon: <Sparkles className="w-4 h-4" />,
-      color: 'text-primary',
-      bg: 'bg-primary/5',
-    },
-  ];
-
   return (
-    <div className="relative overflow-hidden bg-card/60 backdrop-blur-md border border-border/50 rounded-[24px] p-6 shadow-sm space-y-6 ring-1 ring-border/5">
+    <div className="relative overflow-hidden bg-card/60 backdrop-blur-md border border-border/50 rounded-[20px] p-5 shadow-xs space-y-5 ring-1 ring-border/5">
       <div className="absolute inset-0 z-0 opacity-70 premium-dot-grid pointer-events-none" />
-      {/* Provider Name + Resync */}
       <div className="relative z-10 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
-            <Package className="w-4.5 h-4.5 text-primary" />
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+            <Package className="w-4 h-4 text-primary shrink-0" />
           </div>
           <div>
             <h3 className="text-sm font-bold text-foreground">{providerName}</h3>
             <p className="text-[11px] text-muted-foreground">
-              {alreadyImported > 0 && `${alreadyImported} услуг уже импортировано`}
+              {alreadyImported > 0 ? `${alreadyImported} услуг уже импортировано` : 'Каталог готов к импорту'}
             </p>
           </div>
         </div>
@@ -90,62 +93,64 @@ export function SummaryDashboard({
           size="sm"
           onClick={onResync}
           disabled={syncing}
-          className="flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
+          className="flex items-center gap-1.5 text-xs font-semibold cursor-pointer h-8 px-3"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
           {syncing ? 'Синхронизация...' : 'Обновить каталог'}
         </Button>
       </div>
 
-      {/* PATCH P0-2: Stats Grid with clickable tab cards */}
-      <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-3">
-        {stats.map((stat) => (
-          <div
-            key={stat.label}
-            className={`${stat.bg} rounded-[10px] px-4 py-3 border border-border/50 hover:-translate-y-0.5 hover:shadow-sm transition-all duration-200`}
-          >
-            <div className={`flex items-center gap-1.5 ${stat.color} mb-1`}>
-              {stat.icon}
-              <span className="text-[10px] font-bold uppercase tracking-wider opacity-70">{stat.label}</span>
-            </div>
-            <span className={`text-2xl font-bold tabular-nums ${stat.color}`}>{stat.value}</span>
-          </div>
-        ))}
-        {/* PATCH P0-2: clickable ready card */}
-        <div
+      <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-2.5">
+        <TabCard
+          active={activeTab === 'all'}
+          onClick={() => onTabChange?.('all')}
+          title="Показать все услуги в текущем каталоге"
+          icon={<Package className="w-3.5 h-3.5 text-primary" />}
+          label="Все услуги"
+          value={totalInCache}
+          sub="в каталоге"
+          colorClass="text-foreground"
+          activeClass="bg-muted/80 ring-2 ring-primary/40 border-primary/50 shadow-xs"
+          inactiveClass="bg-muted/30 border-border/60 hover:bg-muted/50"
+        />
+        <TabCard
+          active={activeTab === 'ready'}
           onClick={() => onTabChange?.('ready')}
-          title={onTabChange ? 'Показать готовые к импорту' : undefined}
-          className={`rounded-[10px] px-4 py-3 border hover:-translate-y-0.5 hover:shadow-sm transition-all duration-200 cursor-pointer ${
-            activeTab === 'ready'
-              ? 'bg-success/10 ring-1 ring-success/30'
-              : 'bg-success/5 hover:bg-success/10'
-          }`}
-        >
-          <div className={`flex items-center gap-1.5 ${activeTab === 'ready' ? 'text-success' : 'text-success/70'} mb-1`}>
-            <CheckCircle2 className="w-4 h-4" />
-            <span className="text-[10px] font-bold uppercase tracking-wider opacity-70">AI распределил</span>
-          </div>
-          <span className={`text-2xl font-bold tabular-nums ${activeTab === 'ready' ? 'text-success' : 'text-success/70'}`}>{aiReady}</span>
-        </div>
-        {/* PATCH P0-2: clickable attention card */}
-        <div
+          title="Показать услуги с сопоставленной категорией на странице"
+          icon={<CheckCircle2 className="w-3.5 h-3.5" />}
+          label="Готовы к импорту"
+          value={aiReady}
+          sub="на странице"
+          colorClass="text-success"
+          activeClass="bg-success/15 ring-2 ring-success/40 border-success/50 shadow-xs"
+          inactiveClass="bg-success/5 border-success/20 hover:bg-success/10"
+        />
+        <TabCard
+          active={activeTab === 'attention'}
           onClick={() => onTabChange?.('attention')}
-          title={onTabChange ? 'Показать требующих внимания' : undefined}
-          className={`rounded-[10px] px-4 py-3 border hover:-translate-y-0.5 hover:shadow-sm transition-all duration-200 cursor-pointer ${
-            activeTab === 'attention'
-              ? 'bg-warning/10 ring-1 ring-warning/30'
-              : 'bg-warning/5 hover:bg-warning/10'
-          }`}
-        >
-          <div className={`flex items-center gap-1.5 ${activeTab === 'attention' ? 'text-warning' : 'text-warning/70'} mb-1`}>
-            <AlertTriangle className="w-4 h-4" />
-            <span className="text-[10px] font-bold uppercase tracking-wider opacity-70">Требуют внимания</span>
-          </div>
-          <span className={`text-2xl font-bold tabular-nums ${activeTab === 'attention' ? 'text-warning' : 'text-warning/70'}`}>{needsAttention}</span>
-        </div>
+          title="Показать услуги без категории на текущей странице"
+          icon={<AlertTriangle className="w-3.5 h-3.5" />}
+          label="Без категории"
+          value={needsAttention}
+          sub="на странице"
+          colorClass="text-warning"
+          activeClass="bg-warning/15 ring-2 ring-warning/40 border-warning/50 shadow-xs"
+          inactiveClass="bg-warning/5 border-warning/20 hover:bg-warning/10"
+        />
+        <TabCard
+          active={activeTab === 'selected'}
+          onClick={() => onTabChange?.('selected')}
+          title="Показать все выбранные услуги (со всех страниц)"
+          icon={<Sparkles className="w-3.5 h-3.5" />}
+          label="Выбрано"
+          value={selectedCount}
+          sub="всего к импорту"
+          colorClass="text-primary"
+          activeClass="bg-primary/15 ring-2 ring-primary/40 border-primary/50 shadow-xs"
+          inactiveClass="bg-primary/5 border-primary/20 hover:bg-primary/10"
+        />
       </div>
 
-      {/* Action Bar */}
       <div className="relative z-10 flex flex-wrap items-end gap-4 pt-2 border-t border-border/50">
         <div className="space-y-1.5">
           <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-0.5">
@@ -158,9 +163,8 @@ export function SummaryDashboard({
             max="900"
             value={markup}
             onChange={(e) => onMarkupChange(e.target.value)}
-            className="w-28 h-10 text-sm tabular-nums"
+            className="w-28 h-9 text-xs tabular-nums"
           />
-          {/* PATCH P1-7: unified display */}
           <p className="text-[10px] text-muted-foreground">
             {formatMarkupHint(markup)} · 0 = авто
           </p>
@@ -170,11 +174,11 @@ export function SummaryDashboard({
           intent="primary"
           onClick={onImport}
           disabled={importDisabled}
-          className="h-10 px-6 font-semibold text-sm cursor-pointer"
+          className="h-9 px-5 font-semibold text-xs cursor-pointer"
         >
           {importProgress !== null ? (
             <>
-              <span className="animate-spin text-sm">⏳</span>
+              <span className="animate-spin text-xs">⏳</span>
               Импорт: {importProgress.current} / {importProgress.total}
             </>
           ) : (

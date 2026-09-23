@@ -69,25 +69,25 @@ export function LiquidityWaterfallBar({ report }: Props) {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-[11px]">
         <div className="flex items-center gap-1.5">
           <div className="w-2.5 h-2.5 rounded-full bg-destructive/80 shrink-0" />
-          <span className="text-muted-foreground truncate">
+          <span className="text-muted-foreground truncate min-w-0">
             Эскроу: <strong className="font-mono text-foreground">{escrowPercent.toFixed(0)}%</strong>
           </span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-2.5 h-2.5 rounded-full bg-amber-500/80 shrink-0" />
-          <span className="text-muted-foreground truncate">
+          <span className="text-muted-foreground truncate min-w-0">
             Налоги УСН: <strong className="font-mono text-foreground">{taxPercent.toFixed(0)}%</strong>
           </span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-2.5 h-2.5 rounded-full bg-sky-500/60 shrink-0" />
-          <span className="text-muted-foreground truncate">
+          <span className="text-muted-foreground truncate min-w-0">
             Буфер: <strong className="font-mono text-foreground">{safetyBufferPercent.toFixed(0)}%</strong>
           </span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
-          <span className="text-muted-foreground truncate">
+          <span className="text-muted-foreground truncate min-w-0">
             Чистая прибыль: <strong className="font-mono text-emerald-500">{safeDrawPercent.toFixed(0)}%</strong>
           </span>
         </div>

@@ -24,9 +24,24 @@ import {
 import { db } from '@/lib/db';
 
 describe('Admin Tenants Management (White-Label) Integration Tests', () => {
+  beforeEach(async () => {
+    await db.user.upsert({
+      where: { id: 'test-admin-id' },
+      update: { role: 'OWNER', email: 'admin@smmplan.pro', tenantId: 'smmplan' },
+      create: {
+        id: 'test-admin-id',
+        email: 'admin@smmplan.pro',
+        role: 'OWNER',
+        tenantId: 'smmplan',
+        balance: 0n,
+      }
+    });
+  });
+
   it('should list existing tenants', async () => {
     const res = await listTenantsAction();
     expect(res.success).toBe(true);
+    if (!res.success) throw new Error('Failed to list tenants: ' + res.error);
     expect(Array.isArray(res.data)).toBe(true);
     expect(res.data.length).toBeGreaterThanOrEqual(2);
   });
@@ -44,6 +59,7 @@ describe('Admin Tenants Management (White-Label) Integration Tests', () => {
     });
 
     expect(res.success).toBe(true);
+    if (!res.success) throw new Error('Failed to create tenant: ' + res.error);
     expect(res.data?.id).toBe(testSlug);
 
     // Verify DB
@@ -84,6 +100,7 @@ describe('Admin Tenants Management (White-Label) Integration Tests', () => {
 
     const toggleRes = await toggleTenantStatusAction(testSlug, false);
     expect(toggleRes.success).toBe(true);
+    if (!toggleRes.success) throw new Error('Failed to toggle tenant: ' + toggleRes.error);
     expect(toggleRes.data?.isActive).toBe(false);
 
     // Clean up

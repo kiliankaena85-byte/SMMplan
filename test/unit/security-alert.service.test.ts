@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 let messagesSent: Array<{ msg: string; severity: string }> = [];
 let redisStore: Record<string, string> = {};
 let publishedEvents: Array<{ channel: string; payload: string }> = [];
-let dbEvents: Array<record<string, unknown>> = [];
+let dbEvents: Array<Record<string, unknown>> = [];
 
 vi.mock('@/lib/notifications', () => ({
   sendAdminAlert: vi.fn((msg, severity) => {
@@ -71,7 +71,8 @@ describe('🚀 SecurityAlertService: Real-Time Security Monitoring & Telegram Al
     // Verify Telegram Alert was dispatched
     expect(messagesSent.length).toBe(1);
     expect(messagesSent[0].severity).toBe('CRITICAL');
-    expect(messagesSent[0].msg).toContain('[CRITICAL] SECURITY INTRUSION ATTEMPT');
+    expect(messagesSent[0].msg).toContain('[CRITICAL]');
+    expect(messagesSent[0].msg).toContain('INVALID_SIGNATURE-WEBHOOK');
     expect(messagesSent[0].msg).toContain('203.0.113.199');
 
     // Verify Redis Publish

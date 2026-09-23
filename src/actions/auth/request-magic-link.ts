@@ -66,7 +66,6 @@ export async function requestMagicLink(prevState: unknown, formData: FormData) {
     let referredById = null;
 
     if (refCode) {
-      // tenant-isolation-ignore: manual IDOR check
       const referrer = await db.user.findUnique({ where: { referralCode: refCode } });
       if (referrer) referredById = referrer.id;
     }
@@ -83,6 +82,18 @@ export async function requestMagicLink(prevState: unknown, formData: FormData) {
           tenantId
         }
       });
+
+      // Fallback: Global Admin/Owner login across any tenant (matches password-login.ts)
+      if (!user) {
+        // tenant-isolation-ignore: Global Admin/Owner login fallback across tenants
+        user = await tx.user.findFirst({
+          where: {
+            email: cleanEmail,
+            role: { in: ["OWNER", "ADMIN"] },
+            isDeleted: false
+          }
+        });
+      }
 
       if (user && (user.isDeleted || !user.isActive)) {
         return { type: 'blocked' as const };
@@ -104,6 +115,7 @@ export async function requestMagicLink(prevState: unknown, formData: FormData) {
             role,
             referredById,
             tenantId,
+            allowedTenants: [tenantId],
             tosAcceptedAt: new Date(),
             tosAcceptedIp: consentIp,
           }
@@ -161,7 +173,6 @@ export async function requestMagicLink(prevState: unknown, formData: FormData) {
       if (isNewUser && !isTestEnv) {
         log.info('Soft-deleting newly created user due to SMTP failure in production', { email: cleanEmail });
         try {
-          // tenant-isolation-ignore: manual IDOR check
           await db.user.update({
             where: { id: user.id },
             data: {

@@ -140,7 +140,7 @@ export function LedgerAuditDrawer({
         <div className="p-6 border-b border-border/80 bg-muted/20 flex items-center justify-between shrink-0">
           <div className="space-y-1 min-w-0 flex-1 mr-4">
             <div className="flex items-center gap-2">
-              <h2 id="audit-drawer-title" className="text-lg font-bold text-foreground truncate tracking-tight">
+              <h2 id="audit-drawer-title" className="text-lg font-bold text-foreground truncate tracking-tight min-w-0">
                 Финансовый аудит аккаунта
               </h2>
               {user && (
@@ -154,7 +154,7 @@ export function LedgerAuditDrawer({
             </div>
             {user && (
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span className="font-mono font-medium text-foreground truncate">{user.email}</span>
+                <span className="font-mono font-medium text-foreground truncate min-w-0">{user.email}</span>
                 <span className="opacity-40">•</span>
                 <button
                   onClick={() => handleCopyId(user.id)}
@@ -163,7 +163,7 @@ export function LedgerAuditDrawer({
                   type="button"
                 >
                   <span>ID: {user.id.slice(0, 8)}...</span>
-                  {copied ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
+                  {copied ? <Check className="w-3 h-3 text-success shrink-0" /> : <Copy className="w-3 h-3" />}
                 </button>
               </div>
             )}
@@ -360,7 +360,7 @@ export function LedgerAuditDrawer({
                         onClick={() => setShowAdjustPrompt(true)}
                         className="flex-1 min-h-[40px] font-bold text-xs"
                       >
-                        <Wrench className="w-4 h-4 mr-1.5" />
+                        <Wrench className="w-4 h-4 mr-1.5 shrink-0" />
                         Авто-выравнивание баланса
                       </Button>
                       {user.isActive && (

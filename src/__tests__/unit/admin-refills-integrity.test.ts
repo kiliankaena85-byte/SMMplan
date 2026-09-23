@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { STATUS_LABELS, formatAge } from '@/app/admin/refills/client-table';
-import { OPERATIONS_TABS } from '@/components/admin/navigation-data';
+import { ORDERS_TABS } from '@/components/admin/navigation-data';
 
 describe('Admin Refills Integrity & Contracts Suite (SIL-2026 Step 13)', () => {
   describe('Status Labels & Meta Exhaustiveness', () => {
@@ -44,8 +44,8 @@ describe('Admin Refills Integrity & Contracts Suite (SIL-2026 Step 13)', () => {
   });
 
   describe('Navigation & Operations Cluster Integrity', () => {
-    it('verifies /admin/refills is part of OPERATIONS_TABS navigation cluster', () => {
-      const refillTab = OPERATIONS_TABS.find((t) => t.href === '/admin/refills');
+    it('verifies /admin/refills is part of ORDERS_TABS navigation cluster', () => {
+      const refillTab = ORDERS_TABS.find((t) => t.href === '/admin/refills');
       expect(refillTab).toBeDefined();
       expect(refillTab?.label).toBe('Заявки на докрутку');
     });

@@ -16,7 +16,8 @@ import {
   ShieldCheck, 
   Zap, 
   ArrowRight,
-  X 
+  X,
+  Sliders 
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -190,6 +191,24 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchItem[] = [
     tags: ['аудит', 'логи', 'журнал', 'история', 'кто изменил', 'безопасность', 'logs'],
     icon: History,
   },
+  {
+    id: 'roles-matrix',
+    title: 'Матрица ролей и прав доступа',
+    category: 'Безопасность',
+    description: 'Управление ролями сотрудников, гранулярными правами доступа и защитой от несанкционированных действий',
+    tabHref: '/admin/settings/roles',
+    tags: ['роли', 'матрица', 'права', 'доступ', 'permissions', 'rbac', 'безопасность', 'roles'],
+    icon: ShieldCheck,
+  },
+  {
+    id: 'balance-policies',
+    title: 'Политики корректировки баланса',
+    category: 'Финансы',
+    description: 'Глобальные лимиты, роли и персональные переопределения заявок на баланс',
+    tabHref: '/admin/settings/balance-policies',
+    tags: ['политики', 'баланс', 'лимиты', 'корректировка', 'заявки', 'правила', 'согласование'],
+    icon: Sliders,
+  },
 ];
 
 export function SettingsSearchCommand() {
@@ -302,7 +321,7 @@ export function SettingsSearchCommand() {
                     className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-muted/40 transition-colors group cursor-pointer"
                   >
                     <div className="p-2 bg-primary/10 text-primary rounded-lg border border-primary/20 shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                      <Icon className="w-4 h-4" />
+                      <Icon className="w-4 h-4 shrink-0" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">

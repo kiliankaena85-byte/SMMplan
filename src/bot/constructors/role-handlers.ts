@@ -14,10 +14,9 @@ import { depositWizard, DEPOSIT_WIZARD } from '../scenes/deposit.wizard';
 import { referralWizard, REFERRAL_WIZARD } from '../scenes/referral.wizard';
 import { ownerHubWizard, isOwnerOrAdmin } from '../scenes/owner-hub.wizard';
 import { BotCatalogService } from '../services/bot-catalog.service';
-import { BotSettingsService } from '../services/bot-settings.service';
 import { calculatePricePerUnit, formatPricePerUnit, escapeHtml } from '../utils/formatter';
 import { WalletOps } from '@/services/financial/wallet-ops';
-import { auditAdminAwaitable } from '@/lib/admin-audit';
+import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 
 export interface BotHandlerOptions {
   botId: string;
@@ -352,8 +351,8 @@ function setupCustomFlowPipeline(bot: Telegraf<BotContext>, opts: BotHandlerOpti
  * Complete interactive shopping, catalog, fast order wizard, wallet, profile & direct support.
  */
 function setupStorePipeline(bot: Telegraf<BotContext>, opts: BotHandlerOptions): void {
-  const tenantId = opts.tenantId || 'smmplan';
-  const siteName = opts.botName || (tenantId === 'flux' || tenantId === 'lovable' ? 'SMMflux' : 'SMMplan');
+  const tenantId = normalizeTenantId(opts.tenantId) || 'smmplan';
+  const siteName = opts.botName || (tenantId === 'flux' ? 'SMMflux' : 'SMMplan');
 
   const replyKeyboard = buildReplyKeyboard(opts.menuConfig || [
     ['🚀 Заказать по ссылке', '🛍 Каталог услуг'],
@@ -383,7 +382,7 @@ function setupStorePipeline(bot: Telegraf<BotContext>, opts: BotHandlerOptions):
       .replace(/{userName}/g, escapeHtml(tgName))
       .replace(/{balance}/g, balanceStr);
 
-    const isOwner = await isOwnerOrAdmin(tgId);
+    const isOwner = await isOwnerOrAdmin(tgId, tenantId);
     const inlineRows = [
       [Markup.button.callback('🚀 Быстрый заказ по ссылке', 'start_fast_order')],
       [Markup.button.callback('🛍 Каталог услуг', 'shop'), Markup.button.callback('💰 Пополнить баланс', 'deposit')],
@@ -476,7 +475,7 @@ function setupStorePipeline(bot: Telegraf<BotContext>, opts: BotHandlerOptions):
     const orderCount = await db.order.count({
       where: { userId: user.id, ...(tenantId ? { tenantId } : {}) }
     });
-    const isOwner = await isOwnerOrAdmin(tgId);
+    const isOwner = await isOwnerOrAdmin(tgId, tenantId);
 
     const text =
       `👤 <b>Личный кабинет ${escapeHtml(siteName)}</b>\n\n` +
@@ -636,7 +635,7 @@ function setupStorePipeline(bot: Telegraf<BotContext>, opts: BotHandlerOptions):
 
   // ── Helper: Bind Instructions ──
   async function sendBindInstructions(ctx: BotContext) {
-    const host = process.env.APP_URL || (tenantId === 'flux' || tenantId === 'lovable' ? 'https://smmflux.ru' : 'https://test.smmplan.pro');
+    const host = process.env.APP_URL || (tenantId === 'flux' ? 'https://smmflux.ru' : 'https://test.smmplan.pro');
     await ctx.reply(
       `🔗 <b>Связывание аккаунта ${escapeHtml(siteName)}</b>\n\n` +
       `Привяжите Telegram к сайту, чтобы синхронизировать баланс, получать уведомления о заказах и обращаться в поддержку без задержек.\n\n` +
@@ -706,20 +705,51 @@ function setupStorePipeline(bot: Telegraf<BotContext>, opts: BotHandlerOptions):
       if (bindToken && !bindToken.used && bindToken.expiresAt > new Date()) {
         const webUserId = bindToken.userId;
         try {
+          if (bindToken.tenantId && bindToken.tenantId !== tenantId) {
+            throw new Error('КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО объединять аккаунты разных брендов (SMMplan / SMMflux)');
+          }
+
           await db.$transaction(async (tx) => {
-            await tx.authToken.updateMany({ where: { id: bindToken.id, used: false }, data: { used: true } });
             const tempUser = await tx.user.findFirst({ where: { telegramId: tgId, tenantId } });
+            const webUser = await tx.user.findUnique({ where: { id: webUserId } });
+
+            if (!webUser) {
+              throw new Error('Пользователь веб-кабинета не найден');
+            }
+
+            if (tempUser && tempUser.role && tempUser.role !== 'USER') {
+              throw new Error('Запрещено объединять служебные аккаунты персонала');
+            }
+
+            if (tempUser && tempUser.tenantId !== webUser.tenantId) {
+              throw new Error('КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО объединять аккаунты разных брендов (SMMplan / SMMflux)');
+            }
+            if (webUser.tenantId !== tenantId) {
+              throw new Error('КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО объединять аккаунты разных брендов (SMMplan / SMMflux)');
+            }
+
+            // Atomic token invalidation with race-condition guard
+            const tokenUpdateResult = await tx.authToken.updateMany({
+              where: { id: bindToken.id, used: false },
+              data: { used: true, usedAt: new Date() }
+            });
+            if (!tokenUpdateResult || tokenUpdateResult.count === 0) {
+              throw new Error('Токен привязки уже был использован или обрабатывается другим запросом');
+            }
+
             if (tempUser && tempUser.id !== webUserId) {
               await tx.ticket.updateMany({ where: { userId: tempUser.id }, data: { userId: webUserId } });
               await tx.order.updateMany({ where: { userId: tempUser.id }, data: { userId: webUserId } });
               await tx.payment.updateMany({ where: { userId: tempUser.id }, data: { userId: webUserId } });
               if (tempUser.balance > BigInt(0)) {
-                const amount = Number(tempUser.balance);
+                const amount = tempUser.balance;
                 await WalletOps.charge(tx, tempUser.id, amount, `Слияние Telegram с ${webUserId}`, {
-                  idempotencyKey: `merge-debit-bot-${tempUser.id}-${webUserId}`
+                  idempotencyKey: `merge-debit-bot-${tempUser.id}-${webUserId}-${bindToken.id}`,
+                  tenantId: tempUser.tenantId || tenantId
                 });
                 await WalletOps.credit(tx, webUserId, amount, `Перенос баланса с Telegram ${tempUser.email}`, {
-                  idempotencyKey: `merge-credit-bot-${tempUser.id}-${webUserId}`
+                  idempotencyKey: `merge-credit-bot-${tempUser.id}-${webUserId}-${bindToken.id}`,
+                  tenantId: webUser.tenantId || tenantId
                 });
               }
               await tx.user.update({ where: { id: tempUser.id }, data: { telegramId: null } });
@@ -733,7 +763,14 @@ function setupStorePipeline(bot: Telegraf<BotContext>, opts: BotHandlerOptions):
           );
         } catch (err) {
           console.error('[StorePipeline Bind] Error:', err);
+          const errMsg = err instanceof Error ? err.message : 'Ошибка привязки аккаунта';
+          return ctx.reply(`❌ <b>Не удалось привязать аккаунт:</b>\n${errMsg}`, { parse_mode: 'HTML' });
         }
+      } else {
+        return ctx.reply(
+          '❌ <b>Ссылка для привязки недействительна или срок её действия истёк.</b>\n\nПожалуйста, сгенерируйте новую ссылку в настройках профиля на сайте.',
+          { parse_mode: 'HTML', ...replyKeyboard }
+        );
       }
     }
 
@@ -815,7 +852,7 @@ function setupStorePipeline(bot: Telegraf<BotContext>, opts: BotHandlerOptions):
 
   bot.action('nav_owner_hub', async (ctx: BotContext) => {
     await ctx.answerCbQuery().catch(() => {});
-    if (!ctx.from || !(await isOwnerOrAdmin(ctx.from.id))) {
+    if (!ctx.from || !(await isOwnerOrAdmin(ctx.from.id, tenantId))) {
       return ctx.reply('⛔ Доступ ограничен.');
     }
     return ctx.scene.enter('owner-hub');
@@ -957,7 +994,7 @@ function setupStorePipeline(bot: Telegraf<BotContext>, opts: BotHandlerOptions):
   bot.command('transactions', async (ctx: BotContext) => sendUserTransactions(ctx));
   bot.command('bind', async (ctx: BotContext) => sendBindInstructions(ctx));
   bot.command('owner', async (ctx: BotContext) => {
-    if (!ctx.from || !(await isOwnerOrAdmin(ctx.from.id))) {
+    if (!ctx.from || !(await isOwnerOrAdmin(ctx.from.id, tenantId))) {
       return ctx.reply('⛔ Доступ ограничен. Раздел доступен только владельцу.');
     }
     return ctx.scene.enter('owner-hub');
@@ -972,7 +1009,7 @@ function setupStorePipeline(bot: Telegraf<BotContext>, opts: BotHandlerOptions):
   safeHears(bot, ['🆘 Поддержка', 'Поддержка', '🆘 Помощь', 'Помощь', 'Оператор', /^(🆘\s*Поддержка|Поддержка|Помощь)/i], async (ctx) => sendSupportPrompt(ctx));
   safeHears(bot, ['👥 Рефералы', 'Рефералы', 'Реферальная программа', 'Партнерам', /^(👥\s*Рефералы|Рефералы)/i], async (ctx) => ctx.scene.enter(REFERRAL_WIZARD));
   safeHears(bot, ['👑 Пульт Овнера', 'Пульт Овнера', '⚙️ Админка', /^(👑\s*Пульт|Пульт Овнера)/i], async (ctx) => {
-    if (!ctx.from || !(await isOwnerOrAdmin(ctx.from.id))) {
+    if (!ctx.from || !(await isOwnerOrAdmin(ctx.from.id, tenantId))) {
       return ctx.reply('⛔ Доступ ограничен.');
     }
     return ctx.scene.enter('owner-hub');

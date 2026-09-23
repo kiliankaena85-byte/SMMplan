@@ -1,32 +1,23 @@
 import { adminCatalogService } from '@/services/admin/catalog.service';
 import { adminProviderService } from '@/services/admin/provider.service';
-import { bulkUpdateMarkupAction } from '@/actions/admin/catalog';
-import { ShoppingCart, AlertTriangle } from 'lucide-react';
+import { ShoppingCart } from 'lucide-react';
 import { SettingsProvider } from '@/lib/settings';
 import Link from 'next/link';
-import { SubmitButton } from '@/components/admin/submit-button';
 import { Button } from '@/components/ui/button';
 import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
 import { CATALOG_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 import { CatalogTable } from '@/components/admin/catalog-table-v2';
 import { CatalogPagination } from '@/components/admin/catalog/catalog-pagination';
 
-import {
-  TOTAL_MANDATORY_DEDUCTIONS,
-  SAFETY_FLOOR_MARKUP,
-} from '@/lib/financial-constants';
 import type { CatalogServiceDTO } from '@/types/catalog.dto';
 import { verifySession } from '@/lib/session';
+import { getCachedStaffUserWithPermissions } from '@/lib/server/rbac';
 import { db } from '@/lib/db';
 
 import { headers, cookies } from 'next/headers';
 import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
-import { TenantSwitcher } from '@/components/admin/tenant-switcher';
 
 export const dynamic = 'force-dynamic';
-
-// Safety floor multiplier: minimum markup that covers taxes + gateway + 100% margin
-const SAFETY_MULTIPLIER = (1 + SAFETY_FLOOR_MARKUP) / (1 - TOTAL_MANDATORY_DEDUCTIONS);
 
 type Props = {
   searchParams: Promise<{
@@ -51,10 +42,7 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
   const reqHeaders = await headers();
   const cookieStore = await cookies();
   const session = await verifySession();
-  const user = session ? await db.user.findUnique({ 
-    where: { id: session.userId },
-    include: { staffRole: { include: { permissions: true } } }
-  }) : null;
+  const user = session ? await getCachedStaffUserWithPermissions(session.userId) : null;
 
   const isSuperAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN';
   const permissions = user?.staffRole?.permissions || [];
@@ -92,7 +80,7 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
   const platform = (params.platform && params.platform !== 'ALL' && params.platform !== 'all') ? params.platform : undefined;
 
   const [
-    { items: rawServices, nextCursor, hasMore, totalCount: filteredTotalCount, totalPages, currentPage },
+    { items: rawServices, totalCount: filteredTotalCount, totalPages, currentPage },
     usdToRub,
     categories,
     catalogHealth,
@@ -225,36 +213,16 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
                 </Button>
               </Link>
             )}
-            <Link href={`/admin/catalog/categories?tenant=${selectedTenant}`}>
-              <Button
-                intent="outline"
-                size="sm"
-                className="font-bold h-9 bg-background text-muted-foreground hover:text-foreground"
-              >
-                Категории & Соцсети
-              </Button>
-            </Link>
             {canEdit && (
-              <div className="flex items-center gap-2">
-                <Link href="/admin/providers/import">
-                  <Button
-                    intent="outline"
-                    size="sm"
-                    className="font-bold h-9 bg-background text-muted-foreground hover:text-foreground"
-                  >
-                    Импорт услуг
-                  </Button>
-                </Link>
-                <Link href="/admin/catalog/new">
-                  <Button
-                    intent="primary"
-                    size="sm"
-                    className="font-bold h-9"
-                  >
-                    + Создать услугу
-                  </Button>
-                </Link>
-              </div>
+              <Link href="/admin/catalog/new">
+                <Button
+                  intent="primary"
+                  size="sm"
+                  className="font-bold h-9"
+                >
+                  + Создать услугу
+                </Button>
+              </Link>
             )}
           </div>
         }

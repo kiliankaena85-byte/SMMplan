@@ -46,7 +46,9 @@ export const COMPONENT_DIRS = [
   'src/components/dashboard',
   'src/components/orders',
   'src/components/landing',
-  'src/components/auth'
+  'src/components/auth',
+  'src/components/admin',
+  'src/app/admin'
 ];
 
 /**
@@ -299,9 +301,18 @@ export function runLayoutAudit(dirs = COMPONENT_DIRS): LayoutAuditReport {
 
   const verdict: LayoutAuditReport['verdict'] = highSeverity > 0 ? 'DEFECTS_DETECTED' : mediumSeverity > 0 ? 'WARNINGS' : 'CLEAN';
 
+  const rootDir = process.cwd();
+  let totalFilesScanned = 0;
+  for (const relDir of dirs) {
+    const absDir = path.resolve(rootDir, relDir);
+    if (fs.existsSync(absDir)) {
+      totalFilesScanned += getFilesRecursively(absDir, ['.tsx', '.jsx']).length;
+    }
+  }
+
   const report: LayoutAuditReport = {
     timestamp: new Date().toISOString(),
-    filesScanned: 50,
+    filesScanned: totalFilesScanned,
     totalDefects: findings.length,
     highSeverity,
     mediumSeverity,

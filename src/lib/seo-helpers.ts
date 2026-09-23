@@ -35,19 +35,17 @@ export function resolveCanonicalHost(tenantId: string, incomingHost?: string | n
     if (hostWithoutPort === 'flux.smmplan.pro' || rawHost === 'flux.smmplan.pro') return 'flux.smmplan.pro';
     if (hostWithoutPort === 'smmflux.ru' || rawHost === 'smmflux.ru') return 'smmflux.ru';
     if (rawHost.includes('localhost') || rawHost.includes('127.0.0.1') || rawHost.endsWith('.ts.net')) return rawHost;
-    // Default fallback for flux on test vs prod
-    return process.env.NODE_ENV === 'production' && !process.env.APP_URL?.includes('test.')
-      ? 'smmflux.ru'
-      : 'flux.smmplan.pro';
+    // Default fallback for flux: only use staging domain when explicitly on staging contour
+    const isStaging = process.env.APP_ENV === 'staging' || (Boolean(process.env.APP_URL) && process.env.APP_URL!.includes('flux.smmplan.pro'));
+    return isStaging ? 'flux.smmplan.pro' : 'smmflux.ru';
   } else {
     // smmplan tenant
     if (hostWithoutPort === 'test.smmplan.pro' || rawHost === 'test.smmplan.pro') return 'test.smmplan.pro';
     if (hostWithoutPort === 'smmplan.pro' || rawHost === 'smmplan.pro') return 'smmplan.pro';
     if (rawHost.includes('localhost') || rawHost.includes('127.0.0.1') || rawHost.endsWith('.ts.net')) return rawHost;
-    // Default fallback for smmplan on test vs prod
-    return process.env.NODE_ENV === 'production' && !process.env.APP_URL?.includes('test.')
-      ? 'smmplan.pro'
-      : 'test.smmplan.pro';
+    // Default fallback for smmplan: only use staging domain when explicitly on staging contour
+    const isStaging = process.env.APP_ENV === 'staging' || (Boolean(process.env.APP_URL) && process.env.APP_URL!.includes('test.'));
+    return isStaging ? 'test.smmplan.pro' : 'smmplan.pro';
   }
 }
 

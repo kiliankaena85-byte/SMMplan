@@ -17,23 +17,37 @@ export function LiquidityDashboard({ data: initialData }: LiquidityDashboardProp
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
+  const fetchLiquidity = React.useCallback(async (forceRefresh = false) => {
+    try {
+      const res = await getGlobalProviderLiquidityAction(forceRefresh);
+      if (res.success && res.data) {
+        setData(res.data);
+      }
+    } catch (err) {
+      console.warn('[LiquidityDashboard] Failed to fetch liquidity:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!initialData) {
       setIsLoading(true);
-      getGlobalProviderLiquidityAction(false)
-        .then((res) => {
-          if (res.success && res.data) {
-            setData(res.data);
-          }
-        })
-        .catch((err) => {
-          console.warn('[LiquidityDashboard] Failed to fetch liquidity:', err);
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
+      fetchLiquidity(false);
     }
-  }, [initialData]);
+
+    const onProvidersChanged = () => fetchLiquidity(true);
+    const onFocus = () => fetchLiquidity(false);
+    const interval = setInterval(() => fetchLiquidity(false), 30000);
+
+    window.addEventListener('providers:changed', onProvidersChanged);
+    window.addEventListener('focus', onFocus);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('providers:changed', onProvidersChanged);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [initialData, fetchLiquidity]);
 
   const handleRefresh = () => {
     startTransition(async () => {

@@ -82,7 +82,7 @@ export async function approveFraudHoldAction(
     }
 
     // Confirm payment and activate
-    await paymentService.confirmPayment(
+    const confirmed = await paymentService.confirmPayment(
       payment.gatewayId || payment.id,
       payment.amount,
       payment.userId,
@@ -90,6 +90,10 @@ export async function approveFraudHoldAction(
       (payment.gateway as any) || 'yookassa',
       payment.id
     );
+
+    if (!confirmed) {
+      return { success: false, message: 'Не удалось подтвердить платёж в платёжном сервисе' };
+    }
 
     await SecurityAlertService.record({
       event: 'FRAUD_HOLD_APPROVED',
@@ -121,9 +125,20 @@ export async function rejectFraudHoldAction(
       return { success: false, message: 'Платёж не найден' };
     }
 
-    await db.payment.update({
-      where: { id: paymentId },
-      data: { status: 'CANCELED' },
+    await db.$transaction(async (tx) => {
+      await tx.payment.update({
+        where: { id: paymentId },
+        data: { status: 'CANCELED' },
+      });
+
+      // Also cancel any linked orders held in PENDING_CHECK or AWAITING_PAYMENT
+      await tx.order.updateMany({
+        where: {
+          paymentId: paymentId,
+          status: { in: ['PENDING_CHECK', 'AWAITING_PAYMENT'] },
+        },
+        data: { status: 'CANCELED' },
+      });
     });
 
     await SecurityAlertService.record({

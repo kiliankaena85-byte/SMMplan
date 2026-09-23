@@ -15,13 +15,17 @@ import {
 /**
  * @deprecated Use TargetTypeEnum from `@/utils/target-type`
  */
+export { TargetTypeEnum };
+
+/**
+ * @deprecated Use TargetTypeEnum from `@/utils/target-type`
+ */
 export const LinkType = TargetTypeEnum;
 export type LinkType = TargetTypeEnum;
 
 /**
  * @deprecated Use TargetTypeEnum / ServiceTargetType from `@/utils/target-type`
  */
-export const ServiceTargetType = TargetTypeEnum;
 export type ServiceTargetType = UnifiedServiceTargetType;
 
 /**

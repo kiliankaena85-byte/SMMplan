@@ -28,12 +28,13 @@ export type ClientColumn = {
 };
 
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
-  OWNER:   { label: 'Владелец', color: 'bg-warning/15 text-warning border-warning/20' },
-  ADMIN:   { label: 'Админ',   color: 'bg-primary/10 text-primary border-primary/20' },
-  MANAGER: { label: 'Менеджер', color: 'bg-success/15 text-emerald-700 border-success/20' },
-  SUPPORT: { label: 'Саппорт', color: 'bg-muted text-muted-foreground border-border' },
-  USER:    { label: 'Клиент',  color: 'bg-secondary text-secondary-foreground border-border' },
-  BANNED:  { label: 'Забанен', color: 'bg-destructive/15 text-destructive border-destructive/20' },
+  OWNER:    { label: 'Владелец', color: 'bg-warning/15 text-warning border-warning/20' },
+  ADMIN:    { label: 'Админ',   color: 'bg-primary/10 text-primary border-primary/20' },
+  MANAGER:  { label: 'Менеджер', color: 'bg-success/15 text-emerald-700 border-success/20' },
+  SUPPORT:  { label: 'Саппорт', color: 'bg-muted text-muted-foreground border-border' },
+  OPERATOR: { label: 'Оператор', color: 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20' },
+  USER:     { label: 'Клиент',  color: 'bg-secondary text-secondary-foreground border-border' },
+  BANNED:   { label: 'Забанен', color: 'bg-destructive/15 text-destructive border-destructive/20' },
 };
 
 export const columns: ColumnDef<ClientColumn>[] = [
@@ -45,10 +46,10 @@ export const columns: ColumnDef<ClientColumn>[] = [
       const isApiEnabled = u.apiConfig?.isApiEnabled || Boolean(u.inn);
       return (
         <div className="flex flex-col gap-0.5 py-0.5 max-w-[170px]">
-          <div className="flex items-center gap-1.5 truncate">
+          <div className="flex items-center gap-1.5 truncate min-w-0">
             <Link
               href={`/admin/clients/${u.id}`}
-              className="text-primary hover:text-primary/80 font-mono font-bold text-[13px] transition-colors hover:underline underline-offset-4 truncate"
+              className="text-primary hover:text-primary/80 font-mono font-bold text-[13px] transition-colors hover:underline underline-offset-4 truncate min-w-0"
               title={u.email}
             >
               {u.email}
@@ -62,12 +63,12 @@ export const columns: ColumnDef<ClientColumn>[] = [
           <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
             <span className="font-mono text-[10px] text-muted-foreground/70 shrink-0">ID: {u.id.slice(-6)}</span>
             {u.telegramId && (
-              <span className="inline-flex items-center gap-0.5 text-[10px] text-primary/80 shrink-0 truncate max-w-[90px]" title={u.telegramId}>
+              <span className="inline-flex items-center gap-0.5 text-[10px] text-primary/80 shrink-0 truncate max-w-[90px] min-w-0" title={u.telegramId}>
                 <MessageCircle className="w-2.5 h-2.5 shrink-0" /> {u.telegramId}
               </span>
             )}
             {u.companyName && (
-              <span className="text-[10px] text-foreground font-medium truncate max-w-[100px]" title={u.companyName}>
+              <span className="text-[10px] text-foreground font-medium truncate max-w-[100px] min-w-0" title={u.companyName}>
                 · {u.companyName}
               </span>
             )}

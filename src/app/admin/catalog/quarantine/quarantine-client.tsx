@@ -14,6 +14,9 @@ import { Table } from '@/components/admin/hero-ui';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatPricePerUnit } from '@/utils/format-price';
 import { QuarantineDiffModal, type QuarantineDiffTarget } from './quarantine-diff-modal';
+import { DriftClient } from '@/app/admin/catalog/drift/drift-client';
+import type { DriftCandidate } from '@/actions/admin/catalog/price-drift';
+
 
 interface QuarantineItem {
   id: string;
@@ -51,6 +54,7 @@ interface Props {
   initialZombies: QuarantineItem[];
   initialApiErrors: QuarantineItem[];
   initialAutoFixes: AutoFixItem[];
+  initialDriftData?: DriftCandidate[];
 }
 
 const NETWORK_EMOJI: Record<string, string> = {
@@ -58,13 +62,14 @@ const NETWORK_EMOJI: Record<string, string> = {
   tiktok: '🎵', vk: '🔵', twitter: '🐦', unknown: '🌐',
 };
 
-export function QuarantineClient({ initialPriceSpikes, initialZombies, initialApiErrors, initialAutoFixes }: Props) {
+export function QuarantineClient({ initialPriceSpikes, initialZombies, initialApiErrors, initialAutoFixes, initialDriftData = [] }: Props) {
   const [priceSpikes, setPriceSpikes] = useState(initialPriceSpikes);
   const [zombies, setZombies] = useState(initialZombies);
   const [apiErrors, setApiErrors] = useState(initialApiErrors);
   const [autoFixes] = useState(initialAutoFixes);
-  const [activeTab, setActiveTab] = useState<'price' | 'zombies' | 'api' | 'autofix'>('price');
+  const [activeTab, setActiveTab] = useState<'price' | 'zombies' | 'api' | 'autofix' | 'drift'>('price');
   const [diffItem, setDiffItem] = useState<QuarantineDiffTarget | null>(null);
+
   
   const [isPending, startTransition] = useTransition();
 
@@ -220,7 +225,7 @@ export function QuarantineClient({ initialPriceSpikes, initialZombies, initialAp
     <div className="space-y-6">
       {/* Tabs */}
       <div className="mb-6">
-        <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as 'price' | 'zombies' | 'api' | 'autofix')}>
+        <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as 'price' | 'zombies' | 'api' | 'autofix' | 'drift')}>
           <TabsList variant="line" className="gap-6 border-b border-divider w-full justify-start rounded-none h-auto p-0">
             <TabsTrigger value="price" className="h-12 px-0 bg-transparent border-none shadow-none data-active:bg-transparent data-active:shadow-none font-bold uppercase tracking-widest text-[11px] flex items-center gap-2">
               <span>Ценовые скачки</span>
@@ -254,6 +259,14 @@ export function QuarantineClient({ initialPriceSpikes, initialZombies, initialAp
                 </span>
               )}
             </TabsTrigger>
+            <TabsTrigger value="drift" className="h-12 px-0 bg-transparent border-none shadow-none data-active:bg-transparent data-active:shadow-none font-bold uppercase tracking-widest text-[11px] flex items-center gap-2">
+              <span>Дрейф цен</span>
+              {initialDriftData.length > 0 && (
+                <span className="px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-500 text-[10px]">
+                  {initialDriftData.length}
+                </span>
+              )}
+            </TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
@@ -264,7 +277,7 @@ export function QuarantineClient({ initialPriceSpikes, initialZombies, initialAp
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">{priceSpikes.length} услуг ожидают решения</p>
             {priceSpikes.length > 0 && (
-              <button onClick={handleApproveAll} disabled={isPending} className="px-4 py-2 rounded-lg text-sm font-medium bg-success text-primary-foreground hover:bg-success/90 transition-all duration-200 disabled:opacity-50">
+              <button type="button" onClick={handleApproveAll} disabled={isPending} className="px-4 py-2 rounded-lg text-sm font-medium bg-success text-primary-foreground hover:bg-success/90 transition-all duration-200 disabled:opacity-50">
                 ✅ Принять все
               </button>
             )}
@@ -309,8 +322,8 @@ export function QuarantineClient({ initialPriceSpikes, initialZombies, initialAp
                                 >
                                   <span>🔍 Сверить API</span>
                                 </button>
-                                <button onClick={() => handleApprove(item)} disabled={isPending} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-success/15 text-success border border-success/30 hover:bg-success/25 transition-all duration-200 disabled:opacity-50 cursor-pointer">✅ Принять</button>
-                                <button onClick={() => handleReject(item)} disabled={isPending} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-muted text-muted-foreground border border-border hover:bg-muted-foreground/10 transition-all duration-200 disabled:opacity-50 cursor-pointer">✕ Отклонить</button>
+                                <button type="button" onClick={() => handleApprove(item)} disabled={isPending} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-success/15 text-success border border-success/30 hover:bg-success/25 transition-all duration-200 disabled:opacity-50 cursor-pointer">✅ Принять</button>
+                                <button type="button" onClick={() => handleReject(item)} disabled={isPending} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-muted text-muted-foreground border border-border hover:bg-muted-foreground/10 transition-all duration-200 disabled:opacity-50 cursor-pointer">✕ Отклонить</button>
                               </div>
                             </Table.Cell>
                           </Table.Row>
@@ -358,7 +371,7 @@ export function QuarantineClient({ initialPriceSpikes, initialZombies, initialAp
                                 >
                                   <span>🔍 Сверить API</span>
                                 </button>
-                                <button onClick={() => handleArchiveZombie(item)} disabled={isPending} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-muted text-muted-foreground border border-border hover:bg-muted-foreground/10 transition-all duration-200 disabled:opacity-50 cursor-pointer">📦 Скрыть навсегда</button>
+                                <button type="button" onClick={() => handleArchiveZombie(item)} disabled={isPending} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-muted text-muted-foreground border border-border hover:bg-muted-foreground/10 transition-all duration-200 disabled:opacity-50 cursor-pointer">📦 Скрыть навсегда</button>
                               </div>
                             </Table.Cell>
                           </Table.Row>
@@ -409,7 +422,7 @@ export function QuarantineClient({ initialPriceSpikes, initialZombies, initialAp
                                 >
                                   <span>🔍 Сверить API</span>
                                 </button>
-                                <button onClick={() => handleLiftApiBlock(item)} disabled={isPending} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-success/15 text-success border border-success/30 hover:bg-success/25 transition-all duration-200 disabled:opacity-50 cursor-pointer">🔓 Снять блок</button>
+                                <button type="button" onClick={() => handleLiftApiBlock(item)} disabled={isPending} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-success/15 text-success border border-success/30 hover:bg-success/25 transition-all duration-200 disabled:opacity-50 cursor-pointer">🔓 Снять блок</button>
                               </div>
                             </Table.Cell>
                           </Table.Row>
@@ -530,6 +543,17 @@ export function QuarantineClient({ initialPriceSpikes, initialZombies, initialAp
                 </Table.ScrollContainer>
               </Table>
             </div>
+          )}
+        </div>
+      )}
+
+      {/* DRIFT TAB — Монитор дрейфа цен */}
+      {activeTab === 'drift' && (
+        <div className="animate-in fade-in duration-300">
+          {initialDriftData.length === 0 ? (
+            renderEmptyState('Дрейф цен не обнаружен', 'Ни одна из услуг не показала постепенного роста цены провайдера за последние 30 дней.')
+          ) : (
+            <DriftClient initialData={initialDriftData} />
           )}
         </div>
       )}

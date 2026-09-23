@@ -11,6 +11,7 @@ import { Wallet, AlertTriangle } from 'lucide-react';
 
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
+import { cookies, headers } from 'next/headers';
 import { resolveAdminTenantContext } from '@/utils/admin-tenant';
 
 export const dynamic = 'force-dynamic';
@@ -36,8 +37,12 @@ export default async function FinanceDashboard({ searchParams }: Props) {
 
   const params = await searchParams;
   const period = (params.period as 'today' | 'week' | 'month' | 'all') ?? 'month';
-  const selectedTenant = params.tenant;
-  const activeTenantId = resolveAdminTenantContext(user, selectedTenant);
+  const cookieStore = await cookies();
+  const reqHeaders = await headers();
+  const cookieTenant = cookieStore.get('x_admin_tenant')?.value;
+  const headerTenant = reqHeaders.get('x-tenant-id') || undefined;
+  const selectedTenant = params.tenant || cookieTenant || headerTenant;
+  const activeTenantId = resolveAdminTenantContext(user, selectedTenant, cookieTenant || headerTenant);
 
   const now = new Date();
   let periodStart: Date | undefined;
@@ -48,7 +53,7 @@ export default async function FinanceDashboard({ searchParams }: Props) {
   const [metrics, settings, quarantineList, ledgerResult, paymentsResult, reconciliationSummaryResult] = await Promise.all([
     accountingService.getMetrics(periodStart, periodStart ? new Date() : undefined, activeTenantId),
     accountingService.getSettings(activeTenantId),
-    escrowService.getQuarantineEntries(),
+    escrowService.getQuarantineEntries(activeTenantId),
     getLedgerAction({ period, pageSize: 50, tenantId: activeTenantId }),
     getPaymentsAction({ period, pageSize: 50, tenantId: activeTenantId }),
     getReconciliationSummaryAction(activeTenantId),

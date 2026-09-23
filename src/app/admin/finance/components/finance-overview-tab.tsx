@@ -48,7 +48,7 @@ export function FinanceOverviewTab({ metrics, settings, quarantineList }: Financ
         <div className="rounded-lg border border-success/30 bg-success/10 p-5 space-y-2 shadow-xs">
           <div className="flex justify-between items-center text-xs font-bold uppercase tracking-wider text-success">
             <span>Выручка (Gross)</span>
-            <DollarSign className="w-4 h-4" />
+            <DollarSign className="w-4 h-4 shrink-0" />
           </div>
           <div className="text-2xl font-black font-mono tabular-nums text-foreground">
             {fmt(metrics.revenueGross)}
@@ -61,7 +61,7 @@ export function FinanceOverviewTab({ metrics, settings, quarantineList }: Financ
         <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-5 space-y-2 shadow-xs">
           <div className="flex justify-between items-center text-xs font-bold uppercase tracking-wider text-destructive">
             <span>Возвраты (Refunds)</span>
-            <TrendingDown className="w-4 h-4" />
+            <TrendingDown className="w-4 h-4 shrink-0" />
           </div>
           <div className="text-2xl font-black font-mono tabular-nums text-destructive">
             {metrics.refunds > 0 ? `-${fmt(metrics.refunds)}` : fmt(0)}
@@ -74,7 +74,7 @@ export function FinanceOverviewTab({ metrics, settings, quarantineList }: Financ
         <div className="rounded-lg border border-warning/30 bg-warning/10 p-5 space-y-2 shadow-xs">
           <div className="flex justify-between items-center text-xs font-bold uppercase tracking-wider text-warning">
             <span>Закупка (COGS)</span>
-            <TrendingDown className="w-4 h-4" />
+            <TrendingDown className="w-4 h-4 shrink-0" />
           </div>
           <div className="text-2xl font-black font-mono tabular-nums text-warning">
             {metrics.cogs > 0 ? `-${fmt(metrics.cogs)}` : fmt(0)}
@@ -87,7 +87,7 @@ export function FinanceOverviewTab({ metrics, settings, quarantineList }: Financ
         <div className="rounded-lg border border-primary/30 bg-primary/10 p-5 space-y-2 shadow-xs">
           <div className="flex justify-between items-center text-xs font-bold uppercase tracking-wider text-primary">
             <span>Валовая Маржа</span>
-            <TrendingUp className="w-4 h-4" />
+            <TrendingUp className="w-4 h-4 shrink-0" />
           </div>
           <div className="text-2xl font-black font-mono tabular-nums text-primary">
             {fmt(metrics.marginGross)}
@@ -104,7 +104,7 @@ export function FinanceOverviewTab({ metrics, settings, quarantineList }: Financ
         <div className="lg:col-span-2 rounded-lg border border-border/70 shadow-xs bg-card/70 backdrop-blur-xl p-6 sm:p-8 space-y-6">
           <div className="flex items-center gap-3 border-b border-border/50 pb-4">
             <div className="p-2 bg-primary/10 text-primary rounded-lg border border-primary/20">
-              <PieChart className="w-5 h-5" />
+              <PieChart className="w-5 h-5 shrink-0" />
             </div>
             <div>
               <h3 className="text-base font-bold text-foreground">Расчёт чистой прибыли (P&L)</h3>

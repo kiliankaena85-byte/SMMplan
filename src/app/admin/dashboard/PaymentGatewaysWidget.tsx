@@ -1,33 +1,24 @@
 import React from 'react';
 import Link from 'next/link';
-import { CreditCard, ArrowRight, CheckCircle, Percent } from 'lucide-react';
+import { CreditCard, ArrowRight } from 'lucide-react';
 import { formatKopecks } from '@/utils/format-kopecks';
-
-interface GatewayItem {
-  gateway: string;
-  label: string;
-  icon: string;
-  amountKopecks: bigint;
-  feeKopecks: bigint;
-  feePct: number;
-  successCount: number;
-  totalCount: number;
-  successRate: number;
-  sharePct: number;
-}
+import { accountingService } from '@/services/financial/accounting.service';
 
 interface Props {
-  gateways: GatewayItem[];
+  filterStart?: Date;
+  filterEnd?: Date;
+  tenantFilter?: string;
 }
 
-export function PaymentGatewaysWidget({ gateways }: Props) {
+export async function PaymentGatewaysWidget({ filterStart, filterEnd, tenantFilter }: Props) {
+  const gateways = await accountingService.getGatewayBreakdown(filterStart, filterEnd, tenantFilter);
   return (
     <div className="bg-card text-card-foreground rounded-lg p-5 border border-border/70 shadow-sm flex flex-col justify-between space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border/50 pb-3">
         <div className="flex items-center gap-2">
           <div className="p-1.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-            <CreditCard className="w-4 h-4" />
+            <CreditCard className="w-4 h-4 shrink-0" />
           </div>
           <div>
             <h4 className="font-bold text-xs uppercase tracking-wider text-foreground">
@@ -43,7 +34,7 @@ export function PaymentGatewaysWidget({ gateways }: Props) {
           className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-1"
         >
           <span>Биллинг</span>
-          <ArrowRight className="w-3 h-3" />
+          <ArrowRight className="w-3 h-3 shrink-0" />
         </Link>
       </div>
 

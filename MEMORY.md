@@ -66,6 +66,119 @@ onChange={(e) => { const val = e.target.value.replace(/\D/g, ''); ... }}
 
 ## 1. 🏗️ Архитектурные решения (ADR)
 
+- **ADR-2026-33: Complete Debranding of Phantom Brand 'Lovable' & SMMflux Brand Consolidation:**
+  - *Решение:*
+    1. **Зачистка маршрутизации и страниц:** Удален устаревший роут `src/app/ab-lovable/page.tsx`, в `next.config.mjs` настроен постоянный 308-редирект с `/ab-lovable` на `/`. Вся кодовая база витрины и дашборда использует префикс `Flux*`.
+    2. **Соблюдение инварианта обратной совместимости (AGENTS.md):** Сохранен единственный нормализующий алиас `normalizeTenantId('lovable') -> 'flux'` в `src/lib/tenant-resolver-edge.ts`, `src/lib/tenant-scope.ts`, `src/lib/seo-helpers.ts` и `src/tenants/registry.ts`, а также безопасный редирект с `lovable.pro` на `smmflux.ru` в `src/proxy.ts`. Все прямые проверки `'lovable'` в ботах и виджетах заменены на `normalizeTenantId`.
+    3. **БД, скрипты и документация:** Обновлен комментарий в `prisma/schema.prisma` (`// "CLASSIC" or "FLUX"`), скрипты `seed-tenants.ts`, `gen-magic.ts`, `migrate-system-settings.ts` переведены на сидирование `flux` (`smmflux.ru`). Документация (`Design.md`, `INSTALLATION.md`, `BACKLOG.md` — TECH-005) полностью зачищена от устаревших упоминаний Lovable.
+    4. **Верификация:** `npx tsc --noEmit` (0 ошибок), `npx eslint` (0 ошибок на измененных файлах), `node scripts/check-bundle-secrets.mjs` (0 утечек), `npx tsx scripts/lint-tenant-isolation.ts` (0 блокеров), 32/32 Vitest тестов PASS.
+  - *Причина:* Полная ликвидация концептуального дефекта Brand Ghosting (фантомных брендов Lovable / SMMboost) в платформе OmniSMM 1.0 в соответствии со стандартами RAC-2026.
+
+- **ADR-2026-32: Multi-Tenant Balance Isolation (ст. 54.1 НК РФ) & SMMflux Personal Cabinet Branding Continuity:**
+  - *Решение:*
+    1. **Изоляция балансов и аккаунтов (ст. 54.1 НК РФ):** Разработаны безопасные резолверы `resolveTenantUser` и `resolveTenantUserBalance` (`src/lib/tenant-user-resolver.ts`), исключающие отображение и списание баланса чужого тенанта при кросс-тенантной сессии.
+    2. **Устранение сбоя редиректа при оплате с баланса:** В `CheckoutPaymentService.ts` результат оплаты с баланса возвращает точный `redirectUrl` с параметром `&tenant=flux`, сессия обновляется для аккаунта SMMflux (`createSession(user.id)`), устанавливается кука `x_tenant`.
+    3. **Сквозная изоляция личного кабинета SMMflux (Zero Brand Bleed):** `DashboardLayout` резолвит пользователя под целевой тенант и подключает `FluxDashboardShell` с **логотипом SMMflux** (`TenantLogo tenantId="flux"`), Аврора-фоном и ссылками `?tenant=flux`. Страницы `/dashboard/orders`, `/dashboard/finance`, `/dashboard/new-order`, `/dashboard/settings` изолируют выборки заказов и проводок леджера строго по `{ userId: user.id, tenantId }`.
+    4. **Сохранение контекста во всех дочерних ссылках:** Все ссылки и кнопки в `FluxDashboardHome`, `FluxOrdersView`, `FluxTransactionsView`, `FluxWizardSuccessCard`, `FluxTransactionRow`, `FluxTransactionsHeader` и `settings/page.tsx` обновлены для строгого сохранения параметра `?tenant=flux`.
+    5. **Верификация:** 4/4 тестов PASS (`multi-tenant-balance-isolation.test.ts`), `npx tsc --noEmit` 0 ошибок (Strict mode), `node scripts/check-bundle-secrets.mjs` 0 утечек секретов.
+  - *Причина:* Полное устранение выброса в ЛК SMMplan при чекауте с баланса на SMMflux и исключение чужого логотипа/заказов в личном кабинете.
+
+- **ADR-2026-31: SMMflux Full Visual & AST Audit, Layout Remediation, and Deep Catalog Pre-selection Integration:**
+  - *Решение:*
+    1. **AST Layout Hardening:** Ликвидированы Flex-усечения `TRUNCATE_WITHOUT_MIN_W_ZERO` путем добавления `min-w-0` к заголовку категории в `FluxStepCategory.tsx` и способу оплаты в `FluxStepCheckoutPaymentMethods.tsx`. На 30+ иконках во всех шагах чекаута, базе знаний и блоке преимуществ зафиксирован `shrink-0`.
+    2. **Устранение оверфлоу и унификация фона SMMflux:** Все страницы SMMflux переведены на единый адаптивный стандарт фона `contain-paint max-w-full overflow-hidden` с адаптивными размерами шаров и оптимизированной прозрачностью. В темной теме устранен паразитный белый фон. Контрастность заголовков доведена до $\ge 7:1$.
+    3. **Глубокая связка страниц каталога с визардом оформления:** `FluxOrderClient` и хук `useFluxOrderClientState` расширены поддержкой пропсов `initialNetworkId`, `initialCategoryId`, `initialServiceId`. Страницы `/services/[network]` и `/services/[network]/[category]` передают эти параметры, автоматически переводя пользователя на шаг выбора категории или шаг выбора услуги с автоподгрузкой данных.
+    4. **Устранение битого ассета Twitter/X:** Добавлен файл-алиас `public/brands/twitter.svg` и обеспечен корректный рендеринг через `UniversalIcon`.
+    5. **Next.js 16 Webpack SSR Fix:** Устранено недопустимое в Server Components использование `ssr: false` в динамических графиках админки аналитики/маркетинга.
+    6. **Верификация:** 0 AST дефектов, 0 визуальных багов по Playwright харнесу `scripts/scan-flux-audit.ts` (68 скриншотов), 100% PASS всех тестов, 0 ошибок `tsc --noEmit`, 0 утечек секретов.
+  - *Причина:* Полное исключение дефектов верстки на мобильных и десктопных устройствах для бренда SMMflux, обеспечение доступности по WCAG 2.2 AA и бесшовного пользовательского пути (CRO).
+
+- **ADR-2026-30: Production SMTP Reconfiguration (Mail.ru SMTPS 465) & Local TUN Network Binding Resilience:**
+  - *Решение:*
+    1. **Перевод почтового транспорта на Mail.ru:** В таблице `SystemSettings` (для тенантов `smmplan` и `flux`) и в файле `.env` настроен SMTP-сервер `smtp.mail.ru:465` (SMTPS) с учетной записью `support@smmplan.pro` и шифрованием пароля AES-256-GCM через `VaultService`.
+    2. **Устранение петли перехвата TUN в среде разработки:** Добавлена поддержка `localAddress: process.env.SMTP_LOCAL_ADDRESS || undefined` в `src/lib/smtp.ts` (`verifyDirectSmtpConnection`, `getTransporter`), `src/actions/admin/settings/settings-diagnostics.action.ts` и `src/lib/emergency-email.ts`. Это позволяет при активном VPN/TUN-прокси на Windows связывать исходящие сокеты с физическим адаптером (`Ethernet 2`), исключая сброс TLS со стороны Mail.ru.
+    3. **Верификация:** Подтверждена авторизация IMAP (`imap.mail.ru:993`) и SMTP (`smtp.mail.ru:465`), выполнена реальная доставка писем с кодом `250 OK`. Полный прогон `tsc --noEmit` (0 ошибок), `scripts/verify-production-hardening.ts` (3/3 PASS), `check-bundle-secrets.mjs` (0 утечек).
+  - *Причина:* Обеспечение бесперебойной доставки ссылок авторизации Magic Link, фискальных чеков 54-ФЗ и сервисных уведомлений через отечественный почтовый шлюз Mail.ru.
+
+- **ADR-2026-28: Admin UI Buttons Design System Harmonization & Mobile Scroll Overlay Remediation (OmniSMM 1.0):**
+  - *Решение:*
+    1. **Ликвидация паразитного градиента:** В `src/components/admin/tabbed-header-client.tsx` полностью удалены статические оверлеи скролла (`bg-gradient-to-r from-card to-transparent`), которые при нулевом смещении скролла накладывались точно поверх первой активной кнопки («Каталог услуг»), размывая синий цвет `bg-primary`.
+    2. **Унификация дизайн-системы кнопок (`@/components/ui/button.tsx`):** Ликвидирован принудительный оверайд `rounded-lg` в `size.sm` и `rounded-2xl` в `size.lg`. Все стандартные кнопки и табы переведены на строго единый `rounded-xl`.
+    3. **Семантические токены Tailwind CSS 4:** Устранены сырые RGB-тени в пользу `shadow-xs` / `hover:shadow-sm`. Добавлен мгновенный тактильный отклик `active:scale-95` со скоростью перехода `duration-150` (вместо медленного `duration-500`).
+    4. **Синхронизация табов и тулбаров:** Табы шапки выровнены на эталонную высоту `sm:h-9` (36px, оптическое совпадение 1:1 с экшен-кнопками `+ Создать услугу`) с сохранением сенсорного Touch Target $\ge 42$px на мобильных экранах. Синхронизированы тулбары `category-toolbar.tsx`, `networks-client.tsx`, `EnvironmentModeSwitcher.tsx`, `CategoryMobileCard.tsx`.
+    5. **Верификация (Blue-Green Protocol):** 16/16 тестов PASS на Stage (:3005) через Playwright Dual-Viewport, `tsc --noEmit` 0 ошибок, `npm run check:arch` 0 нарушений (1495 модулей), 0 утечек секретов. Безопасное мгновенное переключение (Zero-Downtime Cutover) боевого контейнера `smmplan_web` (:3000) с сохранением образа `smmplan_backup`.
+  - *Причина:* Устранение визуального дефекта наложения градиента, обеспечение целостности и консистентности дизайн-системы кнопок во всей административной панели.
+
+- **ADR-2026-27: Technical Documentation Standard (Rospatent / GOST ESPD 19.505-79) & Direct Markdown Export Engine:**
+  - *Решение:*
+    1. **Стандарт структуры документации (6 обязательных разделов):** Каждая статья регламента формализована по стандарту Роспатента для описания программ ЭВМ и ГОСТ ЕСПД 19.505-79: 1. Область применения и назначение, 2. Термины и определения, 3. Техническая сущность и архитектура модуля (Prisma, Actions, Services Level 1), 4. Пошаговый регламент штатной эксплуатации, 5. Нестандартные и защитные функции (карантины, инварианты, зомби-услуги), 6. Диагностика сбоев и план восстановления.
+    2. **Декомпозиция реестра регламентов ($\le 200$ строк):** 7 регламентов вынесены из монолита Server Action в доменные модули `src/services/admin/ai-manual/runbooks/` (`catalog-runbooks.ts`, `finance-runbooks.ts`, `orders-runbooks.ts`, `security-runbooks.ts`, `infra-runbooks.ts`, `index.ts`).
+    3. **Движок генерации и прямого скачивания Markdown:** Создан Level 1 сервис `runbook-markdown-formatter.ts` (форматирование отдельных статей и сводного руководства) и `runbook-downloader.ts` (клиентское скачивание через `Blob`).
+    4. **Интерактивный UI виджета OmniManual:** Кнопка «Скачать все (.md)» и быстрое скачивание отдельных регламентов в `ManualGuidesTab.tsx`, кнопка «Скачать (.md)» и компонент патентных секций `RunbookPatentSections.tsx` в `ManualRunbookDetail.tsx`.
+    5. **Сводный эталонный документ:** Сгенерирован `docs/manual/ADMIN_TECHNICAL_OPERATIONS_MANUAL.md`.
+    6. **Верификация:** 8/8 тестов PASS (`admin-runbook-patent-formatter.test.ts`, `admin-runbook-patent-ui.test.tsx`), `tsc --noEmit` 0 ошибок, `npm run check:arch` 0 нарушений.
+  - *Причина:* Полное соответствие требованиям пользователя по профессиональному структурированию документации (стандарт Роспатента / ГОСТ) и возможность автономного офлайн-изучения администраторами платформы.
+
+- **ADR-2026-27: Auth Navigation Zero-Trap & Stage Visual Verification Protocol (Login UX & Stage Gate):**
+  - *Решение:*
+    1. **Zero-Trap Auth Navigation:** Создан компонент `AuthBackLink.tsx` (33 строки) с поддержкой мультитенантности (`/?tenant=flux` vs `/`), высотой touch target $\ge 44$px по WCAG 2.2 AA и анимацией сдвига стрелки.
+    2. **AlreadyLoggedInCard:** Заменен тупиковый экран авторизованного пользователя: по центру размещена кнопка «Вернуться на главную», а в левом верхнем углу — плавающая кнопка возврата.
+    3. **Декомпозиция `/login/page.tsx`:** Сокращен с 275 до 160 строк ($\le 200$), брендовые панели вынесены в `FluxLoginHero.tsx` и `PlanLoginHero.tsx`.
+    4. **Сквозной Playwright-аудит (10/10 скриншотов):** Реализован `scripts/stage-audit-omnimanual.ts` с верификацией работы виджета OmniManual 1.0 на стейдже (:3005) и обоих экранов авторизации (гость и авторизованный).
+    5. **Верификация:** 4/4 юнит-тестов PASS (`login-navigation-zero-trap.test.tsx`), `tsc --noEmit` 0 ошибок, `npm run check:arch` 0 нарушений на 1427 модулях.
+  - *Причина:* Предотвращение тупиковых экранов для пользователей, улучшение конверсии и обеспечение 100% визуального контроля стейдж-контура.
+
+- **ADR-2026-20: Architecture of Interactive Admin Operating Manual & AI Consultant Widget (Gemini 3.8 Flash & Docker Vector Memory):**
+  - *Решение:*
+    1. **Интерактивный виджет админки (OmniManual 1.0):** Плавающий триггер (FAB) с шорткатом `Ctrl + /`, выдвижной Drawer с 3 табами: «AI-Консультант» (SSE-стриминг), «Инструкция и Гайды» (8 структурированных глав с пошаговыми чеклистами), «Инспектор Кода & ADR» (Prisma модели и решения).
+    2. **Векторная память в Docker:** Контейнеризированный контур (`docker-compose.graphrag.yml`) с Qdrant на `:6333` и FastAPI RAG на `:8100`, демон AST-индексации кодовой базы (`src/`, `prisma/`, `docs/`) по SHA256 хешам. Circuit Breaker с переключением на локальный кэш `.planning/memory_cache.json`.
+    3. **Gemini 3.8 Flash & Пул ротации ключей:** 3 уровня источников ключей (личный ключ сотрудника, системный пул из `SystemSettings`, `.env`) с временной изоляцией при 429 (5 минут кулдаун) и поддержкой `GEMINI_PROXY` (undici ProxyAgent).
+    4. **Заземление и безопасность:** 100% заземление на код без галлюцинаций, кликабельные ссылки на файлы и маршруты админки, пре- и пост-санитизация PII и маскирование секретов (`[REDACTED_SECRET]`).
+  - *Причина:* Устранение когнитивного барьера для операторов админ-панели, мгновенный онбординг и точные консультации по живой кодовой базе.
+
+- **ADR-2026-26: OmniSMM Monolithic Decomposition Waves 15–24 (CDD-TDD & Zero-Regression Guard):**
+  - *Решение:*
+    1. **SMMplan Core Decomposed (Waves 15–17):** 
+       - `StepCheckoutParams.tsx` (500 $\to$ 110 строк), `PlanSlideOrderClient.tsx` (675 $\to$ 225 строк).
+       - `FullscreenMasterCatalog.tsx` (468 $\to$ 67 строк), `StepByStepWizard.tsx` (570 $\to$ 158 строк).
+       - `CheckoutAuthModal.tsx` (451 $\to$ 157 строк), `StepWizardCheckout.tsx` (433 $\to$ 158 строк).
+    2. **SMMflux Modernization & Decomposition (Waves 18–20):**
+       - `FluxDashboardOrderWizard.tsx` (664 $\to$ 164 строки), `FluxDashboardStepCheckout.tsx` (536 $\to$ 165 строк).
+       - `FluxOrderClient.tsx` (505 $\to$ 123 строки), `FluxStepCheckout.tsx` (529 $\to$ 165 строк).
+       - `FluxCyberLinkDrawer.tsx` (470 $\to$ 180 строк), `FluxTransactionsView.tsx` (407 $\to$ 151 строка).
+    3. **OmniSMM Backend & Core Decomposed (Waves 21–24):**
+       - `order.processor.ts` (511 $\to$ 21 строка, BullMQ worker coordinator, CRAP: -24 180).
+       - `provider-proxy-manager.tsx` (1244 $\to$ 107 строк).
+       - `src/services/admin/order.service.ts` (1241 $\to$ 105 строк, с выносом сервисов query, status mutator, sync, analytics, timeseries, failure stats).
+       - `src/actions/admin/telegram-bot.ts` (1580 $\to$ 145 строк, Next.js Server Action Typed Delegator Facade).
+    4. **Результаты верификации:**
+       - 100% модулей удовлетворяют требованию $\le 200$ строк.
+       - Все 10/10 Vitest тест-сьютов (36 тестов) переведены в статус PASS.
+       - `npx tsc --noEmit` = 0 ошибок (Strict TypeScript).
+       - `scripts/check-clean-architecture.ts` = 0 layer violations, 0 circular cycles на 1392 модулях.
+       - Модуль `src/proxy.ts` полностью сохранен и не подвергался модификациям по контракту с пользователем.
+  - *Причина:* Ликвидация крупнейших монолитов технического долга по всему стеку (SMMplan, SMMflux, OmniSMM Core) без малейших регрессий в бизнес-логике.
+
+- **ADR-2026-25: Clean Architecture AST Boundary Guard & 4-Wave CDD-TDD Refactoring (Uncle Bob Cockpit & Monolith Splitting):**
+  - *Решение:*
+    1. **Uncle Bob Dependency Invariant & AST Guard:** Внедрен `scripts/check-clean-architecture.ts` для проверки 4 слоев (Level 0 Domain -> Level 1 Services -> Level 2 Application -> Level 3 Presentation). Запрещены импорты от внешних слоев к внутренним, циклические зависимости и серверные утечки в клиентские компоненты.
+    2. **Автономный Docker-просмотрщик (:3009):** `tools/arch-viewer/` на чистом Node.js 22 alpine (<50MB, zero deps) с Canvas2D визуализацией (концентрические кольца, DDD-кластеры, тепловая карта CRAP score, архитектурная матрица 4x6, песочница рефакторинга).
+    3. **Лимит размера файлов $\le 200$ строк:** В 4 последовательных волнах ликвидированы тяжелые монолиты с высокими показателями Cyclomatic Complexity (CC > 200) и CRAP (> 50 000):
+       - *Волна 1:* `provider-form.tsx` (1276 -> 306 строк, CRAP: -92 720, 4 субкомпонента).
+       - *Волна 2:* `smart-analyzer.logic.ts` (652 -> 199 строк, CRAP: -91 506, 5 чистых Level 1 функций).
+       - *Волна 3:* `useCheckoutOrchestrator.ts` (684 -> 260 строк) и `useOrderEngine.ts` (1001 -> 390 строк, CRAP: -175 336).
+       - *Волна 4:* `src/actions/order/checkout.ts` (1422 -> 168 строк, CRAP: -65 280, сервисный слой `src/services/orders/`).
+    4. **Результат:** Суммарное сокращение Total CRAP Load > 420 000 пунктов, 0 layer violations, Strict TypeScript 0 ошибок.
+  - *Причина:* Предотвращение деградации архитектуры, обеспечение 100% модульности и изоляции бизнес-логики платформы OmniSMM 1.0.
+
+- **ADR-2026-24: Business Growth, Link Engine Moat & Unit Economics Architecture (FinTech Invariants):**
+  - *Решение:*
+    1. **Unified Link Engine как ядро конверсии (Poka-Yoke):** Исключены ошибочные заказы за счет 38 платформ нормализации (`link-rules.ts`) и маппинга `TargetTypeEnum` (`target-type-mapper.ts`). Интеграция Smart Upsell Bundles (комбо постов с маржой $\ge 80\%$) и публичного экспресс-аудита `/audit` для органического снижения CAC на 40–50%.
+    2. **Финансовая модель BigInt & Ledger-First:** Балансы хранятся строго в копейках (`User.balance`, `quarantineBalance`, `bonusBalance`). Любое движение средств требует атомарной транзакции с предварительной записью в `LedgerEntry` с уникальным `idempotencyKey`. Реферальные выплаты начисляются в `order.service.ts` строго от маржинальной прибыли заказа (FIN-009).
+    3. **Защита маржинальности (MarginGuard & Elastic Quarantine):** Заморозка валютного курса ЦБ РФ в `Order.usdToRubRate` исключает валютный дрейф. Скачок цен провайдера >20% автоматически переводит услугу в `isQuarantined: true` (мьютекс `catalog-sync`), блокируя слив оборотного капитала.
+    4. **B2B Reseller API:** Использование готовой модели `ApiConfig` и дисконтных сеток `CustomerGroup` для создания выделенного оптового шлюза для внешних панелей и Telegram-ботов.
+  - *Причина:* Оцифровка бизнес-модели, масштабирование North Star Metric (MSDV) и защита оборотного капитала SMMplan.
+
 - **ADR-2026-23: Drip-Feed & Smart Drip-Feed Full Architecture & Invariants Remediation (Contract A / OmniSMM 1.0):**
   - *Решение:*
     1. **Contract A Invariant:** В интерфейсах оформления (SMMplan, SMMflux, лендинг, дашборд) поле количества всегда отражает суммарный объем заказа ($Q$). Степперы изменяют общий объем с шагом $\text{runs} \times \text{step}$. В UI отображается прозрачный расчет: «$N$ запусков по $\lfloor Q/N \rfloor$ шт. Всего: $Q$ шт.».
@@ -500,6 +613,10 @@ npx @next/codemod@latest middleware-to-proxy
 - **[BACKLOG] [UX-CATALOG-FILTER-PERSIST] Сохранение фильтров каталога при возврате после редактирования услуги:**
   - *Контекст:* При сохранении/отмене редактирования услуги на `/admin/catalog/[id]` происходит возврат на чистый `/admin/catalog` без query-параметров. Оператор теряет выбранные фильтры (соцсеть, категорию, поисковый запрос, статус провайдера, страницу).
   - *План:* Прокидывать `returnUrl` / `searchParams` через ссылку редактирования и `router.push(returnUrl || '/admin/catalog')` при завершении действия.
+
+- **[RESOLVED] [BUG-TENANT-BALANCE-LEAK] Кросс-тенантная утечка баланса между SMMplan и SMMflux (ст. 54.1 НК РФ):**
+  - *Причина:* При авторизованной сессии на SMMplan серверный рендеринг витрины SMMflux (`src/app/page.tsx`, `services/[network]`) считывал баланс напрямую из `sessionUser.balance` (записи `smmplan`). Пользователь видел баланс SMMplan на витрине SMMflux, но при оплате бэкенд справедливо искал пользователя на `tenantId: 'flux'`, где баланс был 0, возвращая ошибку `WalletInsufficientFundsError`.
+  - *Исправление:* Внедрен `src/lib/tenant-user-resolver.ts` с функциями `resolveTenantUser` и `resolveTenantUserBalance`. Баланс теперь строго изолирован по целевому `targetTenantId`. На витрине и в чекауте соседнего бренда баланс чужого тенанта равен 0. Для аккаунта владельца `art@artmspektr.ru` на `flux` начислен тестовый баланс 100 000 ₽ через леджер `LedgerEntry`. Покрыто тестами `multi-tenant-balance-isolation.test.ts`.
 
 
 

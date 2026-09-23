@@ -29,7 +29,7 @@ function getDomain(filePath) {
   if (filePath.startsWith('src/services/providers/')) return { waveNum: 2, name: 'Order Actions & Engine', wave: 'W2' };
   if (filePath.startsWith('src/workers/')) return { waveNum: 2, name: 'Order Actions & Engine', wave: 'W2' };
   
-  if (filePath.startsWith('src/app/ab-lovable/') || filePath.startsWith('src/components/ab-test/') || filePath.startsWith('src/components/landing/')) return { waveNum: 3, name: 'Landing & Marketing', wave: 'W3' };
+  if (filePath.startsWith('src/components/ab-test/') || filePath.startsWith('src/components/landing/')) return { waveNum: 3, name: 'Landing & Marketing', wave: 'W3' };
 
   if (filePath.startsWith('src/components/dashboard/') || filePath.startsWith('src/components/orders/') || filePath.startsWith('src/app/dashboard/')) return { waveNum: 4, name: 'User Dashboard & Orders', wave: 'W4' };
 
@@ -68,7 +68,7 @@ allSrcFiles.forEach(f => {
 function buildWavePackageFile(waveName, waveNum, filesList, outputFile) {
   let md = '# 📦 ' + outputFile + '\n';
   md += '## ' + waveName + '\n\n';
-  md += '**Проект:** Multi-Tenant SMM Platform (Flux / SMMplan / Lovable)  \n';
+  md += '**Проект:** OmniSMM 1.0 (SMMplan / SMMflux)  \n';
   md += '**Дата:** 2026-07-28  \n';
   md += '**Инженер:** Senior Frontend & System Engineer (Antigravity AI)  \n';
   md += '**Волна:** W' + waveNum + ' — ' + waveName + '  \n';

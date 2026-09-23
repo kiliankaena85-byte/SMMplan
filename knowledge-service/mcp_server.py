@@ -61,11 +61,14 @@ async def lifespan(app: FastAPI):
         neo4j_password=neo4j_password
     )
     
-    # 1. Bootstrap Neo4j Schema
-    try:
-        init_neo4j_schema(engine.neo4j_driver)
-    except Exception as e:
-        logger.error(f"Failed to bootstrap Neo4j: {e}")
+    # 1. Bootstrap Neo4j Schema (if enabled)
+    if os.getenv("NEO4J_ENABLED", "false").lower() == "true":
+        try:
+            init_neo4j_schema(engine.neo4j_driver)
+        except Exception as e:
+            logger.error(f"Failed to bootstrap Neo4j: {e}")
+    else:
+        logger.info("Neo4j is disabled (8GB profile). Skipping Neo4j schema bootstrap.")
         
         # 2. Bootstrap Qdrant Collections
     try:
@@ -325,9 +328,31 @@ async def health():
         raise HTTPException(status_code=500, detail="Engine offline")
     try:
         engine.qdrant.get_collections()
-        # Verify Neo4j connectivity
-        with engine.neo4j_driver.session() as session:
-            session.run("RETURN 1")
-        return {"status": "healthy"}
+        neo4j_status = "disabled"
+        if os.getenv("NEO4J_ENABLED", "false").lower() == "true":
+            try:
+                with engine.neo4j_driver.session() as session:
+                    session.run("RETURN 1")
+                neo4j_status = "healthy"
+            except Exception as e:
+                neo4j_status = f"unhealthy: {e}"
+        return {"status": "healthy", "qdrant": "healthy", "neo4j": neo4j_status}
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"Service unhealthy: {e}")
+
+@app.get("/status")
+async def status():
+    if not engine:
+        raise HTTPException(status_code=500, detail="Engine offline")
+    try:
+        cols = engine.qdrant.get_collections()
+        return {
+            "status": "online",
+            "profile": "8GB_DDR3_LOW_MEMORY",
+            "qdrant": "connected",
+            "collections_count": len(cols.collections) if cols else 0,
+            "embedder": "all-MiniLM-L6-v2",
+            "max_memory_limit": "1.28GB"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Status check failed: {e}")

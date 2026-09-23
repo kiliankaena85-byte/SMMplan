@@ -2,11 +2,13 @@ import { adminOrderService } from '@/services/admin/order.service';
 import { Package, Download, BookOpen, HelpCircle } from 'lucide-react';
 import Link from 'next/link';
 import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
+import { ORDERS_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 import { OrderClient } from './components/order-client';
 import { OrdersFilterForm } from './components/orders-filter-form';
 import { NumberedPagination } from '@/components/admin/ui/numbered-pagination';
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
+import { cookies, headers } from 'next/headers';
 import { resolveOrderEnvironmentMode } from '@/utils/order-environment';
 
 export const dynamic = 'force-dynamic';
@@ -52,9 +54,10 @@ import { enforceSectionAccess } from '@/lib/server/rbac';
 
 import { unstable_cache } from 'next/cache';
 
-const getCachedNetworks = unstable_cache(
+const getCachedNetworks = (tenantId?: string) => unstable_cache(
   async () => {
     return db.network.findMany({
+      where: tenantId ? { OR: [{ tenantId }, { tenantId: 'all' }] } : undefined,
       select: { 
         id: true, 
         name: true, 
@@ -67,9 +70,9 @@ const getCachedNetworks = unstable_cache(
       orderBy: { sort: 'asc' }
     });
   },
-  ['admin_orders_networks_list'],
-  { revalidate: 60, tags: ['catalog', 'networks'] }
-);
+  [`admin_orders_networks_list_${tenantId || 'all'}`],
+  { revalidate: 60, tags: ['catalog', 'networks', `catalog-${tenantId || 'all'}`] }
+)();
 
 const getCachedProviders = unstable_cache(
   async () => {
@@ -84,12 +87,7 @@ const getCachedProviders = unstable_cache(
 );
 
 export default async function AdminOrdersPage({ searchParams }: Props) {
-  await enforceSectionAccess('orders');
-  const session = await verifySession();
-  const user = session ? await db.user.findUnique({ 
-    where: { id: session.userId },
-    include: { staffRole: { include: { permissions: true } } }
-  }) : null;
+  const user = await enforceSectionAccess('orders');
 
   const isSuperAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN';
   // Table-level cost/margin visibility is strictly reserved for OWNER and ADMIN.
@@ -103,11 +101,17 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
   const userId = params.userId || '';
   const editOrderId = params.edit_order_id || '';
   const networkSlug = params.networkSlug || '';
+  const cookieStore = await cookies();
+  const reqHeaders = await headers();
+  const cookieTenant = cookieStore.get('x_admin_tenant')?.value;
+  const headerTenant = reqHeaders.get('x-tenant-id') || undefined;
+  const effectiveParamTenant = params.tenant || cookieTenant || headerTenant;
+
   const { resolveAdminTenantContext } = await import('@/utils/admin-tenant');
-  const resolvedTenant = resolveAdminTenantContext(user, params.tenant);
+  const resolvedTenant = resolveAdminTenantContext(user, effectiveParamTenant, cookieTenant || headerTenant);
   const tenantFilter = resolvedTenant !== 'all' ? resolvedTenant : undefined;
 
-  const networks = await getCachedNetworks();
+  const networks = await getCachedNetworks(tenantFilter);
   const providers = await getCachedProviders();
 
   const isDripFeed = params.isDripFeed === 'true';
@@ -235,10 +239,13 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
             )}
           </div>
         }
+        tabs={ORDERS_TABS}
+        onboardingKey="orders"
+        onboarding={ONBOARDING_CONFIGS.orders}
       />
 
       {/* Search + Filters & Orders Table Container */}
-      <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-xl shadow-sm ring-1 ring-border/5 overflow-hidden flex flex-col">
+      <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-xl shadow-sm ring-1 ring-border/5 flex flex-col">
         {/* Top Ultra-Compact Filters Section */}
         <div className="p-3 sm:p-4 border-b border-border/40 bg-muted/10">
           <OrdersFilterForm networks={networks} providers={providers} />

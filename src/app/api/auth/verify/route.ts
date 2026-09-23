@@ -84,13 +84,13 @@ export async function GET(request: Request) {
       });
     }
 
-    const targetUser = await tx.user.findFirst({ where: { id: record.userId, tenantId: tenant } });
+    const targetUser = await tx.user.findUnique({ where: { id: record.userId } });
     if (!targetUser || targetUser.isDeleted || !targetUser.isActive) {
       return { status: 'blocked' as const };
     }
 
     if (!targetUser.isEmailVerified) {
-      await tx.user.updateMany({ where: { id: targetUser.id, tenantId: tenant }, data: { isEmailVerified: true } });
+      await tx.user.update({ where: { id: targetUser.id }, data: { isEmailVerified: true } });
     }
 
     return { status: 'success' as const, user: targetUser };
@@ -142,21 +142,23 @@ export async function GET(request: Request) {
     path: '/',
   });
 
+  const effectiveTenant = normalizeTenantId(tenant || user.tenantId || 'smmplan') || 'smmplan';
+
   if (['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT', 'OPERATOR'].includes(user.role)) {
     try {
       const { redis } = await import('@/lib/redis');
-      await redis.set(`staff:${user.id}:active_tenant`, user.tenantId || 'smmplan', 'EX', 86400 * 30);
+      await redis.set(`staff:${user.id}:active_tenant`, effectiveTenant, 'EX', 86400 * 30);
     } catch {
       // audit-ignore: redis staff active tenant cache is secondary to DB and cookie persistence
     }
   }
 
-  response.cookies.set('x_tenant', user.tenantId || 'smmplan', {
+  response.cookies.set('x_tenant', effectiveTenant, {
     path: '/',
     expires: expiresAt,
   });
 
-  response.cookies.set('x_admin_tenant', user.tenantId || 'smmplan', {
+  response.cookies.set('x_admin_tenant', effectiveTenant, {
     path: '/',
     expires: expiresAt,
   });

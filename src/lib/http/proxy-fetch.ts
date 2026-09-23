@@ -21,6 +21,7 @@ export async function createProxyDispatcher(proxy: ProxyConfig) {
     // Use socks5h:// to enforce remote DNS resolution inside the tunnel (prevents local DNS leaks)
     const socksUrl = `socks5h://${auth}${proxy.host}:${proxy.port}`;
     const socksAgent = new SocksProxyAgent(socksUrl);
+    socksAgent.on('error', () => {});
 
     // Custom connector for undici to route via SOCKS5
     const connectFn = (opts: unknown, callback: (err: Error | null, socket: unknown) => void) => {
@@ -36,14 +37,28 @@ export async function createProxyDispatcher(proxy: ProxyConfig) {
         const safeOpts = { ...anyOpts, port, host };
 
         const rawConnect = socksAgent.connect.bind(socksAgent);
-        (rawConnect as unknown as (req: unknown, opts: unknown, cb: (err: Error | null, socket: unknown) => void) => void)(
-          {},
+        const mockReq = {
+          emit: () => false,
+          on: () => {},
+          once: () => {},
+          removeListener: () => {},
+          getHeader: () => undefined,
+          setHeader: () => {},
+        };
+        const sock = (rawConnect as unknown as (req: unknown, opts: unknown, cb: (err: Error | null, socket: unknown) => void) => unknown)(
+          mockReq,
           safeOpts,
           (err: Error | null, socket: unknown) => {
+            if (socket && typeof (socket as { on?: unknown }).on === 'function') {
+              (socket as { on: (event: string, cb: () => void) => void }).on('error', () => {});
+            }
             if (err) return callback(err, null);
             callback(null, socket || null);
           },
         );
+        if (sock && typeof (sock as { on?: unknown }).on === 'function') {
+          (sock as { on: (event: string, cb: () => void) => void }).on('error', () => {});
+        }
       } catch (err: unknown) {
         callback(err instanceof Error ? err : new Error(String(err)), null);
       }
@@ -53,6 +68,8 @@ export async function createProxyDispatcher(proxy: ProxyConfig) {
       connect: connectFn as unknown as NonNullable<ConstructorParameters<typeof Agent>[0]>['connect'],
       connectTimeout: 8000,
       headersTimeout: 15000,
+      keepAliveTimeout: 30000,
+      keepAliveMaxTimeout: 60000,
     });
   }
 
@@ -62,6 +79,8 @@ export async function createProxyDispatcher(proxy: ProxyConfig) {
     uri: proxyUrl,
     connectTimeout: 8000,
     headersTimeout: 15000,
+    keepAliveTimeout: 30000,
+    keepAliveMaxTimeout: 60000,
   });
 }
 

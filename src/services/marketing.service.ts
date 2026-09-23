@@ -1,3 +1,4 @@
+import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 import { db } from '@/lib/db';
 import { Prisma } from '@prisma/client';
 import {
@@ -64,7 +65,7 @@ class MarketingService {
     // CHK-07 & OWASP A03: Strict promo code normalization and injection sanitization
     if (promoCodeStr) {
       const clean = promoCodeStr.trim().toUpperCase();
-      promoCodeStr = (clean.length <= 32 && /^[A-Z0-9_-]+$/.test(clean)) ? clean : null;
+      promoCodeStr = (clean.length <= 64 && /^[A-Z0-9_-]+$/.test(clean)) ? clean : null;
     } else {
       promoCodeStr = null;
     }
@@ -73,13 +74,11 @@ class MarketingService {
     if (userId) {
       user = preloadedContext && preloadedContext.user !== undefined 
           ? preloadedContext.user 
-          // tenant-isolation-ignore: manual IDOR check
           : await db.user.findUnique({ where: { id: userId } });
     }
 
     const service = preloadedContext && preloadedContext.service !== undefined
         ? preloadedContext.service
-        // tenant-isolation-ignore: manual IDOR check
         : await db.service.findUnique({ where: { id: serviceId } });
         
     if (!service) throw new Error('Service not found');
@@ -141,7 +140,13 @@ class MarketingService {
     const promoFixedDiscountCents = 0;
     
     if (promoCodeStr) {
-      const promo = await db.promoCode.findUnique({ where: { code: promoCodeStr } });
+      const normalizedTenant = normalizeTenantId(service.tenantId);
+      const promo = await db.promoCode.findFirst({ 
+        where: { 
+          code: promoCodeStr,
+          tenantId: normalizedTenant
+        } 
+      });
       if (promo && promo.isActive && (promo.maxUses === 0 || promo.uses < promo.maxUses)) {
         if (!promo.expiresAt || promo.expiresAt > new Date()) {
           if (promo.type === 'VOUCHER') {
@@ -209,13 +214,14 @@ class MarketingService {
   /**
    * Applies the use of a promo code atomically if required.
    */
-  async consumePromoCode(tx: Prisma.TransactionClient, promoCodeStr?: string | null) {
+  async consumePromoCode(tx: Prisma.TransactionClient, promoCodeStr?: string | null, tenantId: string = 'smmplan') {
     if (!promoCodeStr) return;
 
     // CHK-07: Case-insensitive promo code normalization
     const normalizedCode = promoCodeStr.trim().toUpperCase();
+    const normalizedTenant = normalizeTenantId(tenantId);
 
-    const promo = await tx.promoCode.findUnique({ where: { code: normalizedCode } });
+    const promo = await tx.promoCode.findFirst({ where: { code: normalizedCode, tenantId: normalizedTenant } });
     
     if (!promo || !promo.isActive) {
       throw new Error('Промокод недействителен');

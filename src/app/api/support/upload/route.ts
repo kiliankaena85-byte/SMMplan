@@ -7,6 +7,8 @@ import fs from 'fs/promises';
 import crypto from 'crypto';
 
 import { getEncodedKey, readSessionTokenFromCookies } from '@/lib/session';
+import { isTenantAllowedForUser } from '@/utils/admin-tenant';
+import { resolveTenantUser } from '@/lib/tenant-user-resolver';
 
 const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
@@ -19,7 +21,6 @@ export async function POST(req: NextRequest) {
 
     const { payload } = await jwtVerify(token, getEncodedKey(), { algorithms: ['HS256'] });
     const userId = payload.userId as string;
-    // tenant-isolation-ignore: JWT verified user id
     const user = await db.user.findUnique({ where: { id: userId } });
     if (!user) return new NextResponse('Unauthorized', { status: 401 });
 
@@ -41,12 +42,34 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Access control: verify user owns ticket or is staff with strict tenant boundary
-    const isStaff = ['ADMIN', 'SUPPORT', 'OWNER'].includes(user.role);
-    const tenantId = user.tenantId ?? 'smmplan';
-    const ticket = await db.ticket.findFirst({
-      where: isStaff ? { id: ticketId, tenantId } : { id: ticketId, userId, tenantId }
+    const ticket = await db.ticket.findUnique({
+      where: { id: ticketId },
+      include: {
+        user: { select: { id: true, email: true, tenantId: true } }
+      }
     });
     if (!ticket) return new NextResponse('Ticket not found or access denied', { status: 404 });
+
+    const isStaff = ['ADMIN', 'SUPPORT', 'OWNER'].includes(user.role);
+    if (isStaff) {
+      if (!isTenantAllowedForUser(user, ticket.tenantId)) {
+        return new NextResponse('Ticket not found or access denied', { status: 403 });
+      }
+    } else {
+      let isAuthorizedClient = ticket.userId === userId;
+      if (!isAuthorizedClient && ticket.user?.email && user.email) {
+        isAuthorizedClient = ticket.user.email.toLowerCase() === user.email.toLowerCase();
+      }
+      if (!isAuthorizedClient) {
+        const tenantUser = await resolveTenantUser(userId, ticket.tenantId || 'smmplan');
+        if (tenantUser && tenantUser.id === ticket.userId) {
+          isAuthorizedClient = true;
+        }
+      }
+      if (!isAuthorizedClient) {
+        return new NextResponse('Ticket not found or access denied', { status: 403 });
+      }
+    }
 
     // 5. Save the file locally & Magic Byte Validation
     const buffer = Buffer.from(await file.arrayBuffer());

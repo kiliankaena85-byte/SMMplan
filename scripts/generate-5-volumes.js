@@ -42,7 +42,6 @@ function getVolume(filePath) {
 
   // Volume 2: Landing, Marketing, User Dashboard & Support
   if (
-    filePath.startsWith('src/app/ab-lovable/') ||
     filePath.startsWith('src/components/ab-test/') ||
     filePath.startsWith('src/components/landing/') ||
     filePath.startsWith('src/components/dashboard/') ||
@@ -91,7 +90,7 @@ allSrcFiles.forEach(f => {
 function buildMegaVolumeFile(volNum, volName, filesList, outputFile) {
   let md = '# 📦 ' + outputFile + '\n';
   md += '## ' + volName + ' (VOLUME ' + volNum + ' OF 5)\n\n';
-  md += '**Проект:** Multi-Tenant SMM Platform (Flux / SMMplan / Lovable)  \n';
+  md += '**Проект:** Multi-Tenant SMM Platform (OmniSMM 1.0: SMMplan / SMMflux)  \n';
   md += '**Дата:** 2026-07-28  \n';
   md += '**Инженер:** Senior Frontend & System Engineer (Antigravity AI)  \n';
   md += '**Том:** Volume ' + volNum + ' из 5 — ' + volName + '  \n';

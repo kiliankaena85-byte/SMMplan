@@ -28,10 +28,14 @@ class SettingsService {
   async listStaffUsers(tenantId?: string) {
     return db.user.findMany({
       where: { 
-        role: { in: ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT'] },
+        OR: [
+          { role: { in: ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT', 'OPERATOR'] } },
+          { staffRoleId: { not: null } }
+        ],
         ...(tenantId ? { tenantId } : {})
       },
       orderBy: { createdAt: 'desc' },
+      take: 200,
       select: {
         id: true,
         email: true,
@@ -46,6 +50,8 @@ class SettingsService {
           }
         },
         geminiApiKey: true,
+        isActive: true,
+        allowedTenants: true,
         createdAt: true,
         _count: { select: { orders: true, tickets: true } }
       }
@@ -53,7 +59,7 @@ class SettingsService {
   }
 
   async updateUserRole(userId: string, role: string, staffRoleId?: string | null) {
-    const validRoles = ['USER', 'SUPPORT', 'MANAGER', 'ADMIN', 'OWNER', 'BANNED'];
+    const validRoles = ['USER', 'SUPPORT', 'OPERATOR', 'MANAGER', 'ADMIN', 'OWNER', 'BANNED'];
     if (!validRoles.includes(role)) throw new Error(`Invalid role: ${role}`);
     
         const dataToUpdate: Prisma.UserUpdateInput = { role };
@@ -61,7 +67,6 @@ class SettingsService {
       dataToUpdate.staffRole = staffRoleId ? { connect: { id: staffRoleId } } : { disconnect: true };
     }
     
-    // tenant-isolation-ignore: manual IDOR check
     return db.user.update({
       where: { id: userId },
       data: dataToUpdate
@@ -70,7 +75,7 @@ class SettingsService {
 
   // ── Provider Management ──
   async listProviders() {
-    return db.provider.findMany({ orderBy: { createdAt: 'desc' } });
+    return db.provider.findMany({ orderBy: { createdAt: 'desc' }, take: 100 });
   }
 
   async upsertProvider(data: { id?: string; name: string; apiUrl: string; apiKey: string; isActive: boolean }) {
@@ -105,52 +110,12 @@ class SettingsService {
     return settings;
   }
 
-  async updateSystemSettings(data: {
-    taxRate?: number;
-    opexMonthly?: number;
-    maintenanceMode?: boolean;
-    siteName?: string;
-    siteDescription?: string;
-    welcomeMessage?: string | null;
-    yookassaShopId?: string | null;
-    yookassaSecretKey?: string | null;
-    yookassaTestShopId?: string | null;
-    yookassaTestSecretKey?: string | null;
-    cryptoBotToken?: string | null;
-    exchangeRateUSD?: number;
-    smtpHost?: string | null;
-    smtpPort?: number;
-    smtpUser?: string | null;
-    smtpPassword?: string | null;
-    supportEmailDomain?: string | null;
-    inboundEmailWebhookSecret?: string | null;
-    contactSupportEmail?: string | null;
-    contactPrivacyEmail?: string | null;
-    contactTelegramBot?: string | null;
-    contactTelegramChannel?: string | null;
-    contactWhatsApp?: string | null;
-    contactVk?: string | null;
-    legalCompanyName?: string | null;
-    legalCompanyInn?: string | null;
-    legalCompanyOgrnip?: string | null;
-    legalCompanyAddress?: string | null;
-    quarantineThreshold?: number;
-    globalMarkup?: number;
-    safetyFloor?: number;
-    siteLogoUrl?: string | null;
-    siteFaviconUrl?: string | null;
-    robokassaLogin?: string | null;
-    robokassaPassword?: string | null;
-    robokassaWebhookPassword?: string | null;
-    emailProvider?: string;
-    resendApiKey?: string | null;
-    usnScheme?: UsnScheme;
-  }, tenantId?: string) {
+  async updateSystemSettings(data: Prisma.SystemSettingsUpdateInput, tenantId?: string) {
     const activeTenantId = tenantId || await SettingsProvider.getTenantId();
     const result = await db.systemSettings.upsert({
       where: { id: activeTenantId },
       update: data,
-      create: { id: activeTenantId, ...data }
+      create: ({ id: activeTenantId, ...data } as unknown as Prisma.SystemSettingsUncheckedCreateInput)
     });
 
     SettingsProvider.clearMemoryCache(activeTenantId);

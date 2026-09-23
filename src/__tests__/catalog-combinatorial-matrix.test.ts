@@ -34,14 +34,14 @@ describe('Catalog 8-Vector Combinatorial State-Matrix Test Suite', () => {
 
     // 2. Seed Categories
     const catTg = await db.category.upsert({
-      where: { slug: 'matrix-tg-subs' },
+      where: { tenantId_slug: { tenantId: 'all', slug: 'matrix-tg-subs' } },
       update: { tenantId: 'smmplan', networkId: netTg.id },
       create: { name: 'Matrix TG Subs', slug: 'matrix-tg-subs', tenantId: 'smmplan', networkId: netTg.id }
     });
     catTelegramId = catTg.id;
 
     const catVk = await db.category.upsert({
-      where: { slug: 'matrix-vk-followers' },
+      where: { tenantId_slug: { tenantId: 'all', slug: 'matrix-vk-followers' } },
       update: { tenantId: 'smmplan', networkId: netVk.id },
       create: { name: 'Matrix VK Followers', slug: 'matrix-vk-followers', tenantId: 'smmplan', networkId: netVk.id }
     });

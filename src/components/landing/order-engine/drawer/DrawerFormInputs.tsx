@@ -181,6 +181,7 @@ export function DrawerFormInputs({
             <div className="relative animate-in slide-in-from-right-3 fade-in duration-200">
               <input
                 type="text"
+                maxLength={64}
                 value={promoCode}
                 onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
                 placeholder="ПРОМОКОД"

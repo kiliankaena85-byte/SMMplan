@@ -50,20 +50,21 @@ describe('Admin Catalog Integrity & Contracts Suite (SIL-2026 Step 3)', () => {
   });
 
   describe('Catalog Navigation Tabs & Routing Parity', () => {
-    it('contains all canonical catalog tabs in CATALOG_TABS', () => {
+    it('contains all canonical catalog tabs in CATALOG_TABS (strictly catalog scoped)', () => {
       const expectedHrefs = [
         '/admin/catalog',
-        '/admin/catalog/patterns',
-        '/admin/providers/import',
-        '/admin/providers',
+        '/admin/catalog/import',
         '/admin/catalog/categories',
+        '/admin/catalog/networks',
+        '/admin/catalog/patterns',
         '/admin/catalog/quarantine',
+        '/admin/catalog/sync',
       ];
 
       const tabHrefs = CATALOG_TABS.map(t => t.href);
-      for (const href of expectedHrefs) {
-        expect(tabHrefs).toContain(href);
-      }
+      expect(tabHrefs).toEqual(expectedHrefs);
+      expect(tabHrefs).not.toContain('/admin/providers');
+      expect(tabHrefs).not.toContain('/admin/providers/import');
     });
 
     it('ensures catalog base route is the first tab', () => {

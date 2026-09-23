@@ -103,13 +103,16 @@ export async function createSession(userId: string, canResetPassword: boolean = 
   return { sessionToken, expiresAt };
 }
 
-export async function verifySession(requiredTenantId?: string): Promise<{ userId: string; canResetPassword?: boolean; role?: string; tenantId?: string } | null> {
+export async function verifySession(requiredTenantId?: string): Promise<{ userId: string; canResetPassword?: boolean; role?: string; tenantId?: string; allowedTenants?: string[] } | null> {
   let sessionToken: string | undefined;
   try {
     const cookieStore = await cookies();
     sessionToken = readSessionTokenFromCookies(cookieStore);
   } catch {
-    // If called outside Next.js request scope (e.g. background tasks or CLI)
+    // If called outside Next.js request scope (e.g. background tasks, tests or CLI)
+    if (process.env.APP_ENV === 'test' && (process.env.DEV_AUTO_LOGIN === 'true' || process.env.DEV_AUTO_LOGIN === '1')) {
+      return handleDevAutoLogin();
+    }
     return null;
   }
 
@@ -179,7 +182,7 @@ export async function verifySession(requiredTenantId?: string): Promise<{ userId
     const tokenContour = (payload.contour as ContourId) || (userTenantId === 'flux' ? 'flux' : 'test');
     const cleanHost = host.split(':')[0].toLowerCase().trim();
     const isLocalDev = cleanHost.includes('localhost') || cleanHost.includes('127.0.0.1') || cleanHost === '0.0.0.0' || cleanHost === 'web' || cleanHost.includes('host.docker.internal');
-    const isStrictMismatch = !isLocalDev && user.role !== 'OWNER' && tokenContour !== currentContour && (tokenContour === 'prod' || currentContour === 'prod' || tokenContour === 'flux' || currentContour === 'flux');
+    const isStrictMismatch = !isLocalDev && !['OWNER', 'ADMIN'].includes(user.role) && tokenContour !== currentContour && (tokenContour === 'prod' || currentContour === 'prod' || tokenContour === 'flux' || currentContour === 'flux');
     if (isStrictMismatch) {
       console.warn(`[verifySession] Contour mismatch: token was issued for "${tokenContour}", request is on "${currentContour}"`);
       try {
@@ -293,7 +296,8 @@ export async function verifySession(requiredTenantId?: string): Promise<{ userId
       userId: user.id,
       canResetPassword: payload.canResetPassword === true,
       role: user.role,
-      tenantId: user.tenantId
+      tenantId: user.tenantId,
+      allowedTenants: user.allowedTenants
     };
   } catch (err) {
     console.warn('[verifySession] JWT verification failed:', err instanceof Error ? err.message : 'Unknown error');
@@ -330,7 +334,7 @@ export async function handleDevAutoLogin() {
         : { role: 'OWNER', isDeleted: false, isActive: true } 
     });
     if (devUser && devUser.role !== 'BANNED') {
-      return { userId: devUser.id, role: devUser.role, tenantId: devUser.tenantId };
+      return { userId: devUser.id, role: devUser.role, tenantId: devUser.tenantId, allowedTenants: devUser.allowedTenants };
     }
   }
   return null;

@@ -327,7 +327,7 @@ export default async function ClientDetailPage({ params }: Props) {
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Link href="/admin/clients" className="hover:text-foreground transition-colors">← Клиенты</Link>
         <span>/</span>
-        <span className="text-foreground font-medium truncate max-w-[300px]">{user.email}</span>
+        <span className="text-foreground font-medium truncate max-w-[300px] min-w-0">{user.email}</span>
       </div>
 
       {/* Header */}

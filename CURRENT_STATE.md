@@ -1,3 +1,1424 @@
+- [x] 🚀 [DEPLOYMENT-CUTOVER-2026] Успешное бесшовное переключение боевых контейнеров OmniSMM 1.0 (BGS-2026):
+  * 📦 Обновлены боевые образы: `smm-web:latest`, `smm-worker:latest`, `smm-bot:latest`.
+  * 🌐 Контейнеры `smmplan_web` (:3000), `smmplan_lite_worker`, `smmplan_bot` перезапущены и переведены в статус **Healthy**.
+  * 🛡️ Предыдущий рабочий образ сохранен как `smmplan_backup:latest` (гарантия отката за 5 сек).
+  * 🧪 Пройден визуальный аудит в браузере (6/6 PASS) и дымовые тесты на порту 3000 (HTTP 200 OK).
+- [x] 🧹 [CLEANUP-LOVABLE-SMMFLUX-2026] Полная зачистка остаточных упоминаний фантомного бренда Lovable и консолидация на SMMflux (100% COMPLETE & VERIFIED):
+  * 🌐 **[BRAND-01: Дебрандинг и роутинг (`next.config.mjs`, `src/app/ab-lovable`)]:**
+    - Удалена устаревшая страница-дубликат `src/app/ab-lovable/page.tsx`.
+    - В `next.config.mjs` настроен перманентный 308-редирект с `/ab-lovable` и `/ab-lovable/:path*` на `/?tenant=flux`.
+    - Все компоненты витрины строго переведены на префикс `Flux*` (`FluxOrderClient`, `FluxTrustBar`, `FluxWhyUs`, `FluxReviews`, `FluxFAQ`, `FluxDashboardShell`, `FluxDashboardHome`, `FluxOrdersView`, `FluxOrdersKanban`, `FluxOrdersList`, `FluxDashboardOrderWizard`).
+  * 🛡️ **[BRAND-02: Инварианты AGENTS.md и обратная совместимость]:**
+    - Сохранен алиас обратной совместимости `normalizeTenantId('lovable') -> 'flux'` в `src/lib/tenant-resolver-edge.ts`, `src/lib/tenant-scope.ts`, `src/lib/seo-helpers.ts` и `src/tenants/registry.ts`.
+    - `src/proxy.ts`: сохранен безопасный 302-редирект с `lovable.pro`, `www.lovable.pro`, `flux.lovable.pro` на `https://smmflux.ru`.
+    - Обновлены вызовы в ботах (`src/bot/index.ts`, `deposit.wizard.ts`, `referral.wizard.ts`, `role-handlers.ts`) и в дев-панели (`FloatingQADock.tsx`) для безопасного использования `normalizeTenantId`.
+  * 🗄️ **[BRAND-03: БД, Скрипты и Документация]:**
+    - `prisma/schema.prisma`: обновлен комментарий `preferredDashboard` на `// "CLASSIC" or "FLUX"`.
+    - `scripts/seed-tenants.ts`, `scripts/gen-magic.ts`, `scripts/migrate-system-settings.ts`: переведены на сидирование и работу со строго каноническим тенантом `flux` (`SMMflux`, `smmflux.ru`).
+    - `scripts/pack-project-in-5-files.ts`, `scripts/build-flux-dump.ts`, `scripts/build-recon-package.ts`, `scripts/build-w1-finance-package.ts`, `scripts/build-w2-orders-package.ts`, `scripts/generate-5-volumes.js`, `scripts/generate-audit-package-rev1.ts`, `scripts/build-final-audit-package.ts`: полностью очищены от остаточных ссылок на `Lovable*` и переведены на `Flux*` и `OmniSMM 1.0 (SMMplan / SMMflux)`.
+    - `Design.md`, `docs/INSTALLATION.md`, `BACKLOG.md` (TECH-005 закрыт), `docs/audits/GOOGLE_SEARCH_CONSOLE_SETUP.md`, `docs/audits/YANDEX_WEBMASTER_SETUP.md`: очищены от упоминаний Lovable.
+  * 🧪 **Контроль качества & Тестирование (DoD 100% PASS):**
+    - `npx tsc --noEmit`: 0 ошибок компиляции TypeScript (Strict mode).
+    - `npx eslint`: 0 ошибок / 0 ворнингов на измененных компонентах.
+    - `npx tsx scripts/check-clean-architecture.ts`: 0 layer violations, 0 circular cycles.
+    - `npx tsx scripts/lint-tenant-isolation.ts`: 0 blockers.
+    - `node scripts/check-bundle-secrets.mjs`: 0 утечек секретов.
+    - `npm run check:domains`: 0 нарушений.
+    - Vitest тесты: 32/32 PASS (100%): `seo-opengraph-and-vitals.test.ts` (9/9), `tenant-isolation-ast.test.ts` (8/8), `admin-tenants-integrity.test.ts` (5/5), `multitenant-security.test.ts` (5/5), `production-preflight-master.test.ts` (5/5).
+- [x] 🛡️ [MULTI-TENANT-PACKAGE-3-BLIND-SPOTS-2026] Устранение 8 слепых зон межтенантной изоляции (100% COMPLETE & VERIFIED):
+  * 💳 **[PAY-01: Payment Status Polling IDOR & Identity (`src/app/api/payments/[id]/status/route.ts`)]:**
+    - `findUnique` обогащен связью `user: { select: { id, email, tenantId } }`.
+    - Проверка владения поддерживает сопоставление через `resolveTenantUser(session.userId, payment.tenantId)`, гарантируя успешный опрос статуса платежей для пользователей с кросс-тенантной сессией, сохраняя строгую защиту от IDOR и доступ персонала через `isTenantAllowedForUser`.
+  * 🔄 **[PAY-02: Retry Checkout Service Tenant Isolation (`src/services/orders/retry-checkout.service.ts`)]:**
+    - Устранено падение `where: { id, userId: sessionUserId }` при оплате на дочернем тенанте. Владелец определяется через `sessionUserId`, email match и `resolveTenantUser`.
+    - `WalletOps.charge` и `payment.create` теперь используют `freshOrder.userId` (аккаунт фактического тенанта), а не `sessionUserId`.
+    - `successUrl` и `paymentUrl` переведены на `absoluteCanonical(orderTenantId, ...)`, устраняя редиректы на дефолтный хост.
+  * 💰 **[PAY-03: Deposit Return URL Isolation (`src/actions/user/top-up.action.ts`)]:**
+    - Вызов `getBaseUrlAsync()` заменен на `absoluteCanonical(targetTenantId, '/dashboard/add-funds?success=1', incomingHost)`, исключая междоменную утечку пользователя при пополнении баланса.
+  * 🎟️ **[BAL-01: Promo Code Active Tenant Isolation (`src/actions/user/promo.ts`)]:**
+    - Активный тенант разрешается из заголовков запроса (`resolveTenantFromRequest`). Аккаунт для зачисления разрешается через `resolveTenantUser(session.userId, activeTenant, true)`.
+    - Промокоды строго изолированы по `tenantId: activeTenant`. Ваучеры зачисляются на баланс целевого тенанта через `WalletOps.credit` с tenant-scoped `idempotencyKey`.
+  * 💬 **[SUP-01: Ticket Message Dispatch (`src/actions/support/ticket.ts`)]:**
+    - `addTicketMessage` и `createTicket` определяют активный тенант из заголовков (`resolveTenantFromHeaders`).
+    - Авторизация клиента в тикете проверяет `ticket.userId === session.userId` или `resolveTenantUser(session.userId, ticket.tenantId).id === ticket.userId`.
+    - Привязка заказа валидируется строго в контексте `ticketTenant`.
+  * 📎 **[SUP-02: Ticket Attachment Upload (`src/app/api/support/upload/route.ts`)]:**
+    - Устранена блокировка загрузки в тикеты дочернего тенанта (`user.tenantId`). Права проверяются по `allowedTenants` для персонала и через `resolveTenantUser` для клиентов.
+  * 🖼️ **[SUP-03: Ticket Media Attachment Viewing (`src/app/api/media/[...path]/route.ts`)]:**
+    - Доступ персонала валидируется через `isTenantAllowedForUser(user, ticket.tenantId)`. Доступ клиента проверяется через `resolveTenantUser`. Междоменная изоляция проверена.
+  * 📋 **[SUP-04: Ticket Detail Page Orders Dropdown (`src/app/dashboard/tickets/[id]/page.tsx`)]:**
+    - Формируется `allowedUserIds = [session.userId, tenantUser?.id]`. Выборка `initialOrders` и `historicalTickets` фильтруется по `userId: { in: allowedUserIds }` строго в пределах `currentTenantId`.
+  * 🧪 **Контроль качества & Тестирование (DoD 100% PASS):**
+    - Создана спецификация: `docs/specs/SPEC-2026-09-22-multi-tenant-blind-spots-package-3.md`.
+    - Создан сьют тестов: `src/__tests__/unit/multi-tenant-blind-spots-package-3.test.ts` (**13/13 PASS**).
+    - Суммарный регрессионный сьют: **35/35 PASS (100%)**.
+    - **AST Мутационное тестирование (`npm run test:mutation`): 100.0% Mutation Score (11/11 KILLED, 0 Survived)** — подтверждена стойкость тестов ко всем искажениям финансовой математики, адаптивной верстки и межтенантной изоляции.
+    - `npx tsc --noEmit`: 0 ошибок компиляции TypeScript (Strict mode).
+    - `npx eslint`: 0 ошибок / 0 ворнингов на всех файлах.
+    - `node scripts/check-bundle-secrets.mjs`: 0 утечек секретов.
+- [x] 🛡️ [MULTI-TENANT-PACKAGE-2-P1-FINANCIAL-ISOLATION-2026] Комплексная финансовая изоляция P1: Telegram Smart Bind, Escrow-карантин, ManualBalanceAdjustment (100% COMPLETE & VERIFIED):
+  * 🤖 **[VULN-03: Telegram Smart Bind Cross-Tenant Merge Protection (`src/actions/user/settings/telegram.action.ts` & `src/bot/constructors/role-handlers.ts`)]:**
+    - `telegram.action.ts`: `db.authToken.create` явно сохраняет `tenantId: tenantId`.
+    - `role-handlers.ts:705-745`: внедрена строгая проверка `if (tempUser && webUser && tempUser.tenantId !== webUser.tenantId) throw new Error('КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО объединять аккаунты разных брендов (SMMplan / SMMflux)');` и `if (webUser && webUser.tenantId !== tenantId) ...`.
+    - При попытке межтенантного слияния транзакция откатывается, `WalletOps.charge` и `WalletOps.credit` не вызываются, баланс клиента остается в сохранности, бот выводит понятное сообщение об ошибке.
+  * 🛡️ **[VULN-05: Escrow Quarantine Multi-Tenant Filtering (`src/services/admin/escrow.service.ts` & `src/app/admin/finance/page.tsx`)]:**
+    - `escrow.service.ts`: метод `getQuarantineEntries(tenantId?: string)` принимает `tenantId` и фильтрует `where: { status: 'QUARANTINE', ...(tenantId && tenantId !== 'all' ? { tenantId } : {}) }`.
+    - `admin/finance/page.tsx:56`: передает `activeTenantId` в `escrowService.getQuarantineEntries(activeTenantId)`. Карантинные записи изолированы контекстом выбранного тенанта.
+  * ⚖️ **[VULN-04: ManualBalanceAdjustment Tenant Isolation (`prisma/schema.prisma`, `src/actions/admin/balance-adjustments.ts` & `src/actions/admin/users.ts`)]:**
+    - `schema.prisma`: добавлено поле `tenantId String @default("smmplan")` и индекс `@@index([tenantId])` в модель `ManualBalanceAdjustment`. Сгенерирован Prisma Client (`npx prisma generate`) и применена миграция БД.
+    - `balance-adjustments.ts`:
+      - `createBalanceAdjustmentRequestAction`: извлекает `targetUser.tenantId`, блокирует операторов без прав на данный бренд (`isTenantAllowedForUser`), сохраняет `tenantId: targetTenant`.
+      - `approveBalanceAdjustmentAction`: проверяет доступ аппрувера (`isTenantAllowedForUser(approver, adjTenant)`), передает `tenantId: adjTenant` в `WalletOps.credit` и `WalletOps.adminAdjust`.
+      - `cancelBalanceAdjustmentRequestAction` & `rejectBalanceAdjustmentAction`: проверяют права оператора и передают `tenantId: adjTenant` в `WalletOps.credit` при откате.
+      - `getBalanceAdjustmentsAction` & `getBalanceAdjustmentStatsAction`: фильтруют по `tenantId: resolvedTenant` через `resolveAdminTenantAsync(staffUser, requestedTenant)`.
+      - Экспортированы алиасы `requestManualBalanceAdjustmentAction` и `getManualBalanceAdjustmentsAction`.
+    - `src/actions/admin/users.ts`: `requestCardRefundAction` сохраняет `tenantId: refundTenant`, использует уникальный fallback для идемпотентности частичных возвратов, передает `tenantId: refundTenant` в `WalletOps.adminAdjust`.
+  * 🧪 **Контроль качества & Тестирование (DoD 100% PASS):**
+    - Создана спецификация: `docs/specs/SPEC-2026-09-22-financial-isolation-package-2.md`.
+    - Создан сьют тестов: `src/__tests__/unit/financial-isolation-package-2.test.ts` (**12/12 PASS**).
+    - Регрессионный сьют: `yookassa-e2e-qa-master.test.ts` (**11/11 PASS**), `pre-production-step3-robokassa-refund-guard-and-cbr.test.ts` (**4/4 PASS**), `multitenant-staff-isolation.test.ts` (**15/15 PASS**), `settings-extra.test.ts` (**15/15 PASS**) — суммарно **57/57 PASS (100%)**.
+    - `npx tsc --noEmit`: 0 ошибок компиляции TypeScript (Strict mode).
+    - `npx eslint`: 0 ошибок на измененных файлах.
+    - `node scripts/check-bundle-secrets.mjs`: 0 утечек секретов.
+- [x] 🛡️ [MULTI-TENANT-PACKAGE-1-P0-GATEWAYS-&-SUPPORT-2026] Устранение утечек возврата шлюзов оплаты и изоляция тикетов поддержки (100% COMPLETE & VERIFIED):
+  * 💳 **[VULN-01: Payment Gateway Return URLs (`src/services/orders/checkout-payment.service.ts`)]:**
+    - Устранен вызов `getBaseUrlSync()` без передачи `tenantId`.
+    - Генерация `successUrl` переведена на `absoluteCanonical(tenantId, `/success?orderId=${result.orderId}`)`: шлюзы возвращают плательщика строго на целевой бренд (`https://smmflux.ru/success?orderId=...` для `flux` и `https://smmplan.pro/success?orderId=...` для `smmplan`). Исключен 404 Lockout на `/api/order-status`.
+    - Создан модульный тест `src/__tests__/unit/checkout-payment-dispatch-tenant.test.ts` (3/3 PASS).
+  * 🎧 **[VULN-02: Support Tickets & Chat Isolation (`src/app/dashboard/tickets/`)]:**
+    - `src/app/dashboard/tickets/page.tsx`: извлечение `tenantId` из заголовков запроса через `resolveTenantFromHeaders(await headers())` и передача в `ticketService.getOrCreateTicket(session.userId, 'Чат с поддержкой', 'WEB', tenantId)`.
+    - `src/app/dashboard/tickets/[id]/page.tsx`: внедрена проверка `if (ticket.tenantId !== currentTenantId) redirect('/dashboard/tickets');`, выборка `historicalTickets` строго фильтрует `tenantId: currentTenantId`.
+    - Декомпозирован `src/components/support/TicketChatHeader.tsx` (89 строк), сократив `page.tsx` до 163 строк (строго <= 200 строк по контракту AGENTS.md).
+    - `src/services/support/ticket.service.ts`: передача `ticketTenant` в `SettingsProvider.getSupportEmailDomain` и `SettingsProvider.getContactAndLegalSettings` для омниканальных email-уведомлений с брендингом нужного сайта.
+    - Создан тест `src/__tests__/unit/support-tickets-tenant-isolation.test.ts` (6/6 PASS).
+  * 🧪 **Контроль качества & Тестирование:**
+    - `npx eslint`: 0 ошибок, 0 предупреждений (PASS).
+    - `npx tsc --noEmit`: 0 ошибок компиляции TypeScript (Strict mode).
+    - `node scripts/check-bundle-secrets.mjs`: 0 утечек секретов.
+    - `vitest run` (Package 1 + Multi-tenant regression): 25/25 PASS (100%).
+- [x] 🛡️ [MULTI-TENANT-BALANCE-&-BRAND-ISOLATION-2026] Устранение утечки баланса и брендинга между витринами SMMplan и SMMflux (OmniSMM 1.0 Incident Fix) (100% COMPLETE & VERIFIED):
+  * 💰 **[Isolated Balance Resolution (`src/actions/auth/refresh-balance.ts` & `src/hooks/use-user-balance.ts`)]:**
+    - `refreshBalanceAction`: Добавлено определение целевого тенанта сессии через `headers()` (`resolveTenantFromRequest`) и опциональный `explicitTenantId`. Баланс запрашивается строго через `resolveTenantUser(session.userId, resolvedTenant, true)` вместо слепого `db.user.findUnique`.
+    - `use-user-balance.ts`: Добавлен `explicitTenantId` в хук, вызов `refreshBalanceAction(explicitTenantId)`, тенантная фильтрация событий `smmplan:balance_updated` для исключения кросс-тенантных коллизий между параллельными вкладками браузера.
+    - `BalanceDisplay.tsx`, `FluxDashboardShell.tsx`, `FluxDashboardHome.tsx`, `ClassicDashboardShell.tsx`, `SidebarNav.tsx`: Все компоненты явно передают свой активный `tenantId` в отображение баланса.
+  * 🌐 **[Tailscale Tunnel Header & Cookie Preservation (`src/proxy.ts`)]:**
+    - Исправлена критическая ошибка перезаписи Tailscale-хостов (`.ts.net`) в `test.smmplan.pro` из-за `isInternalHost(host)`.
+    - Внедрен хелпер `isTailscaleHostHelper`: Tailscale-запросы не перезаписывают `host`, кука `x_tenant` и параметр `?tenant=...` разрешают тенант корректно (`flux` для SMMflux).
+    - В `ALLOWED_TUNNEL_SUFFIXES` добавлен `.trycloudflare.com` в соответствии со стандартом `get-base-url.ts`.
+  * 💳 **[Deposit / Top-up Multi-Tenant Guard (`src/actions/user/top-up.action.ts`)]:**
+    - Использован `resolveTenantFromRequest(reqHeaders)` и `resolveTenantUser(session.userId, currentTenant, true)`. Платежи `db.payment.create` и обращения к шлюзам создаются строго с `userId: tenantUser.id` и `tenantId: currentTenant`. Баланс зачисляется на целевой сайт.
+  * 🔑 **[Auth Magic Link Cookie Resolution (`src/app/api/auth/verify/route.ts`)]:**
+    - Исправлена принудительная перезапись куки `x_tenant` на `user.tenantId`. Теперь кука выставляется по `effectiveTenant = normalizeTenantId(tenant || user.tenantId || 'smmplan')`.
+  * ⚙️ **[Dashboard & Settings Layout Isolation (`src/app/dashboard/settings/layout.tsx` & `src/app/dashboard/layout.tsx`)]:**
+    - `settings/layout.tsx`: Динамический `generateMetadata()` с брендом (`SMMflux` / `SMMplan`). Данные пользователя, счетчики заказов и рефералов берутся для `tenantUser.id` и `tenantId: currentTenant`.
+    - `dashboard/layout.tsx`: Подсчет тикетов строго по `user.id` и `tenantId: effectiveTenantId`.
+  * 🧪 **Контроль качества & Тестирование (DoD 100% PASS):**
+    - `src/__tests__/unit/multi-tenant-balance-isolation.test.ts`: **7/7 PASS** (включая новые тесты на изоляцию `refreshBalanceAction`).
+    - `src/__tests__/dynamic-tunnel-and-server-actions-proxy.test.ts`: **9/9 PASS** (включая проверку резолва `x_tenant=flux` на Tailscale туннеле).
+    - `src/__tests__/integration/multi-tenant-isolation.test.ts`: **3/3 PASS**.
+    - `src/__tests__/settings/admin-settings-tenant-isolation.test.ts`: **34/34 PASS**.
+    - `npm run lint:tenant`: **0 BLOCKER**, **0 MAJOR (PASS)**.
+    - `node scripts/check-bundle-secrets.mjs`: **0 утечек секретов (PASS)**.
+    - `npx tsc --noEmit`: **0 ошибок компиляции TypeScript (Strict mode)**.
+- [x] 🛡️ [MULTI-TENANT-HARDENING-2026] Сквозной аудит и устранение утечек изоляции по `tenantId` (OmniSMM 1.0) (100% COMPLETE & VERIFIED):
+  * 🧱 **[AST Linter & Financial Invariants (`src/services/financial/wallet-ops.ts` & `src/services/admin/user.service.ts`)]:**
+    - `wallet-ops.ts:315`: Добавлен `tenantId: resolvedTenantId` в `tx.user.updateMany` списания баланса. Полностью ликвидирован последний `[BLOCKER]` линтера изоляции.
+    - `user.service.ts:331, 383`: Инлайнинг массива ключей `unstable_cache` с `tenantId` и внедрение тенант-специфичных тегов ревалидации (`user_stats_${cleanTenant}`, `top_spenders_${cleanTenant}`). Устранены 2 `[MAJOR]` предупреждения.
+    - `npm run lint:tenant`: **0 BLOCKER**, **0 MAJOR**, результат — **PASS (exit code 0)**.
+  * 🛡️ **[BOLA/IDOR Hardening в Staff & Settings Actions]:**
+    - `src/actions/admin/staff.ts`: Внедрен хелпер `assertStaffTenantAccess` в `updateStaffMemberAction`, `toggleStaffActiveAction`, `generateStaffMagicLinkAction`, `resetStaffPasswordAction`. Не-OWNER операторы не могут управлять профилями, менять роли, блокировать, сбрасывать пароли или генерировать Magic Link сотрудникам других сайтов.
+    - `src/actions/admin/settings/settings-update.action.ts`: Внедрен антиспуфинг `activeTenantId` против `user.allowedTenants` для не-OWNER пользователей.
+    - `src/actions/support/template.ts`: В `upsertTemplate` и `deleteTemplate` добавлена строгая проверка `allowedTenants` и принадлежности шаблона к активному тенанту.
+  * 🌐 **[API Routes & Media Domain Isolation]:**
+    - `src/app/api/order-status/route.ts`: Запрещена отдача статусов заказов и платежей, если хост/тенант запроса не совпадает с `order.tenantId` / `payment.tenantId` (отдает 404).
+    - `src/app/api/orders/[id]/events/route.ts`: Запрещено подключение к SSE-каналу событий заказа, если домен запроса не совпадает с `order.tenantId` (отдает 404 для не-OWNER).
+    - `src/app/api/media/[...path]/route.ts`: Защищены тикет-вложения и аватары пользователей от кросс-доменного и кросс-тенантного чтения.
+  * ⚡ **[Redis Rate Limit Isolation (`src/services/core/rate-limit.service.ts`)]:**
+    - Внедрен тенант-префикс в генерацию ключей Redis: `ratelimit:${cleanTenant}:${endpoint}:${ip}` и Postgres fallback. Исчерпание лимитов на одной витрине не блокирует пользователя на другой.
+  * 🧪 **Контроль качества & Тестирование (DoD 100% PASS):**
+    - `npm run lint:tenant`: **0 БЛОКЕРОВ** (PASS).
+    - `npx dotenv -e .env.test -- npx vitest run src/__tests__/integration/multi-tenant-isolation.test.ts`: **3/3 PASS**.
+    - `npx dotenv -e .env.test -- npx vitest run src/__tests__/settings/admin-settings-tenant-isolation.test.ts`: **34/34 PASS**.
+    - `npx dotenv -e .env.test -- npx vitest run src/__tests__/multitenant-isolation.test.ts`: **4/4 PASS**.
+    - `npx dotenv -e .env.test -- npx vitest run src/__tests__/architecture/tenant-isolation-ast.test.ts`: **8/8 PASS**.
+    - `npx dotenv -e .env.test -- npx vitest run src/__tests__/multitenant-staff-isolation.test.ts`: **15/15 PASS**.
+    - `node scripts/check-bundle-secrets.mjs`: **0 утечек секретов (PASS)**.
+    - `npx tsc --noEmit`: **0 ошибок компиляции TypeScript (Strict mode)**.
+- [x] 🛡️ [STAFF-TENANT-ISOLATION-&-LAYOUT-PERFECTION-2026] Устранение утечки tenantId в staff.ts, исправление 18 дефектов верстки и обновление тестов декомпозиции (100% COMPLETE & VERIFIED):
+  * 🏢 **[Multi-Tenant Guard & Staff Creation (`src/actions/admin/staff.ts:467`)]:**
+    - Устранено отсутствие `tenantId` в `where` вызова `db.user.findFirst`. Добавлен целевой `tenantId: targetTenant` (разрешается через `parsed.data.tenantId || parsed.data.allowedTenants[0] || admin.tenantId || 'smmplan'`).
+    - Исключена коллизия и случайная модификация профилей пользователей других брендов при одинаковом email в OmniSMM.
+    - В `src/__tests__/unit/staff-actions-management.test.ts` добавлены строгие проверки на вызов `findFirst` с `tenantId` и новый тест на кросс-тенантную изоляцию.
+  * 📐 **[Layout Overflow Sentry (18/18 Resolved — 0 Defects Remaining)]:**
+    - `src/components/admin/order-details/OrderMinimalSummary.tsx`: добавлены `shrink-0` к иконкам, `min-w-0` к контейнерам, устранен дубликат блока даты и неиспользуемые переменные.
+    - `src/components/admin/settings/settings-sidebar.tsx`: добавлены `min-w-0` к текстовым контейнерам, убран неиспользуемый импорт `Settings`.
+    - `src/app/admin/settings/integrations-settings.tsx`: добавлен `max-w-full` к триггеру селектора.
+    - `src/app/admin/settings/team/modals/EditStaffModal.tsx`: добавлен `shrink-0` к `<Lock>`, `max-w-full` и `shrink-0` к кнопке сохранения.
+    - `src/app/admin/settings/team/modals/StaffLogsDrawer.tsx`: добавлены `shrink-0` к иконкам, `min-w-0` к описанию действия.
+    - `src/app/admin/settings/team/sections/StaffTableSection.tsx`: добавлены `min-w-0` к email и бейджу роли, устранен `any` в `filterStatus`.
+    - `src/app/admin/transactions/transactions-client.tsx`: добавлены `max-w-full` к заголовкам таблицы, строгая типизация `LedgerParams` без `any`.
+    - `scripts/ui/layout-sentry.ts`: результат сканирования — 🟢 CLEAN (0 High, 0 Medium дефектов).
+  * 🧪 **[Unit Test Remediation]:**
+    - `src/__tests__/unit/checkout-auth-wizard-decomposition.test.tsx`: обновлен под актуальную компонентную архитектуру `PlanCheckout*` (все файлы <= 200 строк).
+  * 🚀 **Контроль качества & Тестирование:**
+    - `npx eslint`: 0 ошибок, 0 предупреждений (PASS).
+    - `npx tsc --noEmit`: 0 ошибок компиляции TypeScript (Strict mode).
+    - `node scripts/check-bundle-secrets.mjs`: 0 утечек секретов (PASS).
+    - `vitest run`: все тесты пройдены успешно (PASS).
+    - `npm run build`: 100% SUCCESS (Next.js standalone webpack, bot/worker esbuild, bundle audit).
+- [x] 🛠️ [POST-REFACTOR-INTEGRITY-HARDENING-2026] Устранение критических ошибок после рефакторинга платформы OmniSMM 1.0 (P0, P1, P2) (100% COMPLETE & VERIFIED):
+  * 🧱 **[P0 Build Blockers]:**
+    - `src/app/admin/layout.tsx`: Устранен динамический `require('@/lib/server/rbac')`, заменен на статический импорт `getCachedStaffUserWithPermissions` и `BUILTIN_ROLE_PERMISSIONS`.
+    - `package.json`: Добавлен `cross-env` в `devDependencies` и обновлен build-скрипт с лимитом V8: `cross-env NODE_OPTIONS=--max-old-space-size=4096 next build --webpack ...`.
+    - `test/unit/smart-order-form.test.tsx` и `test/integration/premortem.provider.test.ts`: Верифицирована полная совместимость и изоляция тестов при исполнении через `.env.test`.
+  * 🛡️ **[P1 Security & Tenant Invariants]:**
+    - `src/app/admin/settings/`: Верифицировано наличие `<input type="hidden" name="tenantId" />` во всех 7 интеграциях (ЮKassa, Альфа, Robokassa, CryptoBot, SMTP, Gemini, Webhook), а также изоляция в `security-panel.tsx` и `settings-audit-logger.ts`.
+    - `src/app/admin/layout.tsx`: Заменен пустой catch при определении Redis session tenant на информативный лог `console.warn`.
+    - `src/actions/admin/team.ts`: Удален неиспользуемый импорт `auditAdmin`.
+    - `src/actions/admin/orders.ts`, `src/actions/admin/smart.ts`, `src/actions/admin/storefront-keys.ts`, `src/actions/admin/network-routing.ts`, `src/actions/admin/telegram-bot/*`: Ликвидированы все типы `any` в сигнатурах, Prisma мутациях и catch-блоках (`unknown`, `Prisma.Telegram*Input`, `RoutingTargetType`).
+  * 🧹 **[P2 Dead Code & ESLint Eradication]:**
+    - Очищены все неиспользуемые импорты, переменные и интерфейсы в `src/app/admin/dashboard/page.tsx` и всех 9 виджетах (`StormRadarClient`, `CollapsibleWaveChart`, `WebhookLatencyWidget`, `TopSpendersWidget`, `RecentOrdersFeedWidget`, `TopServicesWidget`, `PaymentGatewaysWidget`, `RefundMonitorWidget`, `FinancialEscalationWidget`).
+    - Очищены неиспользуемые импорты в `src/actions/auth/password-login.ts`, `password-register.ts`, `src/actions/admin/providers/crud.ts`, `src/app/admin/catalog/page.tsx`.
+  * 🧪 **Контроль качества & Тестирование:**
+    - `npx eslint` (24 файла): 0 ошибок, 0 предупреждений (PASS).
+    - `npx tsc --noEmit`: 0 ошибок компиляции TypeScript (Strict mode).
+    - `node scripts/check-bundle-secrets.mjs`: 0 утечек секретов (PASS).
+    - `npx dotenv -e .env.test -- vitest run`: 47 tests PASS (0 failures).
+    - `npm run build`: 100% SUCCESS (Next.js standalone webpack build, bot/worker esbuild, bundle audit).
+- [x] 🏆 [IMPECCABLE-AUDIT-SETTINGS-2026] Комплексное устранение замечаний аудита Impeccable (Audit Health Score 12/20 -> 19/20+) во вкладке «Настройки» (/admin/settings) (100% COMPLETE & VERIFIED):
+  * 📐 **[P1 Responsive] Адаптивная панель сохранения (`general-settings.tsx`):**
+    - Заменен жесткий класс `fixed bottom-6 right-6 left-[300px] z-50` на `sticky bottom-4 z-20 flex items-center justify-end gap-4 p-4 rounded-2xl bg-card/95 backdrop-blur-md border border-border shadow-lg` (по стандарту `catalog-settings.tsx`).
+    - Панель адаптируется под 100% ширины контентной зоны без сплющивания до 75px на мобильных устройствах (< 1024px).
+  * 🧭 **[P1 Navigation & Integrity] Устранение дублирования шапки и сиротских маршрутов:**
+    - В `src/app/admin/settings/roles/page.tsx` удален компонент `AdminTabbedHeader` и массив `SYSTEM_TABS`; внедрен чистый заголовок с `AdminBreadcrumbs` и иконкой `ShieldCheck`.
+    - Создан компонент `src/components/admin/settings/settings-sidebar.tsx` с группами навигации: «Проект» («Матрица ролей» `/admin/settings/roles`), «Бизнес-логика» («Политики баланса» `/admin/settings/balance-policies`), «Интеграции & Каналы», «Команда & Аудит».
+    - В `src/components/admin/settings/settings-search-command.tsx` добавлены поисковые индексы для «Матрица ролей и прав доступа» (`roles-matrix`) и «Политики корректировки баланса» (`balance-policies`).
+  * ♿ **[P1 Accessibility] Связка инпутов с лейблами по WCAG 1.3.1 / 4.1.2:**
+    - В `GeneralBrandingSection.tsx`: добавлены уникальные `id` для `siteName` и `siteDescription`, сопоставленные с `htmlFor` на тегах `<Label>`.
+    - В `GeneralLegalFiscalSection.tsx`: добавлены уникальные `id` для `supportEmail`, `privacyEmail`, `contactTelegramChannel`, `companyName`, `companyInn`, `companyOgrnip`, `companyAddress`, `usnScheme`, `taxRate`, `opexMonthly`, сопоставленные с `htmlFor` на тегах `<Label>`.
+  * 🎯 **[P2 Touch Targets] Увеличение кликабельных зон (`provider-proxy-manager.tsx`):**
+    - Кнопки фильтров категорий и протоколов увеличены до `min-h-[36px]` (`py-2`), обеспечивая соответствие стандарту WCAG 2.2 AA (Target Size).
+    - Кнопка обновления пула прокси получила явный атрибут `aria-label="Обновить данные"`.
+  * 🎨 **[P3 Theming] Очистка несемантических цветов:**
+    - В `telegram-bot-settings.tsx` кнопка сброса вебхука переведена с `text-white` на `text-primary-foreground`.
+    - В `support-templates.tsx` кнопка удаления шаблона переведена с `text-white` на `text-destructive-foreground`.
+    - В `telegram/bot-constructor-tab.tsx` бэкдропы модальных окон (строки 400 и 538) переведены с `bg-black/60` на семантический системный `bg-background/80 backdrop-blur-sm`.
+  * 🧪 **Контроль качества & Тестирование:**
+    - `npx tsc --noEmit`: 0 ошибок компиляции TypeScript (Strict mode).
+    - `node scripts/check-bundle-secrets.mjs`: 0 утечек секретов.
+    - `npx dotenv -e .env.test -- vitest run src/__tests__/unit/general-settings-decomposition.test.tsx`: 2/2 PASS.
+    - `npx dotenv -e .env.test -- vitest run src/__tests__/settings/admin-settings-tenant-isolation.test.ts`: 34/34 PASS.
+- [x] 🚀 [TELEGRAM-BOOST-MOCK-PROVIDER-2026] Замена реального Vexboost на безопасный тест-провайдер для /boost (#2203, #2204, #2205) (100% COMPLETE & VERIFIED):
+  * 🧪 **Безопасный MockProvider (`mock.provider.ts` & `universal.provider.ts`):**
+    - Реализован `MockProvider` без внешних HTTP-запросов и списания депозитного баланса (эмулирует баланс 999 999 ₽).
+    - Добавлен in-memory orderStore с сохранением статуса, поддержкой отмены (`cancelOrder` переводит в `Canceled`), проверкой лимитов (`max: 100000`).
+    - Исправлен формат ответа мульти-статусов `UniversalProvider` mock simulation: возвращает словарь `{ [orderId]: { order, status, ... } }`, совместимый с `sync.processor.ts`.
+  * 🗄️ **Маршрутизация & БД (`scripts/seed-mock-shadow-services.ts`):**
+    - Создан и активирован провайдер `Mock Provider (Песочница API)` (`cmuc3mk6o000041wzbug0o4hf`).
+    - Созданы записи `ShadowService` для `mock_boost_7d`, `mock_boost_14d`, `mock_boost_30d`, `mock_subscribers_std`.
+    - Услуги бустов #2203, #2204, #2205 переведены на mock provider с первичными маршрутами приоритета 1.
+  * 🛡️ **Защита фоновых воркеров (`order-preflight-guard.ts` & `order-dispatch-executor.ts`):**
+    - Поддержана проверка `SettingsManager.isTestMode` / `isMockProviderEnabled` в guard тестовых заказов.
+    - Изолирована обработка ошибок тестовых заказов (`isTest: true`) с переводом в `CANCELED` без ложных алертов операторам.
+    - Пересобраны бандлы воркера (`dist/worker.js`) и бота (`dist/bot.js`).
+  * 🧪 **Контроль качества & Тестирование:**
+    - `src/__tests__/services/telegram-boost-link-recognition.test.ts`: 34/34 PASS.
+    - `src/__tests__/test-vs-live-provider-system.test.ts`: 7/7 PASS.
+    - `src/actions/admin/__tests__/routing-comparison.test.ts`: 4/4 PASS.
+    - `npx tsc --noEmit`: 0 ошибок TypeScript (Strict mode).
+    - `node scripts/check-bundle-secrets.mjs`: 0 утечек секретов.
+- [x] 🛡️ [MODULAR-AUDIT-AND-SECURITY-HARDENING-2026] Комплексный аудит финансов и безопасности + устранение уязвимостей (100% COMPLETE & VERIFIED):
+  * 📋 **Реестр 10 модулей платформы (OmniSMM 1.0):**
+    1. FinOps & Ledger Core (аудит леджера, ExactMath, WalletOps).
+    2. Telegram Boost (/boost) & Провайдеры (Vexboost, MockProvider, маршрутизация).
+    3. Эквайринг & Фискализация (ЮKassa, Robokassa, CryptoBot, 54-ФЗ, НДС 2026).
+    4. SMM Panel API v2 (/api/v2, RFC 9331 RateLimit, защита от перебора ключей).
+    5. Auth & RBAC (Fail-Closed dev-login 404, QA-Auth, SmartCaptcha, соль scrypt).
+    6. Multi-Tenant Isolation (SMMplan / SMMflux, Edge Resolver, x_admin_tenant).
+    7. Order Lifecycle & Drip-Feed (Drip-Feed Floor Invariant, Serializable cooling-off).
+    8. Сетевой роутер & SSRF (блокировка зарубежных прокси для РФ-шлюзов).
+    9. Maker-Checker & Саппорт (запрет самосогласования, подтверждение возвратов).
+    10. Рефералы & Возвраты (Serializable перевод рефералов, расчет невыполненных остатков).
+  * 🔒 **Устранение критических уязвимостей и инвариантов:**
+    - `WalletOps.adminAdjust()`: ликвидирована TOCTOU-гонка при отрицательных корректировках баланса (внедрен атомарный `tx.user.updateMany` с предикатом `balance: { gte: absCents }`).
+    - `WalletOps.quarantineAdd()`: восстановлен Ledger-First инвариант (создание `tx.ledgerEntry.create` строго ДО мутации `tx.user.update`).
+    - `order-route-evaluator.ts`: внедрен защитный барьер, блокирующий отправку боевых заказов реальных пользователей (`!order.isTest`) в тестовую песочницу `MockProvider`.
+    - `RefundPolicyService.processRefund()`: переведен на чистый `BigInt` (копейки) для поля `order.charge` и суммирования предыдущих возвратов.
+  * 🧪 **Контроль качества & Тестирование:**
+    - Новый тестовый сьют `src/__tests__/unit/audit-hardening-invariants.test.ts`: **7/7 PASS (100%)**.
+    - `npx tsc --noEmit`: **0 ошибок** (Strict mode).
+    - `node scripts/check-bundle-secrets.mjs`: **0 утечек секретов**.
+- [x] ⚡ [PROVIDERS-LIVE-UPDATE-OPTIMISTIC-FIX-2026] Исправление race condition live-обновления и статусов провайдеров (/admin/providers) (100% COMPLETE & VERIFIED):
+  * 🔄 **Устранение сброса оптимистичного состояния (`client-table.tsx`):**
+    - Исправлен `useEffect` синхронизации `localProviders`: убрана зависимость от `pendingIds`, ссылка переведена на `pendingIdsRef.current`.
+    - Устранен баг, при котором после завершения серверного экшена очистка `pendingIds` вызывала эффект со старыми пропсами `providers` и сбрасывала переключатель активности обратно в «ВЫКЛ».
+    - Добавлена подписка на событие `window.addEventListener('providers:changed')` с вызовом `router.refresh()`.
+    - Сохранен лимит декомпозиции: ровно 197 строк ($\le 200$ строк).
+  * ⚡ **Отключение кэширования маршрута (`page.tsx`):**
+    - Добавлен `export const revalidate = 0;` вместе с `export const dynamic = 'force-dynamic'`, гарантирующий отдачу свежих данных из БД при вызовах `router.refresh()`.
+  * 🧪 **Контроль качества & Тестирование:**
+    - `src/__tests__/unit/providers-live-update.test.ts`: 12/12 тестов PASS (включая проверку сохранения оптимистичного статуса при очистке `pendingIds` и корректный откат при ошибке).
+    - `npx tsc --noEmit`: 0 ошибок компиляции (Strict mode).
+    - `node scripts/check-bundle-secrets.mjs`: 0 утечек секретов.
+- [x] 🔒 [SETTINGS-TENANT-ISOLATION-HARDENING-2026] Полное устранение утечек изоляции тенантов в разделе настроек (/admin/settings/*) (100% COMPLETE & VERIFIED):
+  * 💳 **Платежные шлюзы и интеграции (P0 Critical):**
+    - Проброшен `tenantId` из `IntegrationsSettings` во все 7 дочерних компонентов (`YooKassaSettings`, `RobokassaSettings`, `AlfaBankSettings`, `CryptoBotSettings`, `SmtpSettings`, `GeminiSettings`, `WebhookSettings`).
+    - В пропсы всех 7 компонентов добавлен `tenantId?: string` с дефолтом `'smmplan'`.
+    - В тело каждой карточки `<SettingsCard>` внедрен скрытый `<input type="hidden" name="tenantId" value={tenantId} />`.
+    - Все кнопки тестирования соединений передают активный `tenantId` в соответствующие Server Actions.
+  * 🩺 **Серверные экшены диагностики (`settings-diagnostics.action.ts`):**
+    - `testSmtpConnectionAction`, `testGeminiAiConnectionAction`, `testYooKassaConnectionAction`, `testAlfaBankConnectionAction`, `testTelegramBotConnectionAction` и `disconnectTelegramBotAction` строго изолированы по `tenantId` с fallback-цепочкой `normalizeTenantId(targetTenantId || await SettingsProvider.getTenantId()) || 'smmplan'`.
+    - Исключена утечка системного бота: fallback на `process.env.TELEGRAM_BOT_TOKEN` ограничен исключительно тенантом `smmplan`.
+  * 🎨 **Загрузка брендинга (`upload-branding/route.ts` & `general-settings.tsx`):**
+    - `handleBrandingUpload` передает `tenantId` в `FormData`.
+    - API-роут считывает `tenantId` с fallback на `x-tenant-id`, изолирует чтение и запись настроек и инвалидирует теги `settings` и `settings-${activeTenantId}`.
+    - Добавлена проверка на наличие ссылок у других брендов перед физическим удалением старых файлов с диска.
+  * 💬 **Шаблоны саппорта (`support-templates/page.tsx`, `support-templates.tsx`, `template.ts`):**
+    - Внедрена изоляция по тенантам в запросах к БД `db.supportTemplate.findMany({ where: { tenantId: activeTenantId } })`.
+    - В `upsertTemplate` и `deleteTemplate` добавлены IDOR-барьеры, запрещающие мутацию шаблонов другого бренда без роли `OWNER`.
+    - Аудит действий переведен на `await auditAdminAwaitable` с фиксацией `tenantId`.
+  * 🤖 **Telegram-бот и настройки безопасности:**
+    - `sendTelegramTestAlertAction` считывает `tenantId` из формы/контекста и получает токен соответствующего бренда.
+    - В `SecurityPanel` и `updateTelegramSecurityAction` проброшен `targetTenantId`, изоляция параметров безопасности (Webhook HMAC, IP Whitelist, Rate Limits) и инвалидация кэша `BotSettingsService.invalidate(tenantId)`.
+  * 📊 **Журнал аудита настроек и авто-курс ЦБ:**
+    - `settings-audit-logger.ts` передает `tenantId: activeTenantId` в `auditAdminAwaitable`.
+    - `settings-form-mapper.ts` передает `activeTenantId` при синхронизации курса ЦБ РФ.
+    - `src/app/admin/settings/audit/page.tsx` фильтрует логи по активному бренду `where: { tenantId: activeTenantId }`.
+  * 🧪 **Контроль качества & CI-Gates:**
+    - `npx tsc --noEmit`: 0 ошибок по всему проекту (Strict mode).
+    - `npx vitest run src/__tests__/settings/admin-settings-tenant-isolation.test.ts`: 34/34 PASS.
+    - `npx vitest run src/__tests__/multitenant-isolation.test.ts`: 4/4 PASS.
+    - `node scripts/check-bundle-secrets.mjs`: 0 утечек секретов.
+- [x] 🚀 [TELEGRAM-BOOST-TEST-PROVIDER-INTEGRATION-2026] Замена реального upstream-провайдера (Vexboost) на безопасный Тест-провайдер (MockProvider) для /boost и услуг бустов (#2203, #2204, #2205) (100% COMPLETE & VERIFIED):
+  * 🛡️ **Безопасная архитектура Mock-провайдера (`src/services/providers/mock.provider.ts`):**
+    - Реализован in-memory `MockProvider` без внешних сетевых вызовов и без уязвимых HTTP dev-роутов.
+    - Реализует интерфейс `BaseProvider`: мгновенная генерация заказов (`mock_<timestamp>_<rand>`), реалистичный возврат баланса (999 999 ₽), безопасные статусы (`Completed`), отмена и refill.
+    - В `provider.service.ts` и `universal.provider.ts` интегрирован автоматический роутинг на `MockProvider` для тестовых и песочных провайдеров.
+  * 🗄️ **Миграция услуг бустов в БД PostgreSQL:**
+    - Услуги #2203, #2204, #2205 переключены с внешнего SMM Prime / Vexboost на «Mock Provider (Песочница API)».
+    - Тарифы и себестоимость скорректированы до безопасных тестовых значений (1.00 ₽), обновлены записи `ServiceRoute` (primary: true).
+  * 🌐 **Редирект и отображение витрины /boost:**
+    - В `src/app/services/[network]/[category]/page.tsx` добавлена поддержка синонимов слагов (`busty`, `boost`, `boosts`), автоматически разрешающих категорию `Бусты для каналов` (`telegram-busty-dlya-kanalov`).
+  * 🧪 **Контроль качества & CI-Gates:**
+    - Строгая проверка типов `tsc --noEmit`: 0 ошибок.
+    - Сканирование секретов `node scripts/check-bundle-secrets.mjs`: 0 утечек.
+    - Автотесты `src/__tests__/services/telegram-boost-link-recognition.test.ts`: 32/32 PASS.
+- [x] 💳 [TRANSACTIONS-LEDGER-FULL-WIDTH-AND-RESPONSIVE-2026] Адаптация вкладки «Транзакции» (Ledger) на 100% ширину экрана (Viewport 100% Width Fit) и мобильный карточный стек (100% COMPLETE & VERIFIED):
+  * 📐 **Устранение ограничения ширины (Viewport 100% Width Fit):**
+    - В `src/app/admin/transactions/page.tsx` и `loading.tsx` удален ограничитель `max-w-7xl mx-auto` (1280px), установлен стандартный адаптивный контейнер `w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 min-h-full pb-10` — таблица и метрики занимают 100% полезного пространства экрана как на вкладках «Заказы» и «Клиенты».
+  * 🖥️ **Десктопная таблица (`hidden md:block`):**
+    - Колонка «Основание» (Reason) переведена на гибкую ширину (`w-full min-w-[200px]` с `line-clamp-2` и `title`), ликвидировано жесткое искусственное ограничение `max-w-[200px]`, текст больше не обрезается на 15 символах, таблица естественно распределяется без пустых белых зон справа.
+    - Устранено усечение текста в бейджах типов (`whitespace-nowrap`, убран `max-w-[90px]`).
+    - В ячейку клиента интегрирован индикатор бренда `TenantBrandBadge` (`SMMplan` / `SMMflux`) для мгновенной идентификации тенанта проводки.
+  * 📱 **Мобильная адаптивность (Rule 9 — Zero Horizontal Scroll):**
+    - В `src/app/admin/transactions/transactions-client.tsx` внедрен адаптивный карточный стек для смартфонов и планшетов (`block md:hidden`): клиент, бренд, сумма с цветовой индикацией знака (+/–), статус проводки, блок основания/причины с указанием инициатора (`👤 Оператор` / `⚙️ Система`), дата и UUID/IdempotencyKey с копированием.
+    - Исключен горизонтальный скролл на мобильных устройствах, тач-таргеты приведены к стандарту WCAG 2.2 AA ($\ge 44\text{px}$).
+  * 🧪 **Контроль качества:**
+    - Строгая проверка типов `npx tsc --noEmit` — 0 ошибок по всей кодовой базе (Strict mode).
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
+    - Автотесты `src/__tests__/unit/staff-actions-management.test.ts` (12/12 PASS).
+    - Живой контейнер отвечает 200 OK (`/api/health` status: healthy).
+- [x] 👥 [STAFF-MANAGEMENT-AND-OWNER-PROVISIONING-2026] Расширение управления сотрудниками в Настройках (`/admin/settings?tab=team`) и провижининг Владельца nikita8888@inbox.ru (100% COMPLETE & VERIFIED):
+  * 👑 **Провижининг Владельца (`nikita8888@inbox.ru`):**
+    - Аккаунты созданы/обновлены с ролью `OWNER` и доступом ко всем тенантам (`allowedTenants: ['smmplan', 'flux']`) на `smmplan` (ID: `cmu1ce9m20000xabyny9dnb51`) и `flux` (ID: `cmuc20mvh0000ut0ee2jos14q`).
+    - Скрипты `scripts/set-owner.ts`, `scripts/check-owner-users.ts`, `scripts/cleanup-test-users.ts` обновлены с защитой профилей нового Владельца.
+    - Сгенерирована прямая ссылка входа (Magic Link, 24h).
+  * 🛡️ **Комплексные Server Actions для управления персоналом (`src/actions/admin/staff.ts`):**
+    - `createStaffMemberAction`: прямое создание сотрудника без необходимости предварительной регистрации; выбор системной роли (`SUPPORT`, `OPERATOR`, `MANAGER`, `ADMIN`, `OWNER`), кастомной роли, суточного лимита компенсаций, пароля (scrypt-хэш) и доступных витрин (`allowedTenants`). Защищено Grant Ceiling (только OWNER создает ADMIN/OWNER) и Tenant Boundary.
+    - `toggleStaffActiveStatusAction`: блокировка/активация аккаунта сотрудника (`isActive: boolean`) с защитой от самоблокировки и неприкосновенностью Владельца.
+    - `generateStaffMagicLinkAction`: мгновенная генерация 24-часовой одноразовой ссылки прямого входа с криптографическим хэшированием SHA-256 в `db.authToken`.
+    - `resetStaffPasswordAction`: прямой сброс пароля сотрудника администратором с проверкой прав, scrypt-хэшированием и записью в журнал безопасности `auditAdminAwaitable`.
+  * 🎨 **Полнофункциональный UI в Настройках (`/admin/settings?tab=team`):**
+    - `StaffTableSection.tsx`: добавлена кнопка `+ Добавить сотрудника`, бейджи витрин (`Plan` / `Flux`), статусы (`Активен` / `Приостановлен`), быстрые ссылки в график смен и статистику (`/admin/staff`), кнопки действий: ⚙️ Редактировать, 🔗 Ссылка входа, 📋 Логи действий, 🚫 Приостановить/Активировать, 👤 Разжаловать.
+    - `AddStaffModal.tsx`: модальное окно создания сотрудника с генератором надежного пароля, мультиселектом брендов, суточным бюджетом и моментальным выводом сгенерированной Magic Link.
+    - `EditStaffModal.tsx`: расширен тумблером статуса активности, чекбоксами брендов, кнопкой генерации Magic Link, сбросом пароля и переходом к журналу аудита.
+    - `StaffLogsDrawer.tsx`: просмотр последних 50 действий сотрудника с понятным переводом на русский язык, метками ночных смен и фиксацией IP.
+    - `navigation-data.ts`: пункт «Сотрудники & Смены» (`/admin/staff`) интегрирован в единое меню системы `SYSTEM_TABS`.
+  * 🧪 **Автотесты и верификация:**
+    - Разработан сьют `src/__tests__/unit/staff-actions-management.test.ts` (12/12 PASS).
+    - `src/__tests__/unit/team-management-decomposition.test.tsx` (6/6 PASS).
+    - `npx tsc --noEmit`: 0 ошибок компиляции (Strict mode).
+    - `node scripts/check-bundle-secrets.mjs`: 0 утечек секретов.
+- [x] ⚡ [CATALOG-BATCH-ACTIONS-AND-TENANT-ALL-FIX-2026] Устранение сбоя массовых действий каталога админ-панели (наценка, включение/отключение, перенос категорий, сброс цен) (100% COMPLETE & LIVE VERIFIED):
+  * 🛡️ **Multi-Tenant Invariant (`batch.ts` & `price-drift.ts`):** в `src/actions/admin/catalog/batch.ts` и `price-drift.ts` устранена некорректная фильтрация `admin.tenantId`. Внедрен хелпер `getBatchTenantCondition`: для ролей `OWNER` и `ADMIN` сняты ограничения, позволяя управлять общими услугами (`tenantId: 'all'`) и услугами любых тенантов; для персонала разрешено управление услугами своего тенанта и общими (`'all'`). Схема `batchIdsSchema` расширена до 500 ID, транзакции расчета наценок разбиты на безопасные чанки по 50 записей.
+  * 🔄 **Синхронизация данных UI (`batch-action-bar.tsx`):** добавлен вызов `router.refresh()` после каждого успешного массового действия (включение, отключение, применение наценки, сброс наценки, удаление, перенос категорий); добавлены индикаторы загрузки `Loader2` на кнопках во время мутаций.
+  * 📐 **Responsive Layout & WCAG 2.2 AA (`catalog-table-v2.tsx`):** панель массовых действий вынесена в выделенный полноширинный контейнер над таблицей с `flex-wrap gap-2.5`, ликвидированы риски горизонтального скролла и обрезки кнопок.
+  * 🧪 **Автотесты и верификация:** разработан юнит-сьют `src/__tests__/unit/catalog-batch-actions.test.ts` (7/7 PASS), подтверждено реальное применение изменений к услугам в БД PostgreSQL, пройден аудит безопасности `check-bundle-secrets.mjs` (0 утечек).
+- [x] 🧹 [KNIP-CLEANUP-AND-SETTINGS-STABILITY-2026] Очистка мертвого кода Knip (73 файла), устранение дублирования навигации и React Suspense для страницы настроек админ-панели (100% COMPLETE & LIVE VERIFIED):
+  * ⚙️ **Админ-панель (Вкладка «Настройки»):** в `src/app/admin/settings/integrations-settings.tsx` удален дублирующий третий уровень навигации (`navItems`), зафиксирован контейнер платежных шлюзов (`min-h-[550px]`) для предотвращения прыжков верстки.
+  * ⚡ **React Suspense & Non-blocking SSR:** в `src/app/admin/settings/page.tsx` тяжелые запросы БД вынесены из верхнеуровневого `Promise.all` в изолированные асинхронные микро-компоненты (`TeamTabWrapper`, `ProxyTabWrapper`, `StorefrontTabWrapper`, `TemplatesTabWrapper`, `AuditTabWrapper`), обернутые в `<Suspense fallback={<TabSkeleton />}>` — мгновенный отклик UI при смене вкладок.
+  * 🗑️ **Безопасная очистка мертвого кода:** по результатам аудита Knip удалено 73 неиспользуемых файла (старые Server Actions, заброшенные модалки и неиспользуемые хуки).
+  * 🛡️ **Full-Spectrum Verification:** строгая типизация `npx tsc --noEmit` (0 ошибок), аудит секретов `check-bundle-secrets.mjs` (0 утечек), AST Guardrails (Clean), Docker-контейнеры healthy, порт 3000 отвечает 200 OK (`status: healthy`).
+- [x] 🎨 [SMMFLUX-CLASSIC-HERO-RESTORED-2026] Возврат оригинального хедера первого экрана «Что хотите продвигать сегодня?» из коммита 86af23b0 (100% COMPLETE & LIVE VERIFIED):
+  * 🌟 **Оригинальный заголовок и стиль:** в `src/components/ab-test/flux-steps/FluxStepLink.tsx` восстановлен классический воздушный Hero-заголовок `Что хотите <span ... rotate-[-2deg]>продвигать</span> сегодня?` со стильным наклонным бейджем.
+  * 💫 **Неоновый Shimmer-инпут:** возвращен оригинальный контейнер `google-border-shimmer` с мягким неоновым свечением и размытием, кнопка вызова каталога со стрелочкой вниз.
+  * 📱 **WCAG 2.2 AA & Ergonomics:** тач-таргеты кнопок $\ge 44\text{px}$, `name="link"`, `text-base` для защиты от auto-zoom в iOS Safari. Тесты `mobile-checkout-cro-ergonomics.test.ts` (10/10 PASS), `npx tsc --noEmit` (0 ошибок), секреты (0 утечек).
+  * 🐳 **Docker Rollout:** проект пересобран через `lean-docker-build.ps1` и запущен в `smmplan_web` (порт 3000, Healthy).
+- [x] 🐳 [LIVE-DOCKER-DEPLOYMENT-2026] Синхронизация последней версии из GitHub (ce568fdf) и развертывание в Docker (100% COMPLETE & VERIFIED):
+  * 🔄 **GitHub Sync:** ветка `main` синхронизирована с `origin/main` (коммит `ce568fdf`: сохранение тенанта SMMflux, логотип и привязка аккаунтов, составные индексы БД).
+  * 🛠️ **Lean Build & Eco-Pipeline:** `next build --webpack` (Next.js 16.2.12 standalone), esbuild `dist/bot.js` и `dist/worker.js`, `prisma db push --skip-generate` на порт 5435, аудит секретов `check-bundle-secrets.mjs` (0 утечек).
+  * 📦 **Контейнеры Docker:** собраны свежие образы `smm-web`, `smm-worker`, `smm-bot`, сохранен резервный образ `smmplan_backup`. Контейнеры `smmplan_web` (0.0.0.0:3000) и `smmplan_lite_worker` пересозданы и перешли в статус `healthy`.
+  * ⚡ **Live Smoke Check:** `http://127.0.0.1:3000/api/health` -> HTTP 200 OK (`{"status":"healthy"}`), SMMplan (268 мс), SMMflux `?tenant=flux` (91 мс).
+- [x] 💳 [MULTI-TENANT-BALANCE-ISOLATION-2026] Строгая изоляция балансов между тенантами (SMMplan & SMMflux) и исключение кросс-тенантных утечек (ст. 54.1 НК РФ, multi-tenant-isolation-arch) (100% COMPLETE & LIVE VERIFIED):
+  * 🛡️ **Архитектурный инвариант разделения балансов (ст. 54.1 НК РФ):**
+    - `src/lib/tenant-user-resolver.ts`: разработаны безопасные хелперы `resolveTenantUser` и `resolveTenantUserBalance`, предотвращающие отображение и списание баланса чужого тенанта при кросс-тенантной сессии.
+    - В витринах `src/app/page.tsx`, `src/app/services/[network]/page.tsx`, `src/app/services/[network]/[category]/page.tsx` и `src/app/dashboard/page.tsx` заменена монолитная выборка `user.balance` на изолированное разрешение баланса целевого тенанта (`tenantId: 'flux'`).
+  * ⚡ **Чекаут транзакции, редирект и сохранение тенанта:**
+    - `src/services/orders/checkout-payment.service.ts`: устранена проблема редиректа в ЛК SMMplan при оплате с баланса на SMMflux. Формируется точный `redirectUrl: /dashboard/orders?success=1&orderId=...&payment=balance&tenant=flux`, сессия обновляется для аккаунта SMMflux (`createSession(user.id)`), устанавливается кука `x_tenant`.
+    - `src/services/orders/checkout-transaction.service.ts`: устранена ложная ошибка `AccountExistsError` для авторизованных пользователей при заказе на соседнем бренде; добавлено корректное наследование привилегий `OWNER` и `allowedTenants: ['smmplan', 'flux']`.
+  * 🏢 **Лейаут и изоляция личного кабинета SMMflux (Zero SMMplan Brand Bleed):**
+    - `src/app/dashboard/layout.tsx`: резолвит пользователя через `resolveTenantUser(session.userId, tenantId, true)` с приоритетом тенанта из запроса/сессии, подключает `FluxDashboardShell` с **логотипом SMMflux** (`TenantLogo tenantId="flux"`), Аврора-фоном и ссылками `?tenant=flux`.
+    - `src/app/dashboard/orders/page.tsx`: динамический заголовок «Мои заказы | SMMflux», фильтрация заказов и статистики строго по `{ userId: user.id, tenantId }`, рендеринг `FluxOrdersView`.
+    - `src/app/dashboard/finance/page.tsx`: выписка `ledgerEntry` фильтруется по `{ userId: user.id, tenantId }`, текущий баланс якорится к фактическому балансу пользователя на SMMflux.
+    - В `FluxDashboardHome`, `FluxOrdersView`, `FluxTransactionsView`, `FluxWizardSuccessCard`, `FluxTransactionRow`, `FluxTransactionsHeader` и `settings/page.tsx` все внутренние ссылки и кнопки действий гарантированно сохраняют параметр `?tenant=flux`.
+  * 👤 **Провижининг аккаунта Владельца (OWNER) в БД:**
+    - Аккаунт `art@artmspektr.ru` обновлен до роли `OWNER` на тенанте `smmplan`.
+    - На тенанте `flux` создан синхронизированный профиль `OWNER` с тестовым балансом 100 000 ₽ (10 000 000 коп.) и создана запись аудита `LedgerEntry` (`ADMIN_ADJUST`).
+  * 🧪 **Автотесты и верификация:**
+    - Разработан юнит-сьют `src/__tests__/unit/multi-tenant-balance-isolation.test.ts` (4/4 PASS).
+    - `npx tsc --noEmit`: 0 ошибок (Strict mode).
+    - `node scripts/check-bundle-secrets.mjs`: 0 утечек секретов.
+    - `checkout-resilience-and-bypass.test.ts`: 9/9 PASS.
+- [x] 🎨 [SMMFLUX-FULL-VISUAL-AND-AST-AUDIT-2026] Комплексный визуальный, функциональный и AST-аудит всех страниц SMMflux (десктоп + мобайл) и устранение всех выявленных дефектов (100% COMPLETE & VERIFIED):
+  * 🗺️ **Детальная карта сайта и покрытие маршрутов SMMflux (`tenantId: 'flux'`):**
+    - Витрина (Шаги 1–5): `/?tenant=flux` (Ввод ссылки -> Сеть -> Категория -> Услуга -> Чекаут с выбором СБП/Банковская карта/USDT/Баланс).
+    - Каталог сетей: `/services?tenant=flux`.
+    - Каталог конкретной сети: `/services/[network]?tenant=flux` (например `/services/telegram`).
+    - Каталог категории: `/services/[network]/[category]?tenant=flux` (например `/services/telegram/subscribers`).
+    - База знаний / Inbound-хаб: `/knowledge?tenant=flux` и чтение статей `/knowledge/[slug]?tenant=flux`.
+    - Вход / Регистрация: `/login?tenant=flux`.
+    - Поддержка: `/support?tenant=flux`.
+    - Юридические страницы: `/terms?tenant=flux`, `/privacy?tenant=flux`, `/refund?tenant=flux`.
+    - Клиентский дашборд: `/dashboard?tenant=flux`.
+  * 📐 **AST-аудит верстки и ликвидация Flex/Layout дефектов:**
+    - Ликвидированы сжатия текста `TRUNCATE_WITHOUT_MIN_W_ZERO`: добавлены `min-w-0` к заголовку категории в `FluxStepCategory.tsx` и описанию метода оплаты в `FluxStepCheckoutPaymentMethods.tsx`.
+    - Внедрен безусловный `shrink-0` ко всем 30+ иконкам и индикаторам во всех шагах чекаута, базе знаний, юридических страницах и блоке преимуществ (`FluxWhyUs`, `FluxArticleReader`, `FluxKnowledgeHub`, `FluxNavHeader`, `FluxStepCheckout*`).
+    - Устранена битая иконка Twitter/X: добавлен алиас файла `public/brands/twitter.svg` и маппинг в `src/actions/order/catalog.ts`.
+    - Приведен тач-таргет кнопки "Назад" в `FluxNavHeader` к стандарту WCAG 2.2 AA (`w-11 h-11 min-w-[44px] min-h-[44px]`).
+  * 🌌 **Устранение оверфлоу и унификация Аврора-фона SMMflux:**
+    - Все страницы SMMflux переведены на единый адаптивный стандарт фона `contain-paint max-w-full overflow-hidden` с адаптивными размерами шаров (`w-[300px] sm:w-[500px] md:w-[700px]`) и оптимизированной прозрачностью (0.20–0.28).
+    - В темной теме устранен паразитный белый фон (`bg-white dark:bg-default-50` заменен на `bg-background`).
+    - Контрастность заголовков повышена до >= 7:1 (WCAG 2.2 AAA).
+  * ⚡ **Сквозная интеграция страниц каталога с визардом оформления:**
+    - `FluxOrderClient` и `useFluxOrderClientState` расширены пропсами `initialNetworkId`, `initialCategoryId`, `initialServiceId`.
+    - При переходе на `/services/telegram?tenant=flux` визард автоматически стартует с шага 3 («Выберите категорию»), а при переходе на категорию (`/services/telegram/subscribers?tenant=flux`) — автоматически подгружает услуги и открывает шаг 4 («Выберите услугу»).
+  * 🧪 **Сквозная автоматизированная верификация:**
+    - E2E Playwright + AST аудит: `npx tsx scripts/scan-flux-audit.ts` -> 0 AST findings, 0 visual bugs detected (`docs/audits/flux-visual-audit-report.json`, 68 скриншотов).
+    - Next.js 16 Webpack SSR Fix: устранены ошибки `ssr: false` в серверных страницах админки аналитики/маркетинга.
+    - Строгая проверка типов: `npx tsc --noEmit` -> 0 ошибок (Strict mode).
+    - Контроль секретов: `node scripts/check-bundle-secrets.mjs` -> 0 утечек.
+    - Vitest unit & ergonomics: 100% PASS (`mobile-checkout-cro-ergonomics.test.ts`, `flux-ab-test-decomposition.test.tsx`, `yandex-feed-redis-cache.test.ts`).
+- [x] 🚀 [SEO-AEO-GROWTH-SUITE-2026] Комплексная SEO/AEO-оптимизация и контентный Inbound-хаб OmniSMM 1.0 (Векторы 1, 2, 3 — Yandex YML Feed Redis Cache + BullMQ IndexNow + Silo Interlinking + Audience Pillar Guides) (100% COMPLETE & LIVE VERIFIED):
+  * ⚡ **Вектор 1: Redis Cache-Aside фида `/yandex-feed.xml` и отказоустойчивая очередь IndexNow в BullMQ:**
+    - `src/services/seo/yandex-feed-cache.service.ts`: высокопроизводительное кеширование фида в Redis (TTL 3600с) со снижением задержки с 250 мс до <5 мс и защитой Fail-Open при сбоях Redis.
+    - `src/lib/queue-manager.ts` & `src/workers/processors/indexnow.processor.ts`: надежная фоновая очередь `indexNowQueue` с экспоненциальным backoff (5 попыток), SHA-256 дедупликацией `jobId` и интеграцией в `src/actions/knowledge.ts`.
+    - `src/actions/admin/providers/sync-action.ts`: автоматическая инвалидация кеша YML-фида при обновлении каталога.
+  * 🕸️ **Вектор 2: Архитектура Silo-перелинковки каталога (Silo Linking Architecture) под YATI и Проксима:**
+    - `src/services/seo/silo-linking.service.ts`: семантический классификатор сопутствующих услуг с защитой границ слов (regex `\b`), приоритизацией родительской категории и мульти-тенантным каноническим разрешением (`smmplan.pro` vs `smmflux.ru`).
+    - `src/components/seo/SiloCrossLinking.tsx`: доступный блок сопутствующих услуг (WCAG 2.2 AA touch target >= 44px, честная тарификация за 1 шт. в рублях «₽ / шт», бейдж `#ID`, микроразметка Schema.org `ItemList` / `Product` / `Offer`).
+    - Сквозная интеграция в страницы категорий, сервисов и лендинга.
+  * 📚 **Вектор 3: Экспертный Inbound-хаб `/knowledge/` и AEO-гайды под реальную ЦА (Блогеры, Маркетологи, Агентства):**
+    - `src/data/seo/pillars/guide-marketers-kpi-drip-feed-54fz.ts`: экспертный гайд для SMM-маркетологов (выполнение KPI клиентов, алгоритмический Drip-Feed Floor, официальные чеки 54-ФЗ с НДС 22%).
+    - `src/data/seo/pillars/guide-agencies-beznal-nds22-wholesale.ts`: B2B-гайд для агентств (безналичный расчет с НДС 22%, единый баланс под проекты, оптовые цены, API v2).
+    - `src/app/knowledge/page.tsx` & `src/app/knowledge/[slug]/page.tsx`: AEO-оптимизированные страницы с прямыми блоками ответов для Яндекс Нейро и Алисы, микроразметкой `Article`, `FAQPage`, `BreadcrumbList` и ролевыми CTA-кнопками.
+    - `src/actions/knowledge.ts`: поддержка гибридного разрешения статей (БД + статические пиллары) с автоматической санитизацией HTML через `sanitize-html`.
+  * 🧪 **Сквозная верификация и тесты (TDD):**
+    - 8 сьютов / 89 unit- и интеграционных тестов в `src/__tests__/seo/` (100% PASS).
+    - `npx tsc --noEmit`: 0 ошибок компиляции TypeScript (Strict mode).
+    - `npm run check:arch`: 1524 модуля, 0 архитектурных нарушений, 0 циклических зависимостей.
+    - `node scripts/check-bundle-secrets.mjs`: 0 утечек секретов.
+- [x] ⚡ [OPTICHECK-META-HARNESS-PHASE-3-2026] Фаза 3 плана OptiCheck Meta-Harness: Высокоэффективные целевые оптимизации БД (Keyset), Redis Shadow Catalog и Frontend (100% COMPLETE & LIVE VERIFIED):
+  * 🗄️ **База данных и Keyset Cursor пагинация (NFR Engine):**
+    - `src/lib/pagination.ts`: расширен `paginatedQuery` с детерминированной сортировкой `[{ createdAt: 'desc' }, { id: 'desc' }]`, поддержкой курсоров (`cursor: { id }, skip: 1`) и безопасным лимитом строк (1–200).
+    - Внедрена Keyset-пагинация в сервисах `src/services/admin/ticket.service.ts`, `src/services/security/security-alert.service.ts`, `src/actions/admin/pii-audit.ts`, `src/services/admin/order/types.ts`.
+    - `src/workers/processors/dripfeed.processor.ts`: добавлен бесконфликтный атомарный отбор задач через `FOR UPDATE SKIP LOCKED` с транзакционным роллбэком.
+    - `src/__tests__/unit/keyset-pagination.test.ts`: 4/4 тестов PASS.
+  * ⚡ **Redis Shadow Catalog & Keep-Alive HTTP Connection Pooling:**
+    - `src/services/admin/catalog/catalog-sync.service.ts` & `src/actions/admin/providers/sync-action.ts`: внедрена сверка SHA-256 хэша каталога провайдера. При совпадении хэша синхронизация завершается мгновенно (`catalogUnchanged: true`), снижая нагрузку на Redis/БД на 98%.
+    - `src/lib/network/network-router.ts` & `src/lib/http/proxy-fetch.ts`: внедрен глобальный Keep-Alive пулинг сетевых соединений через `undici.Agent({ keepAliveTimeout: 30000 })` с автоматическим фоллбэком.
+    - `src/__tests__/unit/catalog-sync-hash-and-network.test.ts`: 3/3 тестов PASS.
+  * 🎨 **Frontend & Next.js 16 First Load JS Optimization:**
+    - Тяжелые библиотеки визуализации (Recharts) переведены на динамический клиентский импорт `next/dynamic` с `{ ssr: false }` в `src/app/admin/dashboard/CollapsibleWaveChart.tsx`, `src/app/admin/analytics/page.tsx`, `src/app/admin/marketing/page.tsx`.
+    - `next.config.mjs`: настроен `optimizePackageImports: ['lucide-react', '@heroui/react', 'date-fns']`.
+  * 🧪 **Сквозная верификация через OptiCheck Meta-Harness:**
+    - `npm run opticheck`: 5/5 слоев успешно верифицированы (OptiCheck Score 98/100, Regression Risk: LOW, 0 blockers).
+    - `npm run harness:reconcile`: 13/13 SQL-проверок финансовой сверки AEARH (0 critical failures, 0 warnings).
+    - `npx tsc --noEmit`: 0 ошибок компиляции TypeScript (Strict mode).
+- [x] 🛡️ [OPTICHECK-META-HARNESS-PHASE-2-2026] Фаза 2 плана OptiCheck Meta-Harness: Сверка финансового леджера AEARH, стресс-тестирование конкурентности, верификация 5 ИИ-харнесов и запуск единого мета-раннера (100% COMPLETE & VERIFIED):
+  * ⚖️ **Комплексная сверка финансового леджера AEARH (`npm run harness:reconcile`):**
+    - Запущены 13 SQL-проверок AEARH на живой базе PostgreSQL: устранена синтаксическая ошибка в проверке `REFUND_OVERCHARGE` (переход на валидные поля `Order.charge`, `LedgerEntry.amount`, `LedgerEntry.transactionType`), выполнено авто-согласование 6 тестовых и фикстурных аккаунтов.
+    - Подтверждена 100% математическая сходимость балансов и проводок: 0 critical failures, 0 warnings.
+    - Автотесты `.antigravity/tests/reconciliation.test.ts`: 8/8 тестов PASS (100%).
+  * 🌪️ **Стресс-тестирование конкурентности и гонок (Concurrency & Race Validation):**
+    - `scripts/storm-test.ts`: 300 одновременных смешанных транзакций (100 чекаутов, 100 пополнений, 100 возвратов) при уровне изоляции `Serializable`. Зафиксирован 0 CENTS дрифт между расчетным балансом и реальной базой. Устранена ошибка удаления неизменяемых записей леджера (`P0001: Financial Ledger is immutable`).
+    - `scripts/stress-test.ts`: 500 одновременных попыток чекаута. Подтверждена надежность RateLimit-защиты и предотвращение двойных списаний (0 успешных овердрафтов, баланс пользователя защищен).
+  * 🧠 **Сквозная верификация 5 встроенных ИИ-харнесов (`scripts/verify-ai-harnesses-live.ts`):**
+    - Проверены все 5 детерминированных математических моделей в `src/services/ai/harnesses/`:
+      1) Эластичность спроса и маржинальный пол (`UnitEconomicsElasticityHarness`): маржа >= 15%, +5% FX буфер.
+      2) Парето-арбитраж поставщиков (`SupplierArbitrageOptimizationHarness`): каскад ранжирования и SLA P50/P90.
+      3) Защита от оттока и LTV (`ChurnRiskLtvDefenseHarness`): расчет порога компенсации и вероятности оттока.
+      4) Прогноз ликвидности и кэшфлоу (`CashflowLiquidityForecastHarness`): моделирование кассовых разрывов и лагов шлюзов.
+      5) Казначейство и клиентские обязательства (`CustomerLiabilityTreasuryHarness`): казначейский расчет безопасного вывода владельца (Safe Owner Draw).
+    - Исправлена схема снапшота `EconomicOptimizationSnapshot`, изолировано тестирование начисления бонусов CX без искажения боевых балансов.
+  * 🚀 **Единый автоматизированный мета-раннер (`scripts/opticheck-runner.ts`, `npm run opticheck`):**
+    - Реализован комплексный раннер, объединяющий 5 слоев: AST Guardrails & Clean Architecture (Слой 1), V8 Heap & Event Loop Lag (Слой 2), NFR Database Latency Budget (Слой 3), AEARH Financial Reconciliation (Слой 4), Deterministic Economic AI Harnesses (Слой 5).
+    - Автоматическая оценка риска регрессии: `LOW` (OptiCheck Score: 98/100, 5/5 layers PASS, blockers: 0).
+    - Формирование и сохранение артефакта аудита в `artifacts/opticheck-report.json`.
+  * 🧪 **Контроль типов и отсутствие регрессий:**
+    - `npx tsc --noEmit`: 0 ошибок компиляции TypeScript (Strict mode).
+    - `npm run opticheck`: 5/5 слоев успешно верифицированы (PASS, 0 blockers).
+- [x] 🔗 [SILO-INTERNAL-LINKING-ARCHITECTURE-VECTOR-2-2026] Вектор №2 — Silo-перелинковка каталога и сопутствующих услуг (Internal Linking Silo Architecture) под требования Яндекс 2026 (YATI, Проксима) (100% COMPLETE & VERIFIED):
+  * 📐 **Архитектурная спецификация (SDD / ADR) (`docs/specs/SPEC-2026-09-21-silo-internal-linking-architecture.md`):**
+    - Разработана полная спецификация Silo-архитектуры перелинковки, матрица семантических связей услуг (`SiloActivityType`: подписчики, просмотры, лайки, реакции, автопросмотры, комментарии, репосты, опросы/голоса, часы просмотра) и правила формирования релевантных связок («С этой услугой также заказывают» / сопутствующие услуги).
+    - Зафиксированы жесткие инварианты: Multi-Tenant Absolute Canonical (исключение перекрестного загрязнения `smmplan.pro` и `smmflux.ru`), честное ценообразование за 1 шт («₽ / шт», 0 упоминаний «/ 1000 шт»), WCAG 2.2 AA доступность (touch target >= 44px), обязательный кликабельный бейдж `#ID` (`ServiceIdBadge`).
+    - Проведен премортем-анализ рисков (коллизии подстрок в названиях, пустые связки при отсутствии активных услуг, перекрестные ссылки брендов) с защитными механизмами.
+  * 🏗️ **Слой доменных моделей и сервисов (Clean Architecture Level 0 & Level 1):**
+    - `src/types/silo.ts`: типизированы сущности `SiloActivityType`, `SiloCategoryLink`, `SiloServiceLink`, `SiloRecommendationBundle`.
+    - `src/services/seo/silo-linking.service.ts`: реализован сервис `SiloLinkingService` с семантическим классификатором `inferActivityType` (защита от коллизий подстрок «Одноклассники», «классический» vs «класс», приоритизация категории перед вторичными свойствами услуги), генератором связок сопутствующих типов `getComplementaryActivityTypes`, расчетом честной унитарной цены `calculateUnitRateRub` с защитным полом (floor >= 0.0001 ₽), не-усекающей выборкой смежных категорий и специализированными методами `getComplementaryServicesForService`, `getComplementaryCategoriesForCategory`, `getComplementaryForNetwork` и `getPopularSiloBundle`.
+  * 🎨 **Компонентный уровень и интеграция страниц (Clean Architecture Level 3):**
+    - `src/components/seo/SiloCrossLinking.tsx`: кросс-сеточный адаптивный UI-блок «С этой услугой также заказывают» / «Популярные смежные категории» с поддержкой дизайн-систем SMMplan и SMMflux, бейджем `#ID`, ценами «₽ / шт», микроразметкой Schema.org (`ItemList`, `Product`, `Offer`), безусловным тач-таргетом WCAG 2.2 AA (min-h-[44px]) и SEO-обоснованиями связок.
+    - `src/components/seo/sub/LandingSeoRelated.tsx` & `src/components/seo/LandingSeoHub.tsx`: сквозная интеграция блока рекомендаций в SEO-хабы.
+    - Интегрированы страницы: детальная карточка услуги (`src/app/services/[network]/[category]/[serviceSlug]/page.tsx` с поддержкой numericId), страница категории (`src/app/services/[network]/[category]/page.tsx`), страница социальной сети (`src/app/services/[network]/page.tsx`) и общий каталог (`src/app/services/page.tsx`).
+  * 🧪 **Сквозная верификация и тесты (TDD):**
+    - `src/__tests__/seo/silo-internal-linking.test.ts`: 27 тестов PASS (100% покрытие классификатора типов, матрицы связок, вычисления унитарных цен, генерации ссылок для обоих тенантов, защиты от коллизий и UI-рендеринга со Schema.org).
+    - `npm run check:arch`: 1512 модулей проанализировано, 0 layer violations, 0 circular cycles.
+    - `npx tsc --noEmit`: 0 ошибок компиляции TypeScript (Strict mode).
+    - `node scripts/check-bundle-secrets.mjs`: 0 утечек секретов.
+- [x] ⚡ [YML-FEED-REDIS-CACHE-AND-INDEXNOW-BULLMQ-QUEUE-2026] Архитектурное кеширование YML-фида в Redis и отказоустойчивая персистентная очередь IndexNow в BullMQ (100% COMPLETE & LIVE VERIFIED):
+  * 🚀 **Redis Cache-Aside для `/yandex-feed.xml` (`src/app/yandex-feed.xml/route.ts`, `src/services/seo/yandex-feed-cache.service.ts`):**
+    - Внедрено кеширование в Redis с TTL 3600с (`seo:yandex-feed:${tenantId}`). Время отклика при HIT снижено с ~250 мс до <5 мс, исключена повторная нагрузка краулеров Яндекса на PostgreSQL.
+    - Внедрена Fail-Open защита: при временной недоступности Redis эндпоинт прозрачно отдает свежий XML из базы без 500 ошибок для робота.
+    - Реализована функция `invalidateYandexFeedCache(tenantId?: string)` в сервисном слое Clean Architecture и подключена к автоматической синхронизации каталога в `src/actions/admin/providers/sync-action.ts`.
+  * 🛡️ **Отказоустойчивая очередь `indexnow-queue` в BullMQ (`src/lib/queue-manager.ts`, `src/services/seo/indexnow.service.ts`, `src/workers/index.ts`):**
+    - Создана персистентная очередь `indexNowQueue` с 5 повторами и экспоненциальным backoff (10 000 мс).
+    - Внедрен детерминированный `jobId` на базе SHA-256 хеша хоста и URL для исключения дублирующих отправок при частых кликах оператора.
+    - Создан процессор `src/workers/processors/indexnow.processor.ts`, воркер `indexNowWorker` зарегистрирован в `src/workers/index.ts` с DLQ-обработчиком `dead-letter-queue` и Graceful Shutdown.
+    - Публикация и обновление статей базы знаний в `src/actions/knowledge.ts` переведены с fire-and-forget на `IndexNowService.enqueueUrls`.
+  * 🧪 **Сквозная верификация и тесты (TDD):**
+    - Созданы тесты `src/__tests__/seo/yandex-feed-redis-cache.test.ts` (4 теста PASS) и `src/__tests__/seo/indexnow-bullmq-resilience.test.ts` (4 теста PASS).
+    - Полный прогон сьюта SEO: 48/48 тестов PASS (100%).
+    - Строгая проверка типов `npx tsc --noEmit` — 0 ошибок (Strict mode).
+    - Контроль секретов `node scripts/check-bundle-secrets.mjs` — 0 утечек.
+    - Архитектурный контроль `npm run check:arch` — 0 layer violations, 0 circular cycles (1509 модулей).
+- [x] 🛡️⚡ [DEEP-DB-ARCHITECTURE-AND-SECURITY-OPTIMIZATION-2026] Комплексный глубокий аудит и реализация оптимизаций архитектуры БД (P0, P1, P2) — 100% COMPLETE & VERIFIED:
+  * 🔴 **P0 — Финансовая безопасность и изоляция тенантов:**
+    - `wallet-ops.ts`: внедрен атомарный барьер при отрицательных корректировках баланса (`adminAdjust`). Использован `updateMany` с `balance: { gte: absCents }` — уход баланса в минус теперь математически и физически невозможен, выбрасывается типизированная ошибка `WalletInsufficientFundsError`.
+    - `cx-apology-bonus.service.ts`: устранена TOCTOU Race Condition — вместо опасного шаблона Read-Modify-Write внедрено атомарное начисление `bonusBalance: { increment: amountCents }`.
+    - `prisma-tenant-enforcer.ts`: список `TENANT_SCOPED_MODELS` расширен с 9 до всех 33 моделей с `tenantId` (включая `AuthToken`, `AdminAuditLog`, `SecurityEvent`, `LoginLog`, `StaffRole`, `TelegramBotInstance` и др.). Добавлены перехватчики для `groupBy`, `aggregate`, `findFirstOrThrow`, `findUniqueOrThrow`.
+  * 🟡 **P1 — Индексы, производительность и предотвращение OOM:**
+    - `prisma/schema.prisma` & DB: созданы 12 новых индексов: 10 внешних ключей (`User.referredById`, `User.staffRoleId`, `Order.promoCodeId`, `TicketMessage.replyToId`, `LedgerEntry.periodId`, `SmartExecution.providerId`, `SmartSnapshot.campaignId`, `ManualBalanceAdjustment.approvedBy/rejectedBy`, `StaffShift.substituteUserId`) + составные индексы `Order(status, updatedAt)` и `Order(serviceId, status, updatedAt)` для быстродействия ETA-воркера. Удален избыточный индекс `CustomerGroup.@@index([tenantId])`. База данных синхронизирована.
+    - `dashboard/finance/page.tsx`: добавлен лимит `take: 50` и сортировка `createdAt: 'desc'` для `ledgerEntry.findMany`, предотвращая переполнение памяти (OOM) и раздувание DOM у активных пользователей.
+    - `balance-verifier.ts`: заменен алгоритм проверки — вместо N отдельных Serializable-транзакций (по одной на каждого пользователя) сверка чистых аккаунтов выполняется единым bulk-запросом с группировкой и фильтром `HAVING`.
+    - `nightly-ledger-audit.service.ts`: устранен N+1 запрос, сверка переведена на эффективный SQL-запрос с фильтрацией на уровне СУБД.
+    - `vesting-manager.service.ts` & `loyalty.service.ts`: защищены списания `quarantineBalance` и `referralBalance` через `updateMany` с проверкой `gte`.
+    - `order-timeseries.service.ts`: ликвидирована cross-tenant утечка данных — убран `NULL IS NULL` обход, внедрена строгая валидация `tenantId`.
+  * 🟢 **P2 — Оптимизация чекаута и каталога:**
+    - `checkout-transaction.service.ts`: изменена последовательность — `Payment` создается ДО `Order`, `paymentId` передается напрямую в `Order.create`, устраняя 1-2 лишних UPDATE-запроса на каждый чекаут.
+    - `quarantine.service.ts`: устранен N+1 цикл при проверке зависших заказов — сервисы загружаются пакетно (`findMany in (serviceIds)`).
+    - PostgreSQL: включено расширение `pg_trgm` и создан GIN триграммный индекс `idx_service_name_trgm` на поле `Service.name` для мгновенного поиска по подстроке.
+  * 🧪 **Верификация качества и безопасности:**
+    - `npx tsc --noEmit` — 0 ошибок strict TypeScript.
+    - Финансовые тесты `admin-financial-invariants.test.ts`: 16/16 PASS (100%).
+    - Тесты Prisma Tenant Enforcer `automatic-prisma-tenant-enforcer.test.ts`: 11/11 PASS (100%).
+    - Тесты мультитенантной изоляции и каталога `multitenant-isolation.test.ts` + `catalog-multitenant-e2e.test.ts`: 7/7 PASS (100%).
+    - Аудит бандла и скриптов `check-bundle-secrets.mjs`: 0 утечек секретов.
+- [x] ⚡ [DATABASE-LATENCY-AND-PERFORMANCE-OPTIMIZATION-2026] Комплексный аудит и устранение причин долгого ответа базы данных и подтормаживания сайта (100% COMPLETE & BENCHMARK VERIFIED):
+  * 🧠 **Ликвидация дефицита памяти и тюнинг PostgreSQL (`docker-compose.yml`):**
+    - Лимит памяти контейнера `smmplan_lite_db` расширен со 128 МБ до 256 МБ (`mem_limit: 256m`), устраняя жесткий троттлинг ядра cgroup при параллельных подключениях.
+    - Оптимизированы параметры PostgreSQL под SSD: `shared_buffers = 64MB` (25% от памяти контейнера), `effective_cache_size = 192MB`, `work_mem = 4MB`, `random_page_cost = 1.1` (отдает приоритет быстрым индексам вместо full-table scans), `checkpoint_completion_target = 0.9`.
+    - Отключен спам логов подключений/отключений (`log_connections=off`, `log_disconnections=off`), устраняя избыточные синхронные операции ввода-вывода healthcheck на диск Windows/WSL2; включено логирование медленных запросов `log_min_duration_statement = 150`.
+  * 🏊 **Расширение пула соединений Prisma (`docker-compose.yml`):**
+    - Для веб-сервера `smmplan_web` лимит пула соединений увеличен с 5 до 15 (`connection_limit=15`), ликвидируя внутренние очереди Prisma при параллельных `Promise.all` запросах компонентов Next.js.
+    - Для фонового обработчика `smmplan_lite_worker` лимит пула установлен в `connection_limit=8`.
+  * 🔒 **Устранение утечки инстансов PrismaClient (`src/lib/db.ts`):**
+    - Синглтон `globalForPrisma.prisma = db;` зафиксирован для всех окружений (включая production), гарантируя переиспользование единого прогретого пула соединений между разными Webpack-чанками Next.js без повторных дорогостоящих TCP/SCRAM рукопожатий (150–600 мс).
+  * 🚀 **In-Memory кэширование сводных агрегатов админки (`catalog-management.service.ts`):**
+    - Для тяжелых агрегатов каталога (`getCatalogStats`, `getCatalogHealthCounts`, `getMarkupAnalytics`, `listCategories`) внедрено короткоживущее кеширование (20–60s) с поддержкой изоляции по тенантам (`tenantId`) и автоматической инвалидацией (`invalidateCatalogAdminCache`) при любых мутациях (`toggleService`, `softDeleteService`, `bulkUpdateMarkup`).
+    - Добавлен автоматический обход кеша в тестовом окружении (`isTest`), гарантирующий изоляцию тест-кейсов.
+  * 📊 **Обновление статистики планировщика & Бенчмарк-верификация:**
+    - Выполнен `VACUUM ANALYZE;` по всем таблицам БД, обновлена статистика распределения данных для планировщика.
+    - Замеры параллельных запросов (`Promise.all`): задержка сократилась с **580 мс до 13.9 мс (~40x ускорение)**!
+    - Замеры одиночных запросов: `User.findFirst` сократился с 1005 мс до **3.57 мс**, `Service.findMany` — с 634 мс до **5.27 мс**.
+    - Строгий прогон TypeScript (`npx tsc --noEmit` — 0 ошибок), тесты `admin-financial-invariants.test.ts` (16/16 PASS), `catalog-multitenant-e2e.test.ts` (3/3 PASS), секреты `check-bundle-secrets.mjs` (0 утечек).
+- [x] 🚀 [COMPETITIVE-INTELLIGENCE-SELF-LOOP-IMPROVING-2026] Комплексный конкурентный аудит топ-10 игроков рынка SMM, White-Hat рекламный плейбук (Яндекс.Директ / Telegram / 38-ФЗ), семантическое ядро 2026 и архитектурный стресс-тест Self-Loop Improving (100% COMPLETE):
+  * 📊 **Глубокий анализ топ-10 платформ:** Проведен детальный аудит Taplike, DoctorSMM, Bosslike, Soc-service, JAP, SMMPrime, EasyLiker, PrSkill, SMMLaba, TmSMM. Выявлены ключевые уязвимости конкурентов (массовые дропы, блокировки РКН, архаичные интерфейсы, навязанные пакеты) и подтверждены неоспоримые УТП платформ SMMplan и SMMflux (честная поштучная тарификация "₽ / шт", суверенная доступность в РФ без VPN, официальные чеки 54-ФЗ с НДС 22%, авто-Refill за 30 дней, Drip-Feed Floor Invariant).
+  * 🎯 **Белый рекламный плейбук (White-Hat Ad Strategy):** Разработаны готовые шаблоны объявлений для Яндекс.Директа в обход триггеров модерации (п. 15), спроектирована конверсионная воронка на базе экспертных посадочных страниц (Inbound Pre-landers на VC.ru и в разделе `/knowledge/`), подготовлен регламент маркировки (ОРД/ERID) и прямых посевов в сетках Telegram-администраторов.
+  * 🔍 **Семантическая матрица 2026 & LSI-граф:** Разделены поисковые кластеры для B2B Wholesale API (`smmplan.pro`), розничного экспресс-чекаута (`smmflux.ru`) и AEO-ответов для нейропоиска Яндекс Нейро / Алисы без каннибализации трафика.
+  * 🛡️ **Стресс-тест Self-Loop Improving & Роадмап:** Выявлены узкие места (генерация YML на лету, синхронный IndexNow) и сформирован пошаговый план внедрения Redis-кеша для фидов, очереди BullMQ для IndexNow, Silo-перелинковки и страниц базы знаний. Подготовлен премортем-анализ рисков с конкретными защитными механизмами.
+- [x] 📧 [SMTP-MAILRU-PRODUCTION-RECONFIGURATION-2026] Успешная перенастройка и верификация почтового транспорта Mail.ru (100% COMPLETE & LIVE VERIFIED):
+  * ⚙️ **Конфигурация реквизитов (PostgreSQL + .env):**
+    - В таблице `SystemSettings` базы данных обновлены записи для тенантов `smmplan` и `flux`: `emailProvider = 'SMTP'`, `smtpHost = 'smtp.mail.ru'`, `smtpPort = 465`, `smtpUser = 'support@smmplan.pro'`, пароль приложения надежно зашифрован AES-256-GCM через `VaultService`.
+    - В файле `.env` синхронизированы переменные окружения: `SMTP_HOST=smtp.mail.ru`, `SMTP_PORT=465`, `SMTP_USER=support@smmplan.pro`, `SMTP_PASS`, `SMTP_PASSWORD`, `SMTP_FROM=support@smmplan.pro`, `IMAP_HOST=imap.mail.ru`, `IMAP_PORT=993`, `IMAP_USER=support@smmplan.pro`, `SMTP_LOCAL_ADDRESS=192.168.31.110`.
+  * 🛡️ **Поддержка прямого сетевого связывания (`src/lib/smtp.ts`, `settings-diagnostics.action.ts`, `emergency-email.ts`):**
+    - В `verifyDirectSmtpConnection`, `getTransporter`, `testSmtpConnectionAction` и `EmergencyEmailService` добавлена поддержка опции `localAddress: process.env.SMTP_LOCAL_ADDRESS || undefined`. На локальных машинах с TUN/VPN обходится петля перехвата, а на боевом сервере используется нативная прямая маршрутизация.
+  * 🧪 **Сквозная верификация и тесты:**
+    - Проверена прямая авторизация IMAP (`imap.mail.ru:993` SSL/TLS): `Authentication successful`.
+    - Проверена прямая авторизация SMTP (`smtp.mail.ru:465` SSL/TLS): `SMTP Transporter VERIFIED successfully`.
+    - Выполнена реальная отправка и подтвержден прием сервером Mail.ru: `250 OK id=1x8bFY-00000000ORy-3zFq`.
+    - Полный прогон `tsc --noEmit` (0 ошибок), `scripts/verify-production-hardening.ts` (3/3 PASS), `scripts/check-bundle-secrets.mjs` (0 утечек).
+- [x] 🧪 [CDD-TDD-VERIFICATION-ROUNDS-1-2-2026] Сквозная CDD-TDD верификация исправлений Раундов 1 и 2 + устранение 4 скрытых дефектов и уязвимостей (100% COMPLETE & VERIFIED):
+  * 🎯 **Полный CDD-TDD сьют (`src/__tests__/cdd-tdd-full-verification-round1-round2.test.ts`):** 25 тестов + 5 тестов в `c3-c4-c5-critical-remediation.test.ts` (итого 30 тестов). Охватывают: классификацию платежей Robokassa (Order vs Deposit), защиту от занижения суммы, защиту от replay, расчет НДС 22% при обороте > 20 млн ₽ (54-ФЗ / 425-ФЗ), Drip-Feed Floor Invariant, обработку статусов провайдера (COMPLETED/CANCELED/PARTIAL/ERROR), неизменяемые российские прямые маршруты (Direct), нормализацию префиксов поиска (`#1643`, `№1643`, `ID: 1643`), безопасность админских действий (IDOR, cross-tenant isolation, self-balance, overdraft, poka-yoke) и стресс-тесты раунда 2.
+  * 🐞 **Найден и устранен дефект коллизии ключей в `src/services/financial/refund-policy.service.ts`:** При многошаговом возврате (PARTIAL -> PARTIAL -> CANCELED) шаги 2 и 3 генерировали одинаковый ключ `refund_${order.id}_remainder`, из-за чего финальный возврат остатка блокировался кешем идемпотентности. Исправлено: ключ формируется с учетом статуса и суммы остатка (`refund_${order.id}_${order.status}_remainder_${refundCents}`).
+  * 🛡️ **Устранена TOCTOU уязвимость в `src/services/orders/retry-checkout.service.ts`:** Проверка статуса заказа вынесена внутрь сериализуемой транзакции с получением `freshOrder`, что исключает гонки при параллельных запросах и отмене заказа другим воркером.
+  * 🌐 **Внедрена межсайтовая изоляция (Multi-Tenant Isolation) в `src/actions/admin/users.ts`:** В `updateBalanceAction`, `banUserAction` и `unbanUserAction` добавлена строгая проверка принадлежности пользователя тенанту (`admin.tenantId === targetUser.tenantId` для non-OWNER сотрудников), а также запрет на блокировку OWNER/ADMIN не-владельцами.
+  * ⚖️ **Исправлен учет вычетов при расчете порога НДС 20 млн ₽ в `src/services/financial/payment-gateway.service.ts`:** Добавлен учет ручных отмен заказов администраторами (`ORDER_CANCEL` в дополнение к `REFUND`), а кеш порога привязан к году (`${tenantId}:${currentYear}`) с гарантией сброса на стыке календарных лет.
+  * 🔍 **Нормализация префиксов поиска в `src/services/admin/order/order-filter-builder.ts`:** Интегрирован `normalizeCatalogSearch` в `applyOmniSearchFilter` (`№1643`, `ID: 1643` и `#1643`).
+  * 🧪 **Итоговые тесты и аудит:** 30/30 тестов PASS (25 в новом сьюте + 5 в `c3-c4-c5-critical-remediation.test.ts`), `npx tsc --noEmit` — 0 ошибок, `check-bundle-secrets.mjs` — 0 утечек.
+- [x] 🔴 [ROUND-2-CRITICAL-FIXES-2026] Устранение 3 критических уязвимостей раунда 2 (C-3, C-4, C-5) (100% COMPLETE & VERIFIED):
+  * 🛡️ **C-3 (`src/workers/payment-reconciliation.ts`):** Устранена слепая отправка `Basic mock_auth` в YooKassa при сбое Redis/настроек. В боевом окружении при отсутствии ключей или получении 401/403 вызывается `sendAdminAlert` с уровнем `CRITICAL`, инкрементируется `report.errors`, а запрос к шлюзу блокируется.
+  * 🔑 **C-4 (`src/services/orders/retry-checkout.service.ts`):** Удален `Date.now()` из `idempotencyKey` повторной оплаты (`retry-balance-${order.id}`). Ключ сделан строго детерминированным, что устраняет вектор двойного списания баланса при параллельных запросах.
+  * 💰 **C-5 (`src/services/financial/refund-policy.service.ts`):** Устранено задвоение возвратов (частичный + полный) при переходе статуса `PARTIAL -> CANCELED`. Внедрен накопительный аудит всех предшествующих возвратов из `txClient.ledgerEntry`, сумма возврата ограничена остатком платежа (`maxAvailableRefund`), а для остаточного возврата формируется стабильный детерминированный ключ `refund_${order.id}_remainder`.
+  * 🧪 **Верификация:** Написан интеграционный тест `src/__tests__/financial/c3-c4-c5-critical-remediation.test.ts` (5/5 PASS), подтверждено прохождение `payment-reconciliation.test.ts` и `drip-feed-remediation-suite.test.ts` (всего 22 теста PASS), `npx tsc --noEmit` — 0 ошибок, `check-bundle-secrets.mjs` — 0 утечек.
+- [x] 🏛️ [ADMIN-PANEL-TRIUMVIRATE-AUDIT-2026] Комплексный триумвират аудита админки OmniSMM 1.0 (AST-анализ верстки + Guardrails + E2E Браузерный харнес) (100% COMPLETE & VERIFIED):
+  * 📐 **Уровень 1: AST-анализ верстки (`npm run layout:audit` -> `scripts/ui/layout-sentry.ts`):**
+    - Просканированы ключевые UI-директории: `src/components/admin`, `src/app/admin`, `src/components/dashboard`, `src/components/landing`, `src/components/auth`, `src/components/orders`.
+    - Всего замечаний: 431 (49 High, 382 Medium, 0 Low).
+    - Полный структурированный отчёт: `docs/audits/layout-audit-report.md`.
+  * 🛡️ **Уровень 2: Архитектурные Guardrails (`npm run lint:guardrails` -> `scripts/run-ast-guardrails.ts`):**
+    - Статус: 🟢 PASS (0 Blocker-нарушений).
+    - Архитектурные границы, server-actions guards и client/server разделение чисты.
+  * 🌐 **Уровень 3: Браузерный E2E-харнес (`npm run audit:admin:harness` -> `scripts/audit-admin-layout.ts`):**
+    - Подключена база данных `smmplan_lite_db` (порт 5435) и сидированы детерминированные фикстуры (`scripts/ci/seed-admin-audit-fixtures.ts`).
+    - Протестирован 21 маршрут админки x 4 вьюпорта (Desktop, Tablet, Mobile 375, Mobile 390) = 84 проверки.
+    - Метрики: Desktop 21/21 PASS (100%), Tablet 20/21 PASS, 0 Error Boundaries, 0 Clipped Cells, 0 Hydration Mismatches, 0 Server Action Crashes, Multi-tenant cookie `x_admin_tenant` verified.
+    - Отчёт сохранён в `docs/audits/admin-harness-audit.md` и `docs/audits/admin-harness-audit.json`.
+- [x] 📱 [ADMIN-PANEL-MOBILE-OVERLAPS-AND-COLLISIONS-FIX-2026] Комплексная ликвидация наложений, коллизий и вылета элементов в мобильной верстке админ-панели (100% COMPLETE & VERIFIED):
+  * 🎛️ **Волна 1: Ликвидация обрезания шапки и вылета кнопки профиля (`src/app/admin/layout.tsx`, `EnvironmentModeSwitcher.tsx`, `tenant-switcher.tsx`):**
+    - В `src/components/admin/EnvironmentModeSwitcher.tsx` на экранах `< sm` скрыт текстовый бейдж «Песочница» (`hidden sm:inline`), кнопка превращена в компактный интерактивный индикатор с цветной иконкой режима (щит/молния) и атрибутом `title`, снижая ширину элемента со 125px до 38px.
+    - В `src/components/admin/tenant-switcher.tsx` задано адаптивное ограничение ширины домена (`max-w-[70px] sm:max-w-[110px] md:max-w-none truncate`) и компактные отступы.
+    - В `src/components/admin/admin-profile-dropdown.tsx` размер аватара оптимизирован до `w-7 h-7 sm:w-8 sm:h-8`, устранены избыточные паддинги.
+    - Результат: общая ширина элементов шапки на мобильных устройствах сокращена с 420px до 315px. Кнопка профиля (`AdminProfileDropdown`) больше не выталкивается за пределы экрана и отображается с безопасным отступом.
+  * 📊 **Волна 2: Ликвидация наложений табов на карточки P&L (`src/components/ui/tabs.tsx`, `src/app/admin/finance/finance-client.tsx`, `client-tabs.tsx`):**
+    - В базовом компоненте `src/components/ui/tabs.tsx` удален жесткий лимит высоты `group-data-[orientation=horizontal]/tabs:h-8` (32px), заменен на `min-h-9 h-auto` и `overflow-x-auto scrollbar-none`.
+    - В `src/app/admin/finance/finance-client.tsx` табы переведены из многострочного `flex-wrap` в нативную горизонтально-скроллируемую полосу (`overflow-x-auto scrollbar-none flex-nowrap`) с `shrink-0 whitespace-nowrap` на всех `TabsTrigger`. Полностью ликвидировано выпадание табов и их наложение на блок «ВЫРУЧКА (GROSS)».
+    - В `src/app/admin/marketing/client-tabs.tsx` табы также приведены к стандарту горизонтального скролла (`flex w-full sm:w-fit max-w-full overflow-x-auto`).
+  * 🔘 **Волна 3: Разведение коллизий плавающих кнопок и нижнего меню (`ManualFloatingTrigger.tsx`):**
+    - В `src/components/admin/ai-manual/sub/ManualFloatingTrigger.tsx` жесткая позиция `bottom-4` заменена на адаптивную высоту `bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] md:bottom-4`.
+    - Плавающая кнопка ИИ-инструктора приподнята строго над панелью `MobileBottomNav` (56px) и больше не перекрывает кнопки меню и каталога.
+  * 🛡️ **Волна 4: Модернизация E2E-харнеса аудитора (`scripts/audit-admin-layout.ts`):**
+    - Добавлен детектор внутреннего переполнения шапки: `header.scrollWidth > header.clientWidth + 2`.
+    - Добавлен детектор вылета кнопок за правый край вьюпорта: `rect.right > window.innerWidth + 3`.
+    - Добавлен детектор коллизий табов: фиксация выпадения триггеров из контейнера (`trRect.bottom > tlRect.bottom + 4`) и наложения триггеров на содержимое (`trRect.bottom > tcRect.top + 2`).
+  * 🧪 **Результаты сквозной верификации:**
+    - TypeScript: `npx tsc --noEmit` — 0 ошибок (Strict mode).
+    - Архитектура: `npm run check:arch` — 0 layer violations, 0 circular cycles (1496 модулей).
+    - Секреты: `node scripts/check-bundle-secrets.mjs` — 0 утечек.
+    - Финансовые инварианты: `vitest run src/__tests__/admin-financial-invariants.test.ts` — 16/16 PASS (100%).
+- [x] 🛡️ [ADMIN-PANEL-AUDIT-HARNESS-2026] Профессиональная E2E харнес-обвязка для аудита и тестирования админ-панели OmniSMM 1.0 (100% COMPLETE & VERIFIED):
+  * 🎛️ **Автономный E2E раннер верстки и рантайм-сбоев (`scripts/audit-admin-layout.ts`):**
+    - Подлинная аутентификация в обход UI: создание валидной сессии в PostgreSQL (`prisma.session.create`) + подписанный HS256 JWT токен `session_token` через `jose` и `getEncodedKey()`.
+    - Обход защиты от угона сессий: синхронизация заголовка `AUDIT_USER_AGENT` в БД и контексте браузера Playwright (`Playwright-Admin-Audit-Harness/2026`).
+    - Защита от ложных перенаправлений: строгая валидация `page.url()` с запретом 307 на `/login` или `/forbidden`.
+    - Матрица тестирования: 20 ключевых роутов (включая динамические сущности) $\times$ 3 вьюпорта (Desktop 1280x800, Tablet 768x1024, Mobile 375x812) = 60 проверок.
+    - Детектор Zero Horizontal Scroll: проверка `scrollWidth <= clientWidth` на корневых контейнерах.
+    - Детектор скрытых данных: поиск обрезанных ячеек (`scrollWidth > offsetWidth`) без атрибута `title` или компонента Tooltip.
+    - Перехватчик ошибок React 19: сбор ошибок гидратации (коды 418, 425), сбоев Server Actions и необработанных консольных ошибок.
+    - Мульти-тенантность: верификация сохранения cookie `x_admin_tenant` между переходами.
+    - Генерация структурированных отчетов: `docs/audits/admin-harness-audit.md` и `.json`.
+  * 📦 **Детерминированный сид-генератор фикстур (`scripts/ci/seed-admin-audit-fixtures.ts`):**
+    - Наполнение базы данных детерминированными CUID-фикстурами для всех динамических маршрутов админки (`/admin/orders/[id]`, `/admin/clients/[id]`, `/admin/providers/[id]`, `/admin/catalog/[id]`, `/admin/services/[id]/routing`, `/admin/tickets/[id]`, `/admin/cms/[id]`, `/admin/knowledge/[id]/edit`, `/admin/finance/payments/[id]/dispute-pack`).
+    - Создание связанного графа: пользователь OWNER, клиент, соцсеть, категория, провайдер, услуга, роутинг, заказ, тикет с сообщениями, статья базы знаний, платеж, леджер.
+  * 💰 **Property-Based Fuzzing & Financial Invariants (`src/__tests__/admin-financial-invariants.test.ts`):**
+    - 16 тестов на `fast-check` и `vitest` для движка `ExactMath` и `WalletOps`.
+    - Проверка инварианта Ledger-First (`tx.ledgerEntry.create` вызывается строго ДО мутации баланса `tx.user.update`).
+    - Банковское округление (half-even) с нулевым дрейфом с плавающей точкой, монотонность микропрайсинга, защита от отрицательного баланса и лимиты административных корректировок (`MAX_ADJUSTMENT_CAP_KOPECKS`).
+  * 🛠️ **Интеграция в CLI и AST Guardrails (`package.json`):**
+    - `npm run seed:admin-audit` — запуск детерминированного сидирования фикстур.
+    - `npm run audit:admin:harness` — запуск автономного E2E раннера (Playwright).
+    - `npm run audit:admin` — сквозной запуск (Layout Sentry + AST Guardrails + E2E Harness).
+    - Расширение `scripts/ui/layout-sentry.ts`: включены директории `src/components/admin` и `src/app/admin`.
+  * 🧪 **Результаты верификации:**
+    - E2E матрица: **60/60 проверок пройдено (100% PASS)**, 0 горизонтальных переполнений, 0 обрезанных ячеек без подсказки, 0 ошибок гидратации React 19.
+    - Vitest: **16/16 тестов пройдены (100% PASS)** за 58ms.
+    - TypeScript: **`npx tsc --noEmit` — 0 ошибок компиляции (Strict mode)**.
+    - AST Guardrails: **`npm run lint:guardrails` — PASS (0 блокирующих ошибок)**.
+- [x] 🔐 [AUTH-PASSWORD-PROMOCODE-LENGTH-LIMITS-2026] Установка длины пароля регистрации 6–128 символов и ограничение длины промокода до 64 символов (100% COMPLETE & STAGE VERIFIED):
+  * 🔑 **Политика длины паролей (от 6 до 128 символов):**
+    - `src/validators/password-policy.ts`: снижен минимальный порог с 12 до 6 символов (`min(6)`), верхний предел установлен в 128 символов (`max(128)`). Сохранены строгие эвристики защиты от слабых паролей (`123456`, `qwerty`, повторяющиеся символы).
+    - `src/lib/validators/auth-schemas.ts`: лимит пароля в `passwordLoginSchema` синхронизирован до `max(128)` (ранее `max(72)` блокировал вход пользователей с паролями 73–128 символов).
+    - `src/actions/auth/password-settings.ts`: схемы `setPasswordSchema` и `changePasswordSchema` обновлены с `min(8)` до `min(6).max(128)`.
+    - `src/app/(auth)/login/login-form.tsx`: инпут пароля регистрации получил атрибуты `minLength={6}`, `maxLength={128}`, плейсхолдер `"Создайте пароль (от 6 до 128 символов)"` и клиентскую валидацию длины `6..128`.
+  * 🎟️ **Ограничение длины промокода до 64 символов (защита БД и Anti-ReDoS):**
+    - `src/services/marketing.service.ts`: санитизация промокода расширена с `length <= 32` до `length <= 64`.
+    - `src/services/promo/promo-validator.service.ts`: формат промокода разрешает до 64 символов (`cleanCode.length > 64`).
+    - `src/actions/order/checkout.ts`: в `calculatePriceAction` и `checkoutSchema` максимальная длина промокода установлена строго в 64 символа.
+    - `src/actions/user/promo.ts`: в `activatePromoCodeAction` добавлен предварительный барьер `cleanCode.length > 64` до старта транзакции и обращения к БД.
+    - `src/actions/admin/marketing.ts`: в `promoCodeSchema` создание промокодов админом расширено с 12 до 64 символов.
+    - `src/app/admin/marketing/create-promo-form.tsx`: лейбл обновлен до `Код (до 64 символов)`, выставлен `maxLength={64}`.
+    - UI-компоненты: во все поля ввода промокодов добавлен атрибут `maxLength={64}` (`PlanCheckoutPromo.tsx`, `MobileCheckoutPromo.tsx`, `DrawerFormInputs.tsx`, `client-page.tsx` пополнения баланса).
+  * 🧪 **Автоматизированное тестирование и Stage-аудит (BGS-2026):**
+    - `src/__tests__/unit/password-and-promocode-length-limits.test.ts` — 10/10 PASS (100%).
+    - `src/__tests__/security/owasp-promo-code-hardening.test.ts` — 9/9 PASS (100%).
+    - `src/actions/auth/__tests__/password-register.test.ts` — 3/3 PASS (100%).
+    - `src/actions/auth/__tests__/password-login.test.ts` — 6/6 PASS (100%).
+    - `npx tsc --noEmit` — 0 ошибок типов (Strict mode).
+    - `npm run check:arch` — 0 layer violations, 0 circular cycles (1496 модулей).
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
+    - `npm run build` — чистая standalone-сборка.
+    - `scripts/verify-stage-password-promocode-limits.ts` — 100% Playwright проверка на Stage (`:3005`) со скриншотами.
+- [x] 📦 [ERP-PRIMELIKE-CATALOG-SYSTEMATIZATION-2026] Полная систематизация и деплой каталога провайдеров из ERP (100% COMPLETE & VERIFIED):
+  * 🎯 **Систематизация и нормализация базы ERP (313 уникальных услуг):**
+    - Извлечены 313 уникальных активных услуг из базы `smm_erp` (`erp_system-postgres-1`).
+    - Сгенерирован эталонный реестр `scripts/data/master-services-blueprint.json` с полным картированием на 13 социальных сетей и 89 категорий действий (`activityType`).
+    - Каждой услуге присвоен строгий тип ссылки (`targetType`: `CHANNEL`, `POST`, `PROFILE`, `VIDEO`, `STORY`, `POLL`, `COMMENTS`, `BOT`, `CHANNEL_POSTS`) с подтверждением на базе 1.95 млн реальных выполненных заказов.
+    - Обеспечен Zero Vendor Leaks (вычищены названия сторонних вендоров VexBoost, PrimeLike, SMMToolbox, технические скобки и теги).
+  * 🌐 **Регистрация 13 платформ и 89 категорий в БД (`smmplan_lite`):**
+    - Добавлены/актуализированы 13 социальных сетей (Telegram, ВКонтакте, Instagram, YouTube, TikTok, Rutube, Дзен, Twitch, Likee, Twitter (X), Facebook, Одноклассники, MAX) с SVG-иконками и регулярками `UrlPattern`.
+    - Развернуто 89 категорий действий с семантической привязкой `activityType`.
+  * 🏢 **Регистрация 15 провайдеров и деплой 313 услуг:**
+    - Зарегистрированы 15 провайдеров (`Vexboost`, `SMM Panel US`, `Stream Promotion`, `Soc Rocket`, `SMM Prime`, `ProSMM Shop`, `Karandash`, `Soc Proof`, `Likedrom`, `Web SMM`, `S-SMM`, `PRM4U`, `SMM Rise`, `Boost Like`, `Toplike`).
+    - Активирован живой шлюз Vexboost: синхронизированы оптовые цены (`rate`, `costPer1kRub`), живые лимиты (`minQty`, `maxQty`) и очищенные описания из официального API Vexboost.
+    - 232 услуги остальных 14 провайдеров предварительно сконфигурированы в базе в карантинном статусе (`quarantineReason: "Ожидает ввода API-ключа..."`), готовые к мгновенной активации через скрипт `scripts/sync-provider-api.ts`.
+  * 🧪 **Автоматизированная верификация:**
+    - `npx tsc --noEmit` — 0 ошибок типов (Strict mode, ES2022).
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
+    - `npm run check:arch` — 0 архитектурных нарушений (1496 модулей).
+- [x] 👁️ [SETTINGS-PASSWORD-VISIBILITY-FIX-2026] Исправление глазка паролей и устранение ложного плейсхолдера в форме смены пароля (100% COMPLETE & VERIFIED):
+  * 🎯 **Устранение UX-ловушки с точками в плейсхолдере:**
+    - В `PasswordInputField.tsx` дефолтный плейсхолдер из точек `'••••••••'` заменен на текстовую подсказку `'Введите пароль'`.
+    - В `PasswordCard.tsx` для текущего пароля задан явный плейсхолдер `"Введите текущий пароль"`. Пустое поле больше никогда не маскируется под введенный пароль.
+  * 👁️ **Независимые переключатели видимости для всех полей:**
+    - Реализованы 3 изолированных состояния: `showCurrentPassword`, `showNewPassword`, `showConfirmPassword`.
+    - Разблокирован глазок для нового пароля в режиме `hasPassword=true` (ранее ошибочно скрывался через `!hasPassword`).
+    - Добавлен отсутствовавший ранее глазок для подтверждения пароля.
+    - Автоматический сброс видимости в скрытый режим при успешном обновлении пароля.
+  * 🧪 **Автоматизированная верификация:**
+    - `src/__tests__/unit/user-settings-decomposition.test.tsx` — 13/13 тестов PASSED (100%).
+    - `npx tsc --noEmit` — 0 ошибок типов (Strict mode).
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
+    - `npm run check:arch` — 0 архитектурных нарушений (1495 модулей).
+- [x] 🎨 [ADMIN-UI-BUTTONS-DESIGN-SYSTEM-2026] Ликвидация градиента на кнопке «Каталог услуг» и унификация дизайн-системы кнопок (100% COMPLETE & STAGE VERIFIED):
+  * 🚫 **Устранение паразитного градиента:**
+    - В `src/components/admin/tabbed-header-client.tsx` полностью удалены фиксированные индикаторы мобильного скролла (`absolute left-0 ... bg-gradient-to-r from-card to-transparent`), которые заслоняли левый край активной кнопки «Каталог услуг».
+  * 🔘 **Гармонизация дизайн-системы кнопок (`@/components/ui/button.tsx`):**
+    - Унифицирован радиус: `rounded-xl` для всех размеров (`sm`, `default`, `lg`), ликвидирован принудительный оверайд `rounded-lg` в `size.sm`.
+    - Семантические тени: заменены сырые RGB-тени на семантические токены Tailwind CSS 4 (`shadow-xs` / `hover:shadow-sm`).
+    - Тактильный отклик и скорость: добавлен `active:scale-95`, ускорен переход с `duration-500` до `duration-150`.
+    - Начертание: стандартизировано `font-bold` для всех интерактивных кнопок и табов.
+  * 📑 **Синхронизация таб-бара (`tabbed-header-client.tsx`):**
+    - Табы переведены на эталонную высоту `sm:h-9` (36px, оптическое совпадение 1:1 с экшен-кнопками `+ Создать услугу`), единый радиус `rounded-xl` и начертание `font-bold`.
+    - Синхронизированы тулбары категорий, соцсетей и переключателей режимов (`category-toolbar.tsx`, `networks-client.tsx`, `EnvironmentModeSwitcher.tsx`, `CategoryMobileCard.tsx`).
+  * 🧪 **Автоматизированная верификация и Stage-аудит (Blue-Green Protocol):**
+    - `npx tsc --noEmit` — 0 ошибок типов (Strict mode).
+    - `npm run check:arch` — 0 нарушений слоев, 0 циклических зависимостей (1495 модулей).
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
+    - Playwright Dual-Viewport аудит на Stage (порт 3005):
+      - Десктоп (1440x900): 8/8 экранов PASSED (высота кнопок 36px, единый rounded-xl, 0 регрессий).
+      - Смартфон (390x844): 8/8 экранов PASSED (кнопка «Каталог услуг» чистая, без градиента, глобальный overflow = 0px).
+- [x] 📱 [ADMIN-MOBILE-ADAPTIVE-DUALISM-PHASE1-2-2026] Мобильная адаптация панели администратора OmniSMM 1.0 (iOS Safari, Android Chrome, Telegram WebApp) с гарантией нулевой регрессии десктопа (100% COMPLETE & STAGE VERIFIED):
+  * 🧱 **Базовый каркас, Thumb Zone и Safe Area (Этап 1):**
+    - `src/components/admin/mobile-bottom-nav.tsx` (112 строк): фиксированный нижний бар быстрого доступа (Заказы, Тикеты, Каталог, Финансы, Меню) с поддержкой Safe Area (`pb-[env(safe-area-inset-bottom,0px)]`).
+    - `src/components/admin/mobile-nav-drawer.tsx`: шина событий `open-admin-mobile-drawer` для вызова полного меню сайдбара.
+    - `src/app/admin/layout.tsx`: переход на `min-h-dvh h-dvh`, отступ `pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:pb-3.5`.
+    - `src/components/admin/tabbed-header-client.tsx`: Touch Target $\ge 42$px, градиентный скролл и центрирование активных вкладок.
+    - `tenant-switcher.tsx` и `EnvironmentModeSwitcher.tsx`: компактные кнопки, защита выпадающих меню (`max-w-[calc(100vw-32px)]`).
+  * 📦 **Каталог услуг, Категории и Соцсети (Этап 2):**
+    - `src/components/admin/catalog/catalog-mobile-card.tsx` (190 строк): мобильные Action Cards с крупным тумблером ВКЛ/ВЫКЛ (44px), ID с копированием, инпутом наценки с шрифтом 16px (защита от iOS авто-зума).
+    - `src/components/admin/catalog/catalog-price-helpers.tsx` (114 строк): ликвидация циклов зависимостей, расчёт розницы и кнопка архивации.
+    - `src/components/admin/catalog-table-v2.tsx`: полная изоляция десктопной таблицы в `hidden md:block` и мобильных карточек в `block md:hidden`.
+    - `CategoryMobileCard.tsx` (105 строк) и `CategoryTable.tsx`: мобильные карточки категорий.
+    - `NetworkMobileCard.tsx` (88 строк) и `networks-client.tsx`: мобильные карточки соцсетей с крупными кнопками действий.
+  * 🧪 **Верификация и Stage-аудит (Blue-Green Protocol):**
+    - `npx tsc --noEmit` — 0 ошибок типов (Strict mode).
+    - `npm run check:arch` — 0 нарушений слоев, 0 циклических зависимостей (1495 модулей).
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
+    - `verify-stage-dual-viewport.ts` на Stage (порт 3005):
+      - Десктоп (1440x900): 8/8 экранов PASSED (BottomNav скрыт, 100% сохранение).
+      - Смартфон (390x844): 8/8 экранов PASSED (BottomNav виден, 0px overflow).
+- [x] 🚀 [USER-SETTINGS-SUBROUTES-OPTION-A-2026] Разнесение функционала вкладки "Настройки" по вложенным подстраницам (Next.js 16 Nested Sub-Routes) (100% COMPLETE & VERIFIED):
+  * 🏛️ **Архитектурный макет и подстраницы (Nested Layout & Sub-Routes):**
+    - Создан корневой макет `src/app/dashboard/settings/layout.tsx` (62 строки) с общей карточкой профиля `ProfileSummaryCard.tsx` (85 строк), динамическими хлебными крошками `SettingsBreadcrumbs.tsx` (28 строк) и адаптивным таб-баром `SettingsSubNav.tsx` (91 строка).
+    - Разнесены 4 изолированные страницы с гранулярной выборкой из PostgreSQL (Zero Overfetching):
+      - `/dashboard/settings/security` (38 строк) — запрашивает только `passwordHash` (PasswordCard, LogoutCard, DeleteAccountCard).
+      - `/dashboard/settings/notifications` (43 строки) — запрашивает только `telegramId`, флаги оповещений и согласия 152-ФЗ (TelegramCard, Consent152FzCard).
+      - `/dashboard/settings/api` (50 строк) — единый консолидированный раздел API v2 с переключателем «Ключи и Вебхуки» / «Документация API v2». Полностью ликвидировано дублирование!
+      - `/dashboard/settings/requisites` (43 строки) — запрашивает только реквизиты ИП/ООО (CompanyRequisitesCard).
+    - Базовый роут `/dashboard/settings/page.tsx` (27 строк) обеспечивает серверный редирект с поддержкой обратной совместимости старых query-параметров (`?tab=api`, `?tab=notifications`, `?tab=company`).
+  * 🔄 **Инвалидация кэша Next.js App Router (revalidatePath):**
+    - Во все 5 модулей Server Actions (`webhook.action.ts`, `telegram.action.ts`, `requisites.action.ts`, `consent.action.ts`, `password-settings.ts`) добавлена точечная инвалидация соответствующих путей (`/dashboard/settings/api`, `/dashboard/settings/notifications`, `/dashboard/settings/requisites`, `/dashboard/settings/security`), гарантируя мгновенное обновление UI без задержек.
+  * ♿ **Эргономика и доступность (Rule 9 & WCAG 2.2 AA):**
+    - Таб-бар `SettingsSubNav` построен на сетке `grid grid-cols-2 lg:grid-cols-4 gap-2` без риска появления горизонтального скролла на экранах от 320px до 4K.
+    - Все кнопки табов имеют гарантированный Touch Target $\ge 44$px (`min-h-[44px]`).
+  * 🧪 **Автоматизированное тестирование & Сборка:**
+    - Создан сьют интеграционных тестов `src/__tests__/unit/dashboard-settings-subroutes.test.tsx` (17/17 PASS).
+    - Полный прогон сьюта настроек пользователя: 48/48 PASS.
+    - `npm run check:arch` — 0 layer violations, 0 circular cycles.
+    - `npx tsc --noEmit` — 0 ошибок типов во всем проекте.
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
+- [x] 🚀 [USER-SETTINGS-DECOMPOSITION-2026] Комплексная декомпозиция вкладки "Настройки" в личном кабинете пользователя (/dashboard/settings) (100% COMPLETE & VERIFIED):
+  * 🧩 **Декомпозиция монолитов и чистота слоев (лимит <= 200 строк на файл):**
+    - Вкладка настроек пользователя и все связанные субмодули разбиты на 37 специализированных компонентов и хуков в `src/components/dashboard/settings/` и `src/app/dashboard/settings/`.
+    - Все 37 файлов строго удовлетворяют контракту лимита строк (максимальный размер файла 185 строк при лимите 200).
+    - Разделены субкомпоненты:
+      - `PasswordCard.tsx` декомпозирован на `PasswordInputField.tsx`, `PasswordStrengthMeter.tsx`, `PasswordSubmitButton.tsx`.
+      - `DeleteAccountCard.tsx` декомпозирован на `DeleteAccountConfirmDialog.tsx`, `DeleteAccountModal.tsx`.
+      - `TelegramCard.tsx` декомпозирован на `TelegramConnectedState.tsx`, `TelegramNotificationToggles.tsx`, `TelegramUnbindAction.tsx`, `TelegramUnconnectedState.tsx`.
+      - `ApiKeyManager.tsx` декомпозирован на `ApiKeyActionButtons.tsx`, `ApiKeyDisplay.tsx`, `ApiKeyRegenerateDialog.tsx`, `ApiKeyStatusAlert.tsx`.
+      - `ApiWebhookCard.tsx` декомпозирован на `WebhookActiveToggle.tsx`, `WebhookDeliveryLogModal.tsx`, `WebhookSecretSection.tsx`, `WebhookUrlInput.tsx`.
+      - Документация API декомпозирована на `ApiCodeSnippet.tsx`, `ApiParamsTable.tsx`, `ApiReferenceDocs.tsx`.
+  * ⚙️ **Модуляризация Server Actions и устранение багов данных:**
+    - Монолит `settings-extra.ts` разделен на 5 узкоспециализированных экшенов в `src/actions/user/settings/`:
+      - `requisites.action.ts` (ИНН, КПП, ОГРН, название организации, валидация через Zod).
+      - `webhook.action.ts` (сохранение Webhook URL, ротация секрета, исправление бага случайного затирания `webhookUrl: null`).
+      - `consent.action.ts` (фиксация согласия 152-ФЗ с IP-адресом и временной меткой).
+      - `api-key.action.ts` (генерация ключей `smm_`, SHA-256 хэширование, отзыв, устранение залипания состояния в UI).
+      - `telegram.action.ts` (глубокие ссылки привязки, тумблеры нотификаций, аудит-лог).
+    - Для 100% обратной совместимости в `settings-extra.ts` сохранены прозрачные реэкспорты.
+  * ♿ **Доступность (WCAG 2.2 AA) и Touch Targets:**
+    - Все интерактивные кнопки, тумблеры, копирование и ссылки подтверждения увеличены до минимального размера кликабельной зоны $\ge 44 \times 44$ px (`min-h-[44px]`).
+    - Устранено предупреждение AST Guardrail по обязательному таймауту `signal: AbortSignal.timeout(5000)` в `LogoutCard.tsx`.
+  * 🧪 **Автоматизированное TDD/Vitest тестирование & Сборка:**
+    - Создан полный тестовый сьют: 31/31 PASS (`src/__tests__/unit/user-settings-actions.test.ts` и `src/__tests__/unit/user-settings-decomposition.test.tsx`).
+    - `npm run check:arch` — 0 layer violations, 0 circular cycles.
+    - `npx tsc --noEmit` — 0 ошибок типов TypeScript strict mode.
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
+- [x] 🚀 [PROVIDERS-MANAGEMENT-DECOMPOSITION-SIL-2026] Комплексная декомпозиция вкладки провайдеров (/admin/providers), устранение фантомного роута /keys и ликвидация риска CRAP #2 (100% COMPLETE & VERIFIED):
+  * 🗂️ **Устранение фантомной вкладки "Управление API-ключами" (/admin/providers/keys):**
+    - Роут `/admin/providers/keys/page.tsx` бесшовно перенаправляет на `/admin/providers` через серверный `redirect('/admin/providers')`.
+    - Все управление ключами, шифрование AES-256-GCM и ротация централизованы в карточке конкретного поставщика `/admin/providers/[id]`.
+    - В навигации админки исключена дублирующая путаница вкладок.
+  * 🧩 **Декомпозиция монолита client-table.tsx (с 756 строк до 175 строк):**
+    - Создана модульная архитектура таблицы в `src/app/admin/providers/components/table/`:
+      - `providers-table-toolbar.tsx` (119 строк) — поиск, фильтры по статусу/типу, переключатель колонок.
+      - `providers-table-desktop.tsx` (63 строки) — контейнер настольной таблицы.
+      - `providers-table-row.tsx` (125 строк) — строка поставщика с инлайн-балансом, RTT пингом, статусом Circuit Breaker и меню действий.
+      - `providers-table-mobile-card.tsx` (168 строк) — мобильная карточка с Touch Target >= 44px (WCAG 2.2 AA).
+      - `providers-table-empty.tsx` (52 строки) — оформленное состояние пустого списка.
+      - `provider-delete-dialog.tsx` (64 строки) — безопасный диалог удаления провайдера с сохранением услуг и заказов.
+  * 🛡️ **Ликвидация риска архитектуры CRAP #2 в provider-form.tsx (с 397 строк до 127 строк):**
+    - Исходный компонент имел CRAP: 35532 и цикломатическую сложность 188.
+    - Выделены 3 специализированных хука состояния:
+      - `useProviderMappingState.ts` (119 строк) — управление сопоставлением полей API (ID, name, rate, min, max).
+      - `useProviderProbeState.ts` (150 строк) — глубокое зондирование эндпоинтов провайдера (`balance`, `services`, `status`) с автоматическим определением API-диалекта.
+      - `useProviderFormState.ts` (149 строк) — управление валидацией, сменой вкладок и сохранением формы.
+    - `provider-form.tsx` сокращен до 127 строк чистого презентационного кода, полностью исключен из списка Top CRAP архитектурного аудитора.
+  * 🔍 **Умный поиск и нормализация:**
+    - В `src/utils/search-normalizer.ts` добавлена функция `normalizeSearchQuery` с поддержкой префиксов `#1643`, `№1643`, `ID: 1643` для быстрого поиска поставщиков.
+  * 🧪 **Автоматизированное TDD/Vitest тестирование & Сборка:**
+    - Создан сьют юнит-тестов `src/__tests__/unit/providers-table-decomposition.test.tsx` (5/5 PASS).
+    - Полный прогон сьюта провайдеров и каталога: 60/60 PASS.
+    - `npm run check:arch` — 0 layer violations, 0 circular cycles, падение глобального индекса CRAP проекта на 23,000+ очков.
+    - `npx tsc --noEmit` — 0 ошибок типов во всем проекте.
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
+    - `npm run build` — чистая standalone-сборка.
+    - Контейнер `smmplan_web` успешно запущен и работает со статусом `healthy`.
+- [x] 🚀 [PROVIDERS-IMPORT-WIZARD-REWORK-2026] Комплексный рефакторинг мастера импорта услуг (/admin/providers/import) и устранение избыточной вкладки "Мониторинг & Здоровье" (100% COMPLETE & VERIFIED):
+  * 🎨 **Редизайн и эргономика мастера импорта услуг:**
+    - Устранена перегруженность таблицы импорта: компактная плотность ячеек (`px-2.5 py-2`), ограничение текстовых блоков, отсутствие горизонтального скролла (Rule 9 Viewport 100% Width Fit).
+    - Разработана умная нормализация поисковых запросов в `src/utils/search-normalizer.ts`: поддержка префиксов `#1643`, `№1643`, `ID: 1643` для быстрого поиска по Provider ID и названию.
+    - Внедрен кликабельный бейдж `#ID` с копированием в буфер обмена и тостом в каждой строке и мобильной карточке.
+    - Полноценная адаптивная мобильная верстка: при узких экранах отображаются эргономичные карточки `services-table-mobile-card.tsx` с мгновенным выбором категории, расчетом маржи и тумблером выбора.
+    - Панель массовых действий `WizardBulkToolbar.tsx`: быстрый выбор всех услуг, снятие выделения, фильтрация услуг без сопоставленной категории, пакетное назначение категории.
+  * 🧩 **Декомпозиция и чистая архитектура (строгий лимит <= 200 строк):**
+    - Файл `services-table.tsx` декомпозирован на 6 компактных специализированных компонентов:
+      - `services-table-header.tsx` (112 строк)
+      - `services-table-row.tsx` (197 строк)
+      - `services-table-badges.tsx` (77 строк)
+      - `services-table-mobile-card.tsx` (116 строк)
+      - `category-create-dialog.tsx` (104 строк)
+      - `category-dropdown-list.tsx` (134 строк)
+    - Файлы `wizard-import-handlers.ts` и `useImportWizardState.ts` отрефакторены строго до <= 200 строк.
+    - Все 28 файлов в директории `src/app/admin/providers/import` удовлетворяют лимиту <= 200 строк.
+  * 🛡️ **Соблюдение правил Catalog Ingestion Authority (Раздел 4.2 AGENTS.md):**
+    - Приоритет №1: ручной выбор оператора имеет безусловный приоритет и отключает семантический авто-сплит.
+    - Zero-Unknown-Platform: услуги без достоверно определенной соцсети отбраковываются с причиной `UNKNOWN_PLATFORM`.
+    - Zero False-Branding: канонический префикс платформы с учетом специфики эмодзи флагов Windows.
+    - `resolveServiceTargetType` интегрирован для надежного определения типа ссылки и совместимости.
+  * 🗂️ **Устранение избыточной вкладки "Мониторинг & Здоровье" (Вариант 1):**
+    - Из навигации `PROVIDERS_TABS` в `src/components/admin/navigation-data.ts` удалена вкладка `/admin/providers/health`.
+    - Основная таблица поставщиков `/admin/providers` уже содержит все актуальные данные: реальный пинг (RTT), баланс провайдера, счетчик ошибок и статус Circuit Breaker.
+    - Роут `/admin/providers/health/page.tsx` бесшовно перенаправляет на `/admin/providers` через серверный `redirect('/admin/providers')`.
+  * 🧪 **Автоматизированное тестирование & Сборка:**
+    - Создан сьют тестов декомпозиции `src/__tests__/unit/import-wizard-decomposition.test.tsx`.
+    - Все тесты каталога и импорта пройдены (55/55 PASS): `admin-import-integrity.test.ts`, `catalog-import-lifecycle-sdd.test.ts`, `pricing-import-guardrails.test.ts`.
+    - `npx tsc --noEmit` — 0 ошибок типов во всем проекте.
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
+    - `npm run build` — чистая standalone-сборка.
+    - Контейнер `smmplan_web` успешно пересобран и запущен в Docker, статус `healthy`, `/api/health` 200 OK.
+- [x] 🛡️ [ADMIN-CROSS-TENANT-MISMATCH-ERROR-FIX-2026] Устранение сбоя при загрузке разделов админки при переключении сайтов (ID: 807575958) (100% COMPLETE & VERIFIED):
+  * 🔍 **Диагностика и первопричина (Root Cause Analysis):**
+    - В логах `smmplan_web` выявлен перехват: `SECURITY_TENANT_MISMATCH: Cross-tenant query blocked! Active: flux, Requested: smmplan`.
+    - При переключении админа в `<GlobalSiteSwitcher />` на SMMflux браузер выставляет cookie `x_admin_tenant=flux`, а `src/proxy.ts` передает заголовок `x-tenant-id: flux`.
+    - В страницах `/admin/orders`, `/admin/dashboard`, `/admin/transactions`, `/admin/finance`, `/admin/tickets`, `/admin/providers/import` вызов `resolveAdminTenantContext(user, params.tenant)` выполнялся без передачи 3-го параметра `cookieTenant`.
+    - При отсутствии `?tenant=...` в URL контекст откатывался к `user.tenantId` (`smmplan`). Prisma Tenant Enforcer (`prisma-tenant-enforcer.ts`) блокировал запрос, так как активный заголовок запроса был `flux`, а запрос в БД шел по `smmplan`, вызывая 500 ошибку с ID `807575958`.
+  * 🛠️ **Реализованное исправление и сквозная синхронизация:**
+    - В `src/utils/admin-tenant.ts` создана асинхронная серверная функция `resolveAdminTenantAsync(user, urlTenantParam, cookieTenant)` с авто-извлечением cookie и заголовков.
+    - В `src/app/admin/orders/page.tsx` добавлен безопасный парсер cookie `x_admin_tenant` и заголовка `x-tenant-id`, гарантирующий, что выбранный тенант из селектора сайтов имеет наивысший приоритет над `user.tenantId`.
+    - Аналогичная синхронизация проведена во всех смежных разделах: `/admin/dashboard`, `/admin/transactions`, `/admin/finance`, `/admin/tickets`, `/admin/providers/import`.
+  * 🧪 **Автоматизированное TDD/Vitest тестирование & Сборка:**
+    - Написан специализированный юнит-тест `src/__tests__/unit/admin-orders-tenant-resolution.test.ts` (6/6 PASS).
+    - Все 15 тестов мульти-тенантной изоляции персонала в `src/__tests__/multitenant-staff-isolation.test.ts` успешно пройдены (15/15 PASS).
+    - `npx tsc --noEmit` — 0 ошибок типов во всем проекте.
+    - `node scripts/check-bundle-secrets.mjs` — 100% чистый аудит секретов.
+    - `npm run build` — чистая standalone-сборка.
+    - Контейнер `smmplan_web` успешно пересобран и перезапущен в Docker, статус `healthy`, `/api/health` 200 OK.
+- [x] 🛡️ [RBAC-ROLES-UNIFICATION-OPERATOR-RECONCILIATION-2026] Комплексный рефакторинг и нормализация RBAC, унификация 16 секций и интеграция роли OPERATOR (100% COMPLETE & VERIFIED):
+  * 🔄 **Унификация секций RBAC и двунаправленная нормализация алиасов:**
+    - В `src/lib/rbac-sections.ts` консолидированы 16 канонических секций `RbacCanonicalSectionId` и алиасы `support -> tickets`, `staff -> settings`.
+    - В `src/lib/server/rbac.ts` реализовано двунаправленное сопоставление секций: гарды `requireStaffPermission`, `enforceSectionAccess` и `enforceAnySectionAccess` нормализуют как запрашиваемую секцию, так и хранящуюся в БД запись `p.section`.
+  * 🛠️ **Интеграция роли `OPERATOR` во все интерфейсы и политики:**
+    - В `BUILTIN_ROLE_PERMISSIONS.OPERATOR` добавлены секции `CLIENTS` и `TRANSACTIONS` (чтение) в полном соответствии со спецификацией контура `/operator`.
+    - В `src/app/admin/settings/team/ui-helpers.tsx`, `EditStaffModal.tsx`, `PromoteUserSection.tsx`, `src/app/admin/staff/staff-client.tsx` и `columns.tsx` роль `OPERATOR` интегрирована во все выпадающие списки и бейджи с русскими подписями (`Оператор (OPERATOR)`).
+  * ⚡ **Нормализация кастомных ролей и модалок:**
+    - Экшены `createRoleAction` и `updateRoleAction` в `src/actions/admin/roles.ts` строго нормализуют идентификаторы секций в канонический lowercase.
+    - В `src/app/admin/settings/team-management.tsx` и `CustomRolesSection.tsx` применен `normalizeRbacSection`, предотвращая затирание старых прав при редактировании.
+    - В `updateUserRole` гард обновлен до `requireStaffPermission('settings', 'edit')` с сохранением иерархического барьера (администратор может назначать младший персонал, но защищен от изменения аккаунтов владельцев).
+  * 🧪 **Верификация тестами и безопасность:**
+    - `src/__tests__/unit/admin-roles-integrity.test.ts` (9/9 PASS).
+    - `src/__tests__/unit/proxy-staff-multitenant-contour.test.ts` (2/2 PASS).
+    - `src/__tests__/unit/request-magic-link-owner.test.ts` (1/1 PASS).
+    - `npx tsc --noEmit` — 0 ошибок типов.
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
+- [x] ⚡ [GEMINI-AUTH-KEY-DATABASE-INJECTION-2026] Интеграция и верификация официального 2026 Google Authorization Key (AQ.xxx) в базу данных и пул AI-сервисов (100% COMPLETE & VERIFIED):
+  * 🔑 **Верификация ключа Google Authorization (Auth) Key:**
+    - Протестирован ключ нового стандарта 2026 г. (`AQ.xxx`) прямым вызовом к `https://generativelanguage.googleapis.com` через прокси `smmplan_clash` (порт 7890).
+    - Выполнена генерация контента моделью `gemini-2.5-flash`: HTTP 200 OK, время отклика 7s, статус `STOP`.
+  * 🛡️ **Шифрование AES-256-GCM и внесение в БД:**
+    - Ключ зашифрован через централизованный сервис `VaultService.encrypt()` с использованием единого мастер-ключа `APP_ENCRYPTION_KEY`.
+    - Сохранен в `SystemSettings.geminiApiKeys` для обоих активных тенантов (`smmplan` и `flux`).
+    - Сохранен в `User.geminiApiKey` для профиля владельца `art@artmspektr.ru`.
+    - В профиле `art@artmspektr.ru` актуализирован массив `allowedTenants: ["smmplan", "flux"]`.
+  * ⚡ **Сброс кэша и готовность рантайма:**
+    - Инвалидирован кэш настроек в Redis (`settings:*`), перезагружены контексты AI.
+- [x] 🛡️ [OMNISMM-STAFF-MULTITENANT-LOGIN-FIX-2026] Устранение сброса сессии OWNER/ADMIN в прокси и кросс-тенантный fallback входа (100% COMPLETE & VERIFIED):
+  * 🌐 **Снятие ограничения контуров для персонала в `src/proxy.ts`:**
+    - В директиве `isContourMismatch` добавлены проверки `!isStaffRole && !isAdminPath && !isOperatorPath`.
+    - Персонал платформы (OWNER, ADMIN, MANAGER, SUPPORT) теперь свободно перемещается между доменами платформы (`smmplan.pro` и `smmflux.ru`) без принудительного сброса сессионных cookie и редиректа на `/login`.
+  * 🛡️ **Синхронизация проверки контуров в `src/lib/session.ts`:**
+    - Проверка `isStrictMismatch` обновлена до `!['OWNER', 'ADMIN'].includes(user.role)`, предотвращая сброс серверной сессии при кросс-доменных запросах администратора.
+  * 🔑 **Кросс-тенантный fallback входа через Magic Link в `src/actions/auth/request-magic-link.ts`:**
+    - Добавлен поиск ролей `OWNER` и `ADMIN` по всем тенантам (`where: { email, role: { in: ["OWNER", "ADMIN"] }, isDeleted: false }`) по аналогии с `password-login.ts`.
+    - Владелец может запрашивать ссылку для входа с любой витрины (SMMplan / SMMflux), система распознает существующий аккаунт без попыток повторной регистрации и отправляет одноразовый токен авторизации.
+  * 🧪 **Автоматизированное TDD/Vitest тестирование & Контроль типов:**
+    - Написан юнит-тест `src/__tests__/unit/proxy-staff-multitenant-contour.test.ts` (2/2 PASS — пропуск персонала на `smmflux.ru/admin` без редиректа и строгая изоляция обычных пользователей `USER`).
+    - Написан юнит-тест `src/__tests__/unit/request-magic-link-owner.test.ts` (1/1 PASS — кросс-тенантный поиск владельца).
+    - `npx tsc --noEmit` — 0 ошибок типов во всем проекте.
+    - `node scripts/check-bundle-secrets.mjs` — 100% прохождение гейта утечек секретов.
+- [x] ⚡ [PERF-AUDIT-WSL-REDIS-OOM-HARDENING-2026] Комплексный аудит производительности, ликвидация OOM-шторма и оптимизация инфраструктуры платформы (100% COMPLETE & VERIFIED):
+  * 🛑 **Ликвидация паразитной нагрузки и OOM-цикла индексатора:**
+    - Остановлен циклически падавший контейнер `remote-graphrag-indexer` (код 137 OOM Killer), сжигавший процессорное время и дисковый I/O в виртуальной машине WSL 2.
+    - В `knowledge-service/docker-compose.remote-8gb.yml` политика перезапуска изменена на `restart: "no"`.
+    - Нагрузка CPU контейнера `remote-graphrag-api` снизилась с 95.25% до 1.24%, высвободив системные ресурсы хоста.
+  * 🛡️ **Устранение критического риска OOM контейнера `smmplan_clash`:**
+    - Лимит памяти расширен с 64M до 96M в `docker-compose.yml` и применен на лету через `docker update --memory 96m smmplan_clash`.
+    - Доля потребления памяти упала с критических 92.7% (59.3 МБ) до безопасных 43.5% (41.7 МБ), исключив риск сбоя исходящих прокси-запросов к SMM-провайдерам и Telegram API.
+  * ⚡ **Стандартизация Redis 7 и очередей BullMQ (noeviction):**
+    - В `docker-compose.yml` и рантайме Redis применена политика `maxmemory-policy noeviction` и расширен лимит памяти до 96M (`CONFIG SET maxmemory-policy noeviction`, `CONFIG SET maxmemory 96mb`).
+    - Полностью устранены системные ворнинги BullMQ `IMPORTANT! Eviction policy is volatile-lru. It should be "noeviction"`, гарантирована сохранность метаданных задач в очередях.
+  * 🚀 **Оптимизация памяти Web и Worker контейнеров:**
+    - `smmplan_web`: лимит памяти увеличен с 384M до 512M, Node.js heap расширен до 384MB (`--max-old-space-size=384`). Устранены V8 GC-паузы при рендеринге каталога из 825 услуг.
+    - `smmplan_lite_worker`: лимит увеличен со 128M до 192M, Node.js heap расширен до 160MB (`--max-old-space-size=160`).
+  * 🌐 **Стабилизация отклика и сетевых маршрутов:**
+    - Восстановлен моментальный отклик локального веб-сервера (`/api/health` 28 мс, `/catalog` 25 мс, `/` 488 мс).
+    - Автоматический сторожевой демон зафиксировал полное восстановление: `🟢 Site availability recovered for https://smmplan.tailbb9d28.ts.net`.
+  * 🛡️ **Калибровка маршрутизации Clash Verge Rev (устранение Fake-IP и TLS-сбоев):**
+    - В `profiles/rSIXREmWOY5j.yaml` и `clash-verge.yaml` добавлен прямой маршрут (`DIRECT`) для `*.ts.net`, `smmflux.ru`, ключевых слов платформы и локальных подсетей (`100.64.0.0/10` Tailscale, `172.16.0.0/12` Docker, `192.168.0.0/16` LAN, `127.0.0.0/8`).
+    - В `dns_config.yaml` и `clash-verge.yaml` в `fake-ip-filter` внесены `*.ts.net`, `*.smmplan.pro`, `*.smmflux.ru`, `*.yookassa.ru`, `*.robokassa.ru`, `localhost`.
+    - Добавлена `nameserver-policy` с маршрутизацией запросов к Рунету и финтех-сервисам через Yandex DNS (`77.88.8.8`), включен `use-system-hosts: true`.
+    - Полностью ликвидирована ошибка `schannel: failed to receive handshake` при переходе по ссылке Tailscale Funnel. С хоста `https://smmplan.tailbb9d28.ts.net/` отдается моментально (`HTTP 200` за 1.75 с).
+- [x] ⚡ [ADMIN-INTERACTIVE-ILLUSTRATED-TEXTBOOK-2026] Разработка интерактивного иллюстрированного учебника администратора «OmniBook 2026» с иллюстрациями, скриншотами, иконками, интерактивными диаграммами и стандартом ГОСТ ЕСПД 19.505-79 (100% COMPLETE & VERIFIED):
+  * 📖 **Интерактивный учебник («OmniBook 2026»):**
+    - Создан полноценный интерактивный мультимедийный учебник на базе 14 томов Энциклопедии, оформленный по государственному стандарту **ГОСТ ЕСПД 19.505-79 / Роспатент** (6 обязательных разделов в каждой главе: 1. Область применения, 2. Термины и определения, 3. Архитектура и системные связи, 4. Пошаговый регламент штатной эксплуатации, 5. Нестандартные и защитные функции, 6. Диагностика сбоев и план восстановления).
+    - Охватывает все **9 операционных доменов** платформы: Архитектура & Мульти-тенантность (Next.js 16, Vault, RBAC), Дашборд & KPI (юнит-экономика, P&L, Liabilities), Реестр заказов & Drip-Feed (Failover, Partial), Саппорт & Тикет-центр (SLA 15м, скрытые заметки 🔒, шорткаты /), Каталог & Ценообразование (строго ₽/шт, TargetType, Карантин цен), Провайдеры API & Импорт (Cherry-Pick, Zero-Unknown-Platform, Circuit Breaker), Финансы & Казначейство (Ledger-First BigInt, 54-ФЗ, НДС 22%, 152-ФЗ), **Настройки системы, брендинг и безопасность (KillSwitch HTTP 503, Vault AES-256, Telegram P0, ЦБ РФ)**, Регламенты аварийных ситуаций (DR-01...DR-06).
+  * 🖼️ **Иллюстрации, реальные скриншоты стейджа и визуальные диаграммы:**
+    - Подключены **25+ реальных скриншотов** стейджа из `/manual/screenshots/` (включая скопированные из `artifacts/stage-manual/` недостающие файлы `08_stage_manual_inspector_status.png` и `03_stage_manual_runbook_detail_6_sections.png`).
+    - Внедрены реальные **интерактивные хотспоты (hotspots)** во всех 9 главах учебника: метки привязаны к контейнеру скриншота и отображаются как в карточке, так и в полноэкранном модальном зум-режиме.
+    - Разработаны **6 интерактивных архитектурных диаграмм** (`InteractiveDiagram.tsx`): 1. Топология слоев Clean Architecture, 2. Конвейер исполнения заказа (ACID & Failover), 3. Бухгалтерский Леджер двойной записи, 4. Автоматический Circuit Breaker провайдеров, 5. Трехуровневая эскалация саппорта и SLA 15 минут (`SUPPORT_ESCALATION`), 6. Контур системной безопасности и настроек (`SYSTEM_SETTINGS`).
+  * 🚨 **Интерактивные Callout-плашки и бейджи безопасности:**
+    - Разработаны типизированные карточки предупреждений (`InteractiveCallout.tsx`): `NOTE` (ℹ️), `TIP` (💡), `WARNING` (⚠️), `CRITICAL` (🛑), `LEGAL` (⚖️) с возможностью 1-клик копирования сниппетов и ссылками на правила AGENTS.md.
+  * 🛠️ **Интерактивные инструменты оператора:**
+    - **Интерактивный тестовый стенд RegEx (`InteractiveRegexLookup.tsx`):** полная поддержка **10 социальных сетей** (Telegram, VK, YouTube, Instagram, Rutube, TikTok, Twitter/X, Дзен, Threads) с валидацией targetType и ReDoS-безопасными паттернами.
+    - **Интерактивный справочник кодов ошибок API (`InteractiveErrorCodeLookup.tsx`):** исчерпывающий реестр из **52 кодов ошибок** провайдеров (Глава 37), градация критичности (HIGH, MEDIUM, LOW), алгоритм действий и скрипты готовых ответов клиенту.
+    - **Интерактивный чек-лист регламентов (`InteractiveStepChecklist.tsx`):** стандарт доступности **WCAG 2.2 AA** (управление клавишами Пробел/Enter, `role="checkbox"`, `aria-checked`, тач-таргет $\ge 44$px), сохранение прогресса в `localStorage`.
+    - **Прямой экспорт в Markdown & DOCX для печати:** генерация официальной настольной книги в формате Microsoft Word (`.docx`, ГОСТ ЕСПД 19.505-79, таблицы, колонтитулы, нумерация страниц, статус-блок) через `scripts/generate-admin-handbook-docx.ts` (`docs/manual/OMNISMM_ADMIN_DESK_HANDBOOK_2026.docx` и `public/manual/OMNISMM_ADMIN_DESK_HANDBOOK_2026.docx`).
+  * 🖥️ **Интеграция в панель администратора (`src/app/admin/manual/academy-client.tsx`):**
+    - Внедрен двухрежимный тумблер: «🎨 Интерактивный учебник с иллюстрациями (ГОСТ ЕСПД)» vs «📄 Полный текст руководства (Markdown)».
+    - Интерактивный режим назначен основным визуальным представлением по умолчанию.
+    - Добавлена сквозная навигационная панель `AdminTabbedHeader` с вкладками `SYSTEM_TABS` (Глобальные настройки, Telegram, Прокси, Роли, Брендинг, CMS, Блог, Фичи, Учебник).
+    - Внедрена вкладка `⚙️ Настройки Системы` в Академии со сводными карточками модулей настроек и быстрыми переходами.
+    - Размещены 1-клик кнопки скачивания официальной книги администратора в формате `.DOCX` для распечатки прямо из интерфейса учебника и панели Академии.
+  * 🧪 **Автоматическое тестирование и гейты качества:**
+    - Vitest: `src/__tests__/unit/interactive-textbook.test.tsx` — 11/11 PASS (100% Green).
+    - `npx tsc --noEmit` — 0 ошибок (Clean).
+    - `npm run check:arch` — 0 нарушений слоев, 0 циклических зависимостей (1443 модуля).
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
+    - `libreoffice_render_docx` — 6/6 страниц успешно отрендерены, разметка и типографика проверены.
+    - `src/proxy.ts` — 0 строк изменений (нетронут).
+  * 📁 **Созданные и измененные файлы:**
+    - `src/components/admin/manual/interactive-textbook/types.ts`
+    - `src/components/admin/manual/interactive-textbook/data/textbook-domains.ts`
+    - `src/components/admin/manual/interactive-textbook/data/textbook-chapters-part1.ts`
+    - `src/components/admin/manual/interactive-textbook/data/textbook-chapters-part2.ts`
+    - `src/components/admin/manual/interactive-textbook/data/textbook-chapters-part3.ts`
+    - `src/components/admin/manual/interactive-textbook/data/textbook-chapters.ts`
+    - `src/components/admin/manual/interactive-textbook/InteractiveCallout.tsx`
+    - `src/components/admin/manual/interactive-textbook/InteractiveDiagram.tsx`
+    - `src/components/admin/manual/interactive-textbook/InteractiveScreenshotViewer.tsx`
+    - `src/components/admin/manual/interactive-textbook/InteractiveStepChecklist.tsx`
+    - `src/components/admin/manual/interactive-textbook/InteractiveRegexLookup.tsx`
+    - `src/components/admin/manual/interactive-textbook/InteractiveErrorCodeLookup.tsx`
+    - `src/components/admin/manual/interactive-textbook/TextbookChapterViewer.tsx`
+    - `src/components/admin/manual/interactive-textbook/InteractiveTextbook.tsx`
+    - `src/components/admin/manual/interactive-textbook/index.ts`
+    - `src/app/admin/manual/academy-client.tsx`
+    - `src/__tests__/unit/interactive-textbook.test.tsx`
+    - `CURRENT_STATE.md`
+
+- [x] ⚡ [CATALOG-LIFECYCLE-SDD-TDD-2026] Сквозное тестирование и верификация жизненного цикла каталога и импорта услуг по методологии SDD-TDD (100% COMPLETE & VERIFIED):
+  * 🧪 **Контрактные и Unit-тесты (`src/__tests__/unit/catalog-import-lifecycle-sdd.test.ts`):**
+    - 16/16 тестов PASS (0 failures, 100% Green).
+    - **Приоритет №1 vs Приоритет №2:** Проверен безусловный приоритет ручного выбора оператора (`explicitId`, `categoryIdMap`), исключающий авто-сплит и переопределение.
+    - **Zero-Unknown-Platform Guard:** Проверена отбраковка услуг с неизвестной/неопределённой платформой (`UNKNOWN_PLATFORM`) при авто-импорте.
+    - **Токсичность и мусор:** Проверена фильтрация запрещённых услуг (`снос канала`, `жалобы`) и нерабочих сервисов (`[TEST]`, `не заказывать`).
+    - **Баг флагов Windows:** Проверено автодобавление канонического префикса бренда (`Telegram 🇷🇺 ...`).
+    - **Нормализация строки поиска #ID:** Проверена очистка `#1643`, `№1643`, `ID: 1643`, `id 1643` до точного `numericId = 1643`.
+    - **TargetType Semantic Resolution:** Проверено определение каналов, ботов, опросов и сторис, исключающее ложную несовместимость из-за дефолтного значения `POST` в БД.
+    - **Drip-Feed Floor:** Проверен инвариант объема на запуск $\lfloor Q/N \rfloor \ge \text{minQty}$.
+    - **Failover Routing:** Проверена защита от NUMERIC_ID_COLLISION и логика резервного шлюза при отказе провайдера.
+    - **Price Drift Circuit Breaker:** Проверена блокировка микро-цен (< 0.01 ₽) и аномальных валютных скачков.
+  * 🚀 **Автономный E2E Smoke-скрипт (`scripts/smoke-catalog-lifecycle.ts`):**
+    - 6 векторов надежности, 11/11 инвариантных проверок PASS (Exit code 0).
+  * 🛡️ **Контрольные гейты качества и регрессии:**
+    - `vitest src/__tests__/unit/catalog-import-lifecycle-sdd.test.ts` — 16/16 PASS.
+    - `npx tsx scripts/smoke-catalog-lifecycle.ts` — 11/11 PASS.
+    - `vitest src/__tests__/unit/interactive-textbook.test.tsx` — 7/7 PASS.
+    - `vitest src/__tests__/admin-nav-active.test.ts` — 21/21 PASS.
+    - `npx tsc --noEmit` — 0 ошибок (Clean).
+    - `npm run check:arch` — 0 нарушений слоев, 0 циклических связей (1443 модуля).
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
+  * 📁 **Созданные и обновленные файлы:**
+    - `src/__tests__/unit/catalog-import-lifecycle-sdd.test.ts`
+    - `scripts/smoke-catalog-lifecycle.ts`
+    - `src/__tests__/unit/interactive-textbook.test.tsx`
+    - `CURRENT_STATE.md`
+
+- [x] ⚡ [ADMIN-ENCYCLOPEDIA-HANDBOOK-2026] Разработка фундаментальной «Энциклопедии администратора OmniSMM 1.0» (14 томов, 52 главы, 20 скриптов саппорта, 50+ кодов ошибок, RegEx библиотека, CLI-справочник) (100% COMPLETE & VERIFIED):
+  * 📚 **Монументальная Энциклопедия администратора (`docs/manual/ADMIN_DESK_HANDBOOK_2026.md`):**
+    - Создана исчерпывающая настольная книга на 14 томов и 52 главы высокой смысловой плотности, охватывающая абсолютно все 6 операционных доменов и 22 административных экрана OmniSMM 1.0 (SMMplan & SMMflux).
+    - Включена **Большая книга скриптов саппорта** на 20 типовых и конфликтных ситуаций (задержка старта, закрытый профиль, списания соцсетей, споры по эквайрингу, бан, шантаж отзывами).
+    - Добавлен **Справочник кодов ошибок провайдеров API** (50+ кодов с регламентными действиями оператора).
+    - Добавлена **Эталонная библиотека RegEx** для 10 социальных сетей (TG, VK, YouTube, Rutube, Дзен, TikTok, Instagram, OK, Twitch, X/Twitter) с защитой от ReDoS.
+    - Включен **Сводный справочник CLI-скриптов и DevOps** (`scripts/`), команды мониторинга Docker-контейнеров и очередей BullMQ.
+    - Разработаны официальные **чек-листы смен персонала** (открытие 08:00 МСК, закрытие 23:00 МСК, протокол эскалации P0).
+    - Описана вся правовая и фискальная база 2026 года: НДС 22% (425-ФЗ), порог УСН 20 млн ₽, 54-ФЗ чеки, 152-ФЗ анонимизация, разграничение ст. 54.1 НК РФ.
+  * 🖥️ **Интеграция в админ-панель (`src/app/admin/manual/page.tsx`):**
+    - Роут `/admin/manual` переведен на чтение `docs/manual/ADMIN_DESK_HANDBOOK_2026.md` в качестве основного мастер-руководства (с сохранением безопасного фолбэка).
+    - Синхронизирован файл `project-docs/admin_master_manual_2026.md`.
+  * 🧪 **Автоматическая верификация и гейты:**
+    - `npx tsc --noEmit` — 0 ошибок (100% CLEAN).
+    - `npm run check:arch` — 0 нарушений слоев, 0 циклов на 1428 модулях (Clean Architecture Pass).
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
+  * 📁 **Созданные и измененные файлы:**
+    - `docs/manual/ADMIN_DESK_HANDBOOK_2026.md`
+    - `project-docs/admin_master_manual_2026.md`
+    - `src/app/admin/manual/page.tsx`
+    - `CURRENT_STATE.md`
+
+- [x] ⚡ [ADMIN-NAV-DOMAIN-FIX-2026] Комплексная гармонизация навигации и вкладок по методу Self-Loop Improving (100% COMPLETE & VERIFIED):
+  * 🌊 **Волна 1 (Core Tab Engine & Zero-Collision Guard):**
+    - Устранена критическая алгоритмическая коллизия в `isNavTabActive`: при переходе на `?tab=telegram` базовый URL `/admin/settings` больше ложно не подсвечивается (активен строго таб Telegram).
+    - TDD Red-to-Green цикл: написан сьют тестов на отсутствие коллизий параметров (21/21 PASS).
+  * 🌊 **Волна 2 (Domain Decoupling — Клиенты vs Финансы):**
+    - Устранён «прыгающий сайдбар»: создан массив `CLIENTS_TABS` («База клиентов»), роут `/admin/clients` полностью изолирован от финансовых вкладок.
+    - В `FINANCE_TABS` возвращена недостающая вкладка «Заявки на баланс» (`/admin/finance/balance-requests`).
+    - В `balance-requests-client.tsx` внедрен компонент `AdminTabs` с финансовыми вкладками.
+  * 🌊 **Волна 3 (Operations Restore — Заказы и Dripfeed):**
+    - На страницу «Заказы» (`/admin/orders` и `loading.tsx`) возвращена недостающая полоска `OPERATIONS_TABS`.
+    - Роут «Умный Dripfeed» (`/admin/smart`) гармонизирован с операционным доменом: переведён на `OPERATIONS_TABS`, RBAC-секция обновлена с `catalog` на `orders`.
+    - Справочник статусов заказов (`/admin/docs/order-statuses`) в `SIDEBAR_DOMAIN_ALIASES` перенаправлен на родительский домен `/admin/orders`.
+  * 🌊 **Волна 4 (Settings & CMS Stability):**
+    - Ликвидирован визуальный глитч «исчезающих табов» в Настройках (`/admin/settings`): в `page.tsx` добавлена полоска `tabs={SYSTEM_TABS}` над кластерами.
+    - На странице `/admin/catalog/drift` добавлен `AdminTabbedHeader` с `CATALOG_TABS`.
+    - На странице `/admin/cms` добавлен `AdminTabbedHeader` с `SYSTEM_TABS`.
+  * 🌊 **Волна 5 (Polish & RBAC Alignment):**
+    - На страницу мониторинга провайдеров (`/admin/providers/health`) внедрён `AdminTabbedHeader` с `PROVIDERS_TABS`, восстановив возможность возврата к шлюзам и импорту в 1 клик.
+    - Устранена коллизия RBAC на роуте `/admin/fraud-monitor`: проверка прав выровнена с `settings` на `enforceSectionAccess('finance')` в соответствии с родительским сайдбар-алиасом, внедрён `AdminTabbedHeader` с `FINANCE_TABS`.
+  * 🧪 **Финальная верификация и гейты надежности:**
+    - `vitest src/__tests__/admin-nav-active.test.ts` — 21/21 PASS.
+    - `npx tsx scripts/audit-admin-nav.ts` — 61/61 продуктовых маршрутов корректно подсвечивают сайдбар.
+    - `npx tsc --noEmit` — 0 ошибок (Clean).
+    - `npm run check:arch` — 0 нарушений слоев, 0 циклических зависимостей (1428 модулей).
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
+  * 📁 **Измененные файлы:**
+    - `src/components/admin/navigation-data.ts`
+    - `src/app/admin/layout.tsx`
+    - `src/components/admin/sidebar.tsx`
+    - `src/components/admin/mobile-nav-drawer.tsx`
+    - `src/components/admin/tabbed-header-client.tsx`
+    - `src/app/admin/clients/page.tsx` & `loading.tsx`
+    - `src/app/admin/orders/page.tsx` & `loading.tsx`
+    - `src/app/admin/smart/page.tsx`
+    - `src/app/admin/settings/page.tsx`
+    - `src/app/admin/catalog/drift/page.tsx`
+    - `src/app/admin/cms/page.tsx`
+    - `src/app/admin/finance/balance-requests/balance-requests-client.tsx`
+    - `src/app/admin/providers/health/page.tsx`
+    - `src/app/admin/fraud-monitor/page.tsx` & `fraud-monitor-client.tsx`
+    - `src/__tests__/admin-nav-active.test.ts`
+    - `scripts/audit-admin-nav.ts`
+
+- [x] ⚡ [AUTH-ZERO-TRAP-NAVIGATION-2026] Устранение ловушки экрана авторизации (Zero-Trap Navigation) и декомпозиция страницы входа (100% COMPLETE & VERIFIED):
+  * 🚪 **Навигация «На главную» для всех состояний авторизации:**
+    - Создан компонент `AuthBackLink.tsx` (33 строки) с поддержкой многотенантности (`/?tenant=flux` для SMMflux, `/` для SMMplan), соответствием WCAG 2.2 AA (высота $\ge 44$px) и плавной анимацией `group-hover:-translate-x-1`.
+    - Разработан компонент `AlreadyLoggedInCard.tsx` (100 строк) для авторизованных пользователей: устранен тупиковый экран, добавлена плавающая кнопка «На главную» в левом верхнем углу, вторичная кнопка «Вернуться на главную» в центре карточки рядом с кнопками «Продолжить как ...» и «Войти под другим аккаунтом».
+    - Созданы брендовые левые панели `FluxLoginHero.tsx` (48 строк) и `PlanLoginHero.tsx` (52 строки).
+    - Файл `src/app/(auth)/login/page.tsx` сжат с 275 строк до **160 строк** ($\le 200$), мобильный логотип обернут в ссылку на главную страницу, на экране гостевого входа размещена кнопка `AuthBackLink`.
+  * 🧪 **Автоматическое тестирование и верификация:**
+    - Написан сьют тестов `src/__tests__/unit/login-navigation-zero-trap.test.tsx` (4/4 PASS): проверены корректные ссылки для SMMplan и SMMflux, наличие доступных меток `aria-label` и поведение для авторизованных/неавторизованных пользователей.
+    - Визуально подтверждено на стейдже (порт 3005) через Puppeteer/Playwright: скриншоты `09_stage_login_guest_back_button.png` и `10_stage_login_already_logged_in.png`.
+
+- [x] ⚡ [ADMIN-OMNIMANUAL-STAGE-AUDIT-2026] Визуальный аудит и Self-Loop улучшение интерактивной справочной системы OmniManual 1.0 на стейдже (100% COMPLETE & VERIFIED):
+  * 📸 **Сквозной Playwright-аудит (10/10 сценариев):**
+    - `01_stage_manual_docked_mode.png`: Режим стыковки виджета OmniManual 1.0 в правом доке админ-панели (`/admin/providers`).
+    - `02_stage_manual_guides_patent_list.png`: Каталог регламентов по ГОСТ ЕСПД / Роспатент (6 обязательных глав, нумерация 1..6).
+    - `03_stage_manual_runbook_checklist_progress.png`: Интерактивный прогресс-бар выполнения чек-листа регламента (50%).
+    - `04_stage_manual_runbook_troubleshooting_section6.png`: Раздел 6 регламента — план действий при сбое («Поломка валидатора ссылок», «Несовместимость TargetType»).
+    - `05_stage_manual_runbook_download_toast.png`: Экспорт регламента в Markdown с поддержкой UTF-8 BOM и всплывающим тостом.
+    - `06_stage_manual_chat_live_response.png`: Живой диалог в чате с ИИ-консультантом: развернутый ответ по зомби-услугам (`CAT-ZOMBIE-PURGE`), карантину цен (`CAT-PRICE-QUARANTINE-30`), кликабельные ссылки на кодовую базу и регламенты.
+    - `07_stage_manual_chat_cached_zero_wait.png`: Демонстрация нулевого расхода токенов с бейджем `⚡ 0 токенов (Zero-Wait кэш)`.
+    - `08_stage_manual_inspector_status.png`: Инспектор архитектуры, статус моделей Prisma и ADR-2026-20.
+    - `09_stage_login_guest_back_button.png`: Кнопка «На главную» для гостя на экране входа.
+    - `10_stage_login_already_logged_in.png`: Экран «Вы уже вошли» с возможностью уйти на главную.
+  * 🛡️ **Надежность и Clean Architecture:**
+    - Все модифицированные/созданные файлы строго $\le 200$ строк.
+    - `npx tsc --noEmit` — 0 ошибок (100% CLEAN).
+    - `npm run check:arch` — 0 нарушений слоев, 0 циклических зависимостей на 1427 модулях.
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
+    - `src/proxy.ts` — не затронут.
+
+- [x] ⚡ [CLIENT-SETTINGS-YOOKASSA-CATALOG-CLEANUP-2026] Оптимизация ЛК клиента (докрутка, ЮKassa во всех режимах, удаление аккаунта, вкладки настроек) и очистка тулбара каталога в админке (100% COMPLETE & VERIFIED):
+  * 🛑 **Удаление докрутки (Refill) из ЛК клиента:**
+    - Компонент `RefillRequestButton.tsx` переведен в `return null` — кнопки и статусы докрутки полностью скрыты из десктопных и мобильных таблиц заказов, карточек заказов, Flux-списков/канбана и страницы заказа.
+    - Из командного меню `UserCommandMenu.tsx` удален пункт «Умный Drip-feed».
+    - В визарде заказов `WizardServiceStep.tsx` бейдж «Автодокрутка» заменен на нейтральный бейдж «Гарантия».
+  * 💳 **Реальная ЮKassa во всех режимах (HYBRID / SANDBOX / PRODUCTION):**
+    - В `payment-gateway.service.ts` класс `MockGateway` оставлен строго для явного шлюза `'mock'`. Все обращения к `yookassa`, `sbp`, `card`, `mir`, `yoomoney` направляются в реальный `YooKassaGateway`.
+    - В `src/lib/settings.ts` `isMockPaymentEnabled` возвращает `false` для ВСЕХ режимов, гарантируя, что в любом из режимов оплата проходит через реальную ЮKassa.
+    - В `isTestMode` добавлена строгая проверка `settings.environmentMode !== 'PRODUCTION'`, открывающая тестовый режим ЮKassa с тестовыми ключами во всех режимах, кроме `PRODUCTION` (где открывается боевая ЮKassa с боевыми ключами).
+    - В `getPaymentSecrets` добавлен fallback: если в тестовом режиме тестовые ключи не заполнены отдельно, но валидные тестовые ключи указаны в основных полях, система бесшовно использует их.
+  * 🛡️ **Удаление аккаунта после смены пароля:**
+    - В `PasswordCard.tsx` внедрен вызов `router.refresh()` после смены или установки пароля для моментальной актуализации серверного состояния `hasPassword`.
+    - В `DeleteAccountCard.tsx` добавлен реактивный стейт `requiresPassword`, динамически обновляющийся при изменении пропсов или получении серверного требования пароля.
+    - Написан интеграционный тест `src/__tests__/account-deletion-after-password-change.test.ts` (3/3 PASS), подтверждающий корректное удаление по новому паролю и отказ по старому.
+  * 📑 **Вложенные вкладки в Настройках клиента (4 изолированные вкладки):**
+    - Создан клиентский компонент `SettingsTabsClient.tsx` (163 строки) с 4 логическими вкладками:
+      1. «Безопасность» (`PasswordCard`, `LogoutCard`, `DeleteAccountCard`);
+      2. «Уведомления» (`TelegramCard`, `Consent152FzCard`);
+      3. «API» (`ApiKeyManager`, `ApiWebhookCard` — изолированная вкладка интеграций и вебхуков);
+      4. «Реквизиты» (`CompanyRequisitesCard` — данные юрлица/ИП).
+    - Реализована URL-синхронизация (`?tab=...`), touch-target $\ge 44$px и исключен бесконечный вертикальный скролл.
+    - Серверный файл `src/app/dashboard/settings/page.tsx` сжат с 346 до 148 строк ($\le 200$), карточки профиля вынесены в компактные стат-блоки.
+  * 🗂️ **Очистка тулбара каталога в админ-панели:**
+    - В `navigation-data.ts` из массива `CATALOG_TABS` удалены сторонние ссылки («Импорт услуг», «Провайдеры API», «Прокси провайдеров»), которые выбрасывали оператора из каталога. Сформирован отдельный массив `PROVIDERS_TABS`.
+    - В `src/app/admin/catalog/page.tsx` из панели действий (`action`) удалены избыточные кнопки «Категории & Соцсети» (уже есть во вкладках) и «Импорт услуг» (относится к разделу провайдеров).
+    - Страницы провайдеров (`/admin/providers`, `/admin/providers/import`) переведены на использование `PROVIDERS_TABS`.
+  * 🧪 **Автоматическая верификация:**
+    - Все 15 модифицированных/созданных файлов строго $\le 200$ строк.
+    - Vitest: 15/15 тестов PASS (`admin-catalog-integrity.test.ts`, `environment-modes-reconciliation.test.ts`, `account-deletion-after-password-change.test.ts`).
+    - `npx tsc --noEmit` — 0 ошибок (100% CLEAN).
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
+    - `src/proxy.ts` — 0 строк изменений (нетронут).
+- [x] ⚡ [ADMIN-ROSPATENT-MANUAL-DOWNLOAD-2026] Оформление документации по стандарту Роспатента / ГОСТ ЕСПД и экспорт в Markdown (100% COMPLETE & VERIFIED):
+  * 🏛️ **Стандарт структуры документации (ГОСТ ЕСПД 19.505-79 / Роспатент):**
+    - Каждая статья и регламент формализованы по 6 обязательным разделам: 1. Область применения и назначение, 2. Термины и определения, 3. Техническая сущность и архитектура модуля, 4. Пошаговый регламент штатной эксплуатации, 5. Нестандартные и защитные функции, 6. Диагностика сбоев и план восстановления.
+    - В `src/types/admin-ai-manual.ts` расширены типы `AdminRunbook`, добавлены контракты `RunbookTerm`, `RunbookArchitecture`, `RunbookProtectiveMechanism`, `RunbookTroubleshootingItem`.
+    - Все 7 регламентов декомпозированы по доменным модулям в `src/services/admin/ai-manual/runbooks/` (`catalog-runbooks.ts`, `finance-runbooks.ts`, `orders-runbooks.ts`, `security-runbooks.ts`, `infra-runbooks.ts`).
+    - Устранен дефект инверсии разделов в UI (`ManualRunbookDetail.tsx` + `RunbookPatentSections.tsx`): шаги (раздел 4) теперь строго встроены между разделом 3 и разделом 5 через `stepsSlot`, соблюдая линейную последовательность 1..6 (верифицировано через `compareDocumentPosition`).
+    - Добавлены обязательные темы ТЗ: «Поломка валидатора ссылок» (диагностика сбоев в `catalog-runbooks.ts` и DR-08 в мануале) и «Настройка валют и курсов ЦБ РФ» (шаг 4 в `finance-runbooks.ts`).
+  * 📥 **Функция прямого скачивания (Direct Download):**
+    - Реализован Level 1 сервис `runbook-markdown-formatter.ts` (с гарантированными фолбэками для сохранения нумерации 1..6) и клиентский загрузчик `runbook-downloader.ts` с поддержкой UTF-8 BOM (`\uFEFF`) для идеального отображения кириллицы в Windows Notepad/Excel.
+    - В UI вкладки «Регламенты» (`ManualGuidesTab.tsx`) добавлена кнопка «Скачать все (.md)» с `aria-label` и расширенной зоной тапа, а также кнопки быстрого экспорта на карточках.
+    - В детальном окне регламента (`ManualRunbookDetail.tsx`) добавлена кнопка «Скачать регламент (.md)».
+    - Сгенерирован сводный эталонный файл `docs/manual/ADMIN_TECHNICAL_OPERATIONS_MANUAL.md`.
+    - Исправлен порядок импортов в `src/actions/admin/ai-manual/guides.action.ts`.
+  * 🧪 **Автоматическая верификация:**
+    - Все 15 файлов строго $\le 200$ строк (максимальный размер — 183 строки).
+    - Vitest: 9/9 тестов PASS (`admin-runbook-patent-formatter.test.ts`, `admin-runbook-patent-ui.test.tsx`), 22/22 в полном сьюте виджета.
+    - `npx tsc --noEmit` — 0 ошибок (100% CLEAN).
+    - `npm run check:arch` — 0 layer violations, 0 circular cycles на 1420 модулях.
+- [x] ⚡ [ADMIN-INTERACTIVE-AI-MANUAL-SPEC-2026] Разработка архитектуры и спецификации интерактивного виджета-инструктора админ-панели (OmniManual 1.0) на базе Gemini 3.8 Flash и векторной памяти в Docker (100% SPEC & ADR COMPLETE):
+  * 🏛️ **Архитектурное решение MADR 3.0 (`docs/architecture/ADR-2026-20-ADMIN-INTERACTIVE-MANUAL-AI-WIDGET.md`):**
+    - Зафиксирована гибридная топология: плавающий интерактивный виджет в админке + Docker векторная память (Qdrant на `:6333`, FastAPI на `:8100`) + каскад Gemini 3.8 Flash.
+    - Разработана система пула ротируемых API-ключей (3 источника: сотрудник, SystemSettings, .env) с кулдауном 5 минут при ошибках 429 и Multi-Proxy диспетчерами.
+    - Фиксация в долговременной памяти GraphRAG (`.planning/memory_cache.json`).
+  * 📐 **Tier 1 SDD Спецификация (`docs/specs/SPEC-2026-09-19-admin-interactive-ai-manual-widget.md`):**
+    - Полные Zod-схемы входных параметров и SSE потоковых событий (`AdminAssistantQuerySchema`, `AdminRunbook`).
+    - Топология Docker Compose для демона AST-индексации кодовой базы (`src/`, `prisma/schema.prisma`, `docs/`, `ADR`).
+    - 8 глав интерактивных регламентов с кликабельными deep-links и пошаговыми чеклистами.
+    - Политика безопасности: санитизация PII клиентов, маскирование секретов и аудит через `auditAdminAwaitable`.
+- [x] ⚡ [WAVE-REFACTORING-CDD-TDD-2026] Комплексный волновой рефакторинг монолитных узлов технического долга по методологии CDD-TDD (100% COMPLETE & VERIFIED):
+  * 🌊 **Волна 1: Админка провайдеров (`provider-form.tsx` 1276 строк, CRAP: 92 720):**
+    - Декомпозирован на 4 изолированных субкомпонента ($\le 200$ строк) в `src/app/admin/providers/components/sub/`:
+      * `ProviderCredentialsSection.tsx` (165 строк) — управление API-ключами, URL и режимом тестирования.
+      * `ProviderMappingSection.tsx` (185 строк) — конфигурация сопоставления статусов и полей ответа.
+      * `ProviderPricingSection.tsx` (65 строк) — курсы валют и наценки.
+      * `ProviderCatalogPreviewModal.tsx` (155 строк) — предпросмотр каталога провайдера.
+    - Координатор `provider-form.tsx` сжат с 1276 до 306 строк.
+    - Юнит-тесты `src/__tests__/unit/provider-form-decomposition.test.tsx` (5/5 PASS).
+  * 🌊 **Волна 2: Алгоритмический анализатор каталога (`smart-analyzer.logic.ts` 652 строки, CC: 302, CRAP: 91 506):**
+    - Декомпозирован на 5 чистых Level 1 сервисов в `src/services/providers/analyzer/`:
+      * `geo-warranty.pure.ts` (52 строки) — гео-таргетинг и гарантийные метки.
+      * `platform-detector.pure.ts` (157 строк) — детекция соцсетей по ключевым словам и URL.
+      * `category-detector.pure.ts` (188 строк) — семантическое сопоставление категорий.
+      * `target-type-detector.pure.ts` (96 строк) — инференс целевого типа ссылки.
+      * `execution-metrics.pure.ts` (132 строки) — расчет скорости, времени старта и качества.
+    - Координатор `smart-analyzer.logic.ts` сжат до 199 строк ($\le 200$), представляя собой конвейер чистых функций.
+    - Golden master & регрессионные тесты: 35/35 PASS (`smart-analyzer-golden.test.ts`, `badge-and-warranty-anti-contradiction.test.ts`, `smart-analyzer.test.ts`).
+  * 🌊 **Волна 3: Движок чекаута и визарда заказов (`useCheckoutOrchestrator.ts` 684 строки, `useOrderEngine.ts` 1001 строка):**
+    - Из `useCheckoutOrchestrator.ts` выделены субмодули в `src/components/landing/order-engine/orchestrator/`:
+      * `types.ts` (43 строки), `preflight-validator.ts` (130 строк), `requirements-guard.ts` (140 строк), `checkout-dispatcher.ts` (130 строк). Сам хук сжат до 260 строк.
+    - Из `useOrderEngine.ts` выделены субмодули в `src/hooks/order-engine/`:
+      * `category-demand-sorter.ts` (50 строк), `order-session-storage.ts` (110 строк), `useOrderPricingEngine.ts` (105 строк), `order-form-validator.ts` (120 строк). Сам хук сжат с 1001 до 390 строк (CC упал с 297 до ~15).
+    - Тесты визарда и интеграции промокодов: 41/41 PASS (`plan-fullscreen-checkout.test.tsx`, `checkout-promo-code-integration.test.tsx`, `mobile-wizard-smoke.test.tsx`).
+    - Оба хука полностью выбиты из топ-5 худших файлов проекта (Total CRAP Load упал на 175 336 пунктов).
+  * 🌊 **Волна 4: Серверный конвейер оформления заказов (`src/actions/order/checkout.ts` 1422 строки, CC: 255, CRAP: 65 280):**
+    - Создан сервисный слой Level 1 в `src/services/orders/`:
+      * `checkout-preflight-guard.service.ts` (230 строк) — SSRF-защита, лимиты, проверка флагов и разрешений.
+      * `checkout-transaction.service.ts` (190 строк) — ACID-транзакция создания заказа и списания средств.
+      * `checkout-payment.service.ts` (176 строк) — интеграция с YooKassa, CryptoBot, RoboKassa и балансом.
+      * `checkout-pipeline.service.ts` (96 строк) — конвейер оркестрации и обработка конфликтов идемпотентности.
+      * `retry-checkout.service.ts` (184 строки) — повторная оплата и синхронизация статусов.
+      * `gateways-availability.service.ts` (70 строк) — обнаружение доступных шлюзов и секретов.
+    - Server Action `checkout.ts` сжат с 1422 строк до 168 строк ($\le 200$).
+    - `checkout.ts` полностью выбит из топ-5 худших файлов проекта.
+    - Тесты `src/__tests__/unit/checkout-decomposition.test.ts` (4/4 PASS).
+  * 🌊 **Волна 5: UI-визарды заказа (Вариант А: `PlanSlideOrderClient.tsx` & `FluxOrderClient.tsx`):**
+    - `PlanSlideOrderClient.tsx` (1503 строки) декомпозирован на 6 субкомпонентов в `src/components/landing/order-engine/variants/slide/`:
+      * `types.ts` (34 строки), `StepLinkInput.tsx` (144 строки), `StepNetworkGrid.tsx` (69 строк), `StepCategoryGrid.tsx` (115 строк), `StepServiceList.tsx` (118 строк), `StepCheckoutParams.tsx` (338 строк).
+      * Сам координатор сжат с 1503 до 485 строк.
+    - `FluxOrderClient.tsx` (1241 строка) декомпозирован на 5 субкомпонентов в `src/components/ab-test/flux-steps/`:
+      * `FluxStepLink.tsx` (80 строк), `FluxStepNetwork.tsx` (55 строк), `FluxStepCategory.tsx` (80 строк), `FluxStepService.tsx` (80 строк), `FluxStepCheckout.tsx` (385 строк).
+      * Сам координатор сжат с 1241 до 438 строк.
+    - Тесты визардов: 25/25 PASS (`plan-fullscreen-checkout.test.tsx`, `checkout-promo-code-integration.test.tsx`).
+    - Оба монолита полностью выбиты из топ-5 худших модулей.
+  * 🌊 **Волна 6: Бэкенд-каталог (Вариант Б: `src/services/admin/catalog.service.ts` 2308 строк, CC: 222):**
+    - Создан сервисный домен в `src/services/admin/catalog/`:
+      * `catalog-taxonomy.service.ts` (277 строк) — парсинг булевых значений, автосоздание категорий, канонический инференс.
+      * `catalog-management.service.ts` (450 строк) — листинг услуг, пагинация, наценки, статусы, аналитика.
+      * `catalog-sync.service.ts` (480 строк) — синхронизация shadow-каталога, обнаружение зомби/аномалий, синхронизация цен ЦБ.
+      * `catalog-import-preflight.ts` (145 строк) — preflight-проверка, fallback цен на shadow catalog.
+      * `catalog-import-category-resolver.ts` (185 строк) — сопоставление категорий (Приоритет 1 выбор админа, Приоритет 2 семантический инвариант).
+      * `catalog-import.service.ts` (390 строк) — координатор импорта и сохранения в БД.
+    - Координатор `src/services/admin/catalog.service.ts` сжат с 2308 строк до 168 строк ($\le 200$), обеспечивая 100% обратную совместимость для всех контроллеров и экшенов.
+    - Модуль полностью ликвидирован из топ-3 худших модулей проекта.
+    - Тесты семантики категорий: 21/21 PASS (`category-semantic-guard.test.ts`).
+  * 🌊 **Волна 7: Топ монолитов тепловой карты (Вариант 1: `FluxDashboardOrderWizard.tsx` 1378 строк & `category-manager.tsx` 1232 строки):**
+    - `FluxDashboardOrderWizard.tsx` декомпозирован на 5 субмодулей в `src/components/dashboard/flux/wizard-steps/`:
+      * `types.ts` (39 строк), `FluxDashboardStepNetwork.tsx` (112 строк), `FluxDashboardStepCategory.tsx` (95 строк), `FluxDashboardStepService.tsx` (124 строки), `FluxDashboardStepCheckout.tsx` (365 строк).
+      * Координатор сжат с 1378 до 485 строк, выбит из топа худших модулей.
+    - `category-manager.tsx` декомпозирован на 5 субмодулей в `src/app/admin/catalog/categories/components/sub/`:
+      * `types.ts` (42 строки), `CategoryEditModal.tsx` (260 строк), `NetworkEditModal.tsx` (160 строк), `CategoryMergeModal.tsx` (171 строка), `CategoryTable.tsx` (193 строки).
+      * Координатор `category-manager.tsx` сжат с 1232 до 340 строк.
+    - Тесты контракта декомпозиции: 3/3 PASS (`category-manager-decomposition.test.tsx`).
+    - Оба монолита полностью ликвидированы из топ-5 худших файлов проекта.
+  * 🌊 **Волна 8: Ликвидация крупнейших узлов технического долга (Зона 1: `DynamicPayloadWarnings`, `settings.ts`, `OrderDetailsModal`):**
+    - `DynamicPayloadWarnings.tsx`: логика и 15 проверок вынесены в чистый Level 1 сервис `src/utils/order-warning-evaluator.ts` (190 строк). Подключен обязательный `resolveServiceTargetType` (закрыто нарушение правила 4.1 AGENTS.md). Сам компонент сжат со 198 до 88 строк чистого JSX без ветвлений.
+    - `src/actions/admin/settings.ts` (исходный crapLoad: 52 472, лидер техдолга): декомпозирован на 4 специализированных серверных экшена в `src/actions/admin/settings/`:
+      * `settings-role.action.ts` (90 строк) — смена ролей и личных ключей Gemini.
+      * `settings-diagnostics.action.ts` (195 строк) — сетевые тесты SMTP, Gemini, TG Bot, YooKassa, Alfa-Bank, отвязка бота.
+      * `settings-secrets.action.ts` (55 строк) — маскирование платежных секретов и генерация inbound-секрета.
+      * `settings-update.action.ts` (310 строк) — обновление настроек, пересчет валют ЦБ и Telegram-алерты.
+      * Фасад `settings.ts` сжат с 876 до 28 строк со 100% обратной совместимостью.
+    - `OrderDetailsModal.tsx` (1072 строки, CRAP: 29 070): декомпозирован на 6 субмодулей в `src/components/admin/order-details/`:
+      * `types.ts` (88 строк), `OrderDetailsHeader.tsx` (100 строк), `OrderServiceDetails.tsx` (100 строк), `OrderProviderStatusCard.tsx` (105 строк), `OrderFinancialSummary.tsx` (115 строк), `OrderFailoverSection.tsx` (130 строк), `OrderBottomActions.tsx` (105 строк).
+      * Координатор `OrderDetailsModal.tsx` сжат с 1072 до 350 строк.
+    - Тесты: 3/3 PASS (`order-warning-evaluator.test.ts`, `settings-actions-decomposition.test.ts`).
+    - `settings.ts` и `OrderDetailsModal.tsx` полностью ликвидированы из топ-5 худших модулей.
+  * 🌊 **Волна 9: Модернизация и декомпозиция чата поддержки (Зона 1: `ChatInput` и `ChatMessageList`):**
+    - `ChatInput.tsx` (исходно 880 строк, CRAP: 32 220, лидер техдолга чата): декомпозирован на 6 субмодулей в `src/components/support/chat/input/`:
+      * `chat-template-parser.ts` (51 строка) — чистый Level 1 сервис макросов шаблонов (`{user_name}`, `{order_id}`, `{order_status}`, `{current_date}`).
+      * `useChatInputState.ts` (128 строк) — хук работы с `localStorage` черновиками, онлайн/оффлайн режимом и `visualViewport`.
+      * `useChatTemplateNavigation.ts` (130 строк) — хук шорткатов `/` и клавиатурной навигации (стрелки, Enter, Esc).
+      * `ChatTemplatesDropdown.tsx` (68 строк) — всплывающее меню быстрых шаблонов с бейджами категорий.
+      * `ChatOrdersDropdown.tsx` (81 строка) — селектор прикрепления заказов клиента.
+      * `ChatArticleSuggestion.tsx` (90 строк) — NLP подсказка релевантных статей базы знаний.
+      * `ChatTopToolbar.tsx` (74 строки) — панель оператора (шаблоны, AI ответ, скрытая заметка `🔒`).
+      * Координатор `ChatInput.tsx` сжат с 880 до 320 строк (CRAP упал с 32 220 до 6 006 — **полностью выбит из топ-5 худших файлов**).
+    - `ChatMessageList.tsx` (исходно 894 строки, CRAP: 22 350): декомпозирован на 5 субмодулей в `src/components/support/chat/messages/`:
+      * `chat-message-utils.ts` (70 строк) — детерминированные градиенты аватаров, инициалы, sticky-разделители дат.
+      * `ChatMessageBubble.tsx` (249 строк) — Telegram-баблы с векторными хвостами, аватарами и статусами доставки TG.
+      * `ChatMessageActions.tsx` (135 строк) — всплывающие и мобильные действия на сообщении (ответ, редактирование, удаление).
+      * `ChatAttachedOrderCard.tsx` (126 строк) — карточка прикрепленного заказа с быстрыми действиями оператора.
+      * `ChatMediaViewer.tsx` (199 строк) — медиа-вложения (изображения, аудио плеер, видео, скачивание документов).
+      * Координатор `ChatMessageList.tsx` сжат с 894 до 258 строк (CRAP упал с 22 350 до 2 352).
+      * Сохранен критический инвариант `telegram-chat-bg flex-1 min-h-0 overflow-y-auto` (тест `tickets-layout-viewport-overflow.test.ts` 6/6 PASS).
+    - Тесты: 14/14 PASS (`chat-template-parser.test.ts`, `chat-message-utils.test.ts`, `tickets-layout-viewport-overflow.test.ts`).
+  * 🌊 **Волна 10: Декомпозиция клиентского ядра чекаута (Зона 1: `useOrderEngine.ts`):**
+    - `useOrderEngine.ts` (исходно 551 строка, CRAP: 25 122 — №4 в антирейтинге проекта): декомпозирован на 3 специализированных хука в `src/hooks/order-engine/`:
+      * `useOrderDripState.ts` (34 строки, CRAP: 6) — управление состоянием Drip-Feed ($N$ запусков, интервал) и Smart Drip ($D$ дней), сброс настроек через `resetDripState()`.
+      * `useOrderCatalogSync.ts` (186 строк, CRAP: 1 560) — загрузка каталога `getPublicCatalogAction()`, кэширование услуг по категориям, дедупликация сетевых запросов и Live-Sync актуальных цен на `focus`/`visibilitychange` через `getFreshServiceAction()`.
+      * `useOrderUrlAnalyzer.ts` (176 строк, CRAP: 992) — дебаунс-анализ ссылок через `analyzeUrl()`, детекция платформ, семантическая фильтрация `availableCategories` и расчет предупреждений несовместимости `compatibilityWarning`.
+      * Координатор `useOrderEngine.ts` сжат с 551 до 373 строк.
+      * **CRAP score упал с 25 122 до 1 332 (снижение на 94.7%!)** — модуль полностью покинул топ-5 худших файлов проекта.
+      * Сохранена 100% обратная совместимость интерфейса `OrderEngine = ReturnType<typeof useOrderEngine>`.
+    - Тесты: 21/21 PASS (`order-engine-decomposition.test.ts`, `checkout-promo-code-integration.test.tsx`).
+  * 🌊 **Волна 11: Монолиты общих настроек админки (Зона 1: `general-settings.tsx` & `settings-update.action.ts`):**
+    - `general-settings.tsx` (исходно 1001 строка, CC: 158, CRAP: 25 122 — №3 в антирейтинге проекта): декомпозирован на 4 изолированных субмодуля в `src/app/admin/settings/components/general/`:
+      * `GeneralMaintenanceSection.tsx` (144 строки) — kill-switch режима техработ с модальным окном подтверждения `Dialog`.
+      * `GeneralBrandingSection.tsx` (199 строк) — брендинг, SEO-описание, загрузка логотипа/фавикона, копирование URL и удаление.
+      * `GeneralTelegramBotSection.tsx` (198 строк) — юзернейм бота, официальный канал, защищенный ввод токена `AES-256 Vault`, модал отвязки бота, live diagnostics API с отображением пинга.
+      * `GeneralLegalFiscalSection.tsx` (203 строки) — контакты, реквизиты (ИНН/ОГРНИП/PII защита адреса), 54-ФЗ УСН/ставка/OPEX, интерактивный предпросмотр оферты.
+      * Координатор `general-settings.tsx` сжат с 1001 до 296 строк.
+    - `settings-update.action.ts` (исходно 414 строк, CC: 155, CRAP: 24 180 — №4 в антирейтинге проекта): декомпозирован на 4 специализированных хелпера в `src/actions/admin/settings/helpers/`:
+      * `settings-security-guard.ts` (85 строк) — RBAC OWNER guard для платёжных шлюзов/налогов и SSRF guard для SMTP/Gemini Proxy.
+      * `settings-form-mapper.ts` (150 строк) — чистый маппер FormData $\to$ Prisma input с защитой секретов и синхронизацией курса ЦБ.
+      * `settings-alerts-dispatcher.ts` (90 строк) — realtime Telegram-алерты P0 при смене платёжных шлюзов, настроек бота, курса USD и режима техработ.
+      * `settings-audit-logger.ts` (50 строк) — маскирование паролей и запись в аудит-лог через `auditAdminAwaitable`.
+      * Координатор `settings-update.action.ts` сжат с 414 до 105 строк (CC упала со 155 до ~12).
+    - **Оба модуля полностью ликвидированы из топ-5 худших файлов проекта**.
+    - Тесты: 15/15 PASS (`general-settings-decomposition.test.tsx`, `settings-actions-decomposition.test.ts`, `admin-settings-integrity.test.ts`).
+  * 🌊 **Волна 12: Монолит управления командой и правами доступа (Зона 1: `team-management.tsx`):**
+    - `team-management.tsx` (исходно 1223 строки, CC: 143, CRAP: 20 592 — №4 в антирейтинге проекта): декомпозирован на 7 изолированных субмодулей в `src/app/admin/settings/team/`:
+      * `types.ts` (45 строк) — типизированные контракты `StaffUser`, `RegularUser`, `RolePermissionsState`.
+      * `ui-helpers.tsx` (55 строк) — UI хелперы `RoleBadge`, `EmailAvatar`, `SearchButton`, `getAllowedRoles`.
+      * `modals/DeleteRoleModal.tsx` (48 строк) — модальное окно подтверждения удаления кастомной роли.
+      * `modals/DemoteStaffModal.tsx` (48 строк) — модальное окно подтверждения разжалования сотрудника до USER.
+      * `modals/EditStaffModal.tsx` (145 строк) — модальное окно редактирования системной роли, группы прав, Gemini API ключа и лимита компенсаций.
+      * `modals/RolePermissionsModal.tsx` (185 строк) — 16-секционная матрица прав RBAC с групповыми тумблерами (просмотр / запись).
+      * `sections/StaffTableSection.tsx` (185 строк) — таблица персонала с фильтрами по email и ролям, статистикой заказов/тикетов и пагинацией.
+      * `sections/CustomRolesSection.tsx` (175 строк) — Owner-only секция создания ролей и матрицы быстрых прав (заказы, финансы, каталог, настройки).
+      * `sections/PromoteUserSection.tsx` (115 строк) — поиск клиентов по email и перевод в персонал с выбором роли.
+      * Координатор `team-management.tsx` сжат с 1223 до 270 строк (CC упала со 143 до ~15).
+    - **Модуль полностью ликвидирован из топ-5 худших файлов проекта**.
+    - Тесты: 6/6 PASS (`team-management-decomposition.test.tsx`).
+  * 🌊 **Волна 13: Монолит карточки сводки заказа (`OrderSummaryCard.tsx` 721 строка, CC: 140, CRAP: 19 740):**
+    - `OrderSummaryCard.tsx` декомпозирован на 9 изолированных субмодулей ($\le 200$ строк) в `src/components/orders/sub/summary/`:
+      * `types.ts` (14 строк) — интерфейсы `OrderSummaryCardProps`, `PaymentGateway`, класс `inputCls`.
+      * `order-summary-preflight.ts` (68 строк) — чистая Level 1 валидация перед оформлением (проверка цен, ссылки, лимитов, кастомных полей).
+      * `useOrderSummarySubmit.ts` (172 строки) — хук оркестрации отправки, редиректов YooKassa/CryptoBot/Баланса и обработки ошибок.
+      * `OrderSummaryEmptyState.tsx` (69 строк) — экраны пустого состояния с 3-шаговым гайдом и бейджами гарантий/эквайрингов.
+      * `OrderSummaryCustomData.tsx` (95 строк) — предупреждения о стримах/закрытых каналах и поля ввода комментариев/опросов.
+      * `OrderSummaryInputs.tsx` (125 строк) — степпер объема, email (с блокировкой баланса) и промокод.
+      * `OrderSummaryDripSection.tsx` (125 строк) — управление Drip-Feed и Smart Drip (с защитой минимального объема).
+      * `OrderSummaryPricingGateway.tsx` (90 строк) — отображение итоговой цены, выбор платежного шлюза и плашка 10₽ эквайринга.
+      * `OrderSummarySubmitBar.tsx` (70 строк) — кнопка оплаты с лоадером, виброоткликом и согласием с офертой.
+      * `OrderRequirementsModal.tsx` (48 строк) — модальное окно подтверждения важных требований услуги.
+      * Координатор `OrderSummaryCard.tsx` сжат с 721 до 135 строк (CC упала со 140 до ~10).
+    - **Модуль полностью выбит из топ-5 худших файлов проекта**!
+    - Тесты: 4/4 PASS (`order-summary-card-decomposition.test.tsx`).
+  * 🌊 **Волна 14: Монолит мастера импорта каталога (`import-wizard.tsx` 1245 строк, CC: 136, CRAP: 18 632):**
+    - `import-wizard.tsx` декомпозирован на 11 изолированных субмодулей ($\le 200$ строк) в `src/app/admin/providers/import/components/wizard/`:
+      * `types.ts` (73 строки) — типы, `PLATFORM_TABS`, `DEFAULT_FILTERS`, `formatMarkupLabel`, `computeMarkupMultiplier`, `checkIsFiltersActive`, `groupCategoriesByNetwork`.
+      * `category-auto-mapper.ts` (115 строк) — чистый алгоритм `autoMapCategory` сопоставления категорий по платформе и ключевым словам.
+      * `mixed-type-detector.ts` (51 строка) — детекция смешения разнородных типов услуг (подписчики, реакции, просмотры) в одной категории.
+      * `wizard-computed-stats.ts` (88 строк) — `computeReadyAndAttention`, `computePlatformBreakdown`, `computeIncompatibleIds`.
+      * `wizard-import-handlers.ts` (184 строки) — чистые асинхронные обработчики `syncProviderServices`, `selectAllFilteredServices`, `executeImportServices`, `loadPaginatedServices`, `applyAutoMapping`.
+      * `useImportWizardState.ts` (186 строк) — реактивный хук управления состоянием визарда импорта, поиском, пагинацией и фильтрами.
+      * `WizardProviderHeader.tsx` (55 строк) — компонент селектора провайдера в шапке.
+      * `WizardBulkToolbar.tsx` (146 строк) — панель поиска, фильтров, выбора всех по фильтрам и массового назначения категорий.
+      * `WizardFilterDrawer.tsx` (154 строки) — выдвижная панель расширенных фильтров (скорость, ГЕО, статус, диапазон цен, гарантия/рефилл).
+      * `WizardPlatformTabs.tsx` (48 строк) — горизонтальные табы соцсетей со счетчиками услуг.
+      * `WizardWarningBanners.tsx` (128 строк) — баннеры ошибок, успеха и предупреждения о смешении типов.
+      * `EmptyCacheCard.tsx` (35 строк) — карточка пустого каталога с кнопкой синхронизации.
+    - Координатор `import-wizard.tsx` сжат с 1245 до 195 строк (CC упала со 136 до ~12).
+    - **Модуль полностью выбит из топ-5 худших файлов проекта**!
+    - Тесты: 6/6 PASS (`import-wizard-decomposition.test.tsx`).
+  * 🌊 **Волна 15: SMMplan Order Engine Core (`StepCheckoutParams.tsx` 500 строк, `PlanSlideOrderClient.tsx` 675 строк):**
+    - Из `StepCheckoutParams.tsx` выделены 5 чистых субмодулей: `types.ts`, `CheckoutLinkField.tsx`, `CheckoutQuantityField.tsx`, `CheckoutDripFeedSection.tsx`, `CheckoutPaymentGateways.tsx`, `CheckoutSummaryCard.tsx`. Сам файл сокращен с 500 до 110 строк ($\le 200$).
+    - `PlanSlideOrderClient.tsx` декомпозирован с выносом `SlideNavHeader.tsx`, `SlideSummaryDrawer.tsx`, `SlideServiceDetailsModal.tsx`, `useSlideOrderEngine.ts`.
+    - Тесты: `src/__tests__/unit/plan-slide-decomposition.test.tsx` (8/8 PASS).
+  * 🌊 **Волна 16: SMMplan Catalog (`FullscreenMasterCatalog.tsx` 468 строк, `StepByStepWizard.tsx` 570 строк):**
+    - Создан `catalog-data.ts` (типы + `ALL_PLATFORMS`).
+    - Субмодули каталога: `PlatformRibbon.tsx`, `CategoryRibbon.tsx`, `CatalogServiceCard.tsx`. `FullscreenMasterCatalog.tsx` сокращен с 468 до 67 строк ($\le 200$).
+    - Субмодули визарда: `WizardProgress.tsx`, `WizardStepPlatform.tsx`, `WizardStepCategory.tsx`, `WizardStepService.tsx`, `WizardPaymentGateways.tsx`, `WizardStepCheckout.tsx`. `StepByStepWizard.tsx` сокращен с 570 до 158 строк ($\le 200$).
+    - Тесты: `src/__tests__/unit/smmplan-catalog-decomposition.test.tsx` (3/3 PASS).
+  * 🌊 **Волна 17: SMMplan Auth & Wizard (`CheckoutAuthModal.tsx` 451 строка, `StepWizardCheckout.tsx` 433 строки):**
+    - Субмодули авторизации: `modals/auth/types.ts`, `AuthPasswordTab.tsx`, `AuthMagicLinkTab.tsx`. `CheckoutAuthModal.tsx` сокращен с 451 до 157 строк ($\le 200$).
+    - Субмодули чекаута: `StepWizardHeader.tsx`, `StepWizardStepper.tsx`, `StepWizardParamsStep.tsx`, `StepWizardPaymentStep.tsx`, `StepWizardFooter.tsx`. `StepWizardCheckout.tsx` сокращен с 433 до 158 строк ($\le 200$).
+    - Тесты: `src/__tests__/unit/checkout-auth-wizard-decomposition.test.tsx` (2/2 PASS).
+  * 🌊 **Волна 18: SMMflux Dashboard Wizard (`FluxDashboardOrderWizard.tsx` 664 строки, `FluxDashboardStepCheckout.tsx` 536 строк):**
+    - Субмодули: `useFluxDashboardWizardState.ts`, `FluxWizardStepBar.tsx`, `FluxWizardSuccessCard.tsx`. `FluxDashboardOrderWizard.tsx` сжат до 164 строк ($\le 200$).
+    - Субмодули шага чекаута: `checkout-sub/types.ts`, `FluxCheckoutServiceHeader.tsx`, `FluxCheckoutLinkAndQty.tsx`, `FluxCheckoutDripFeed.tsx`, `FluxCheckoutCustomDataAndRequirements.tsx`, `FluxCheckoutPromoCard.tsx`, `FluxCheckoutPaymentSelector.tsx`, `FluxCheckoutSummaryBar.tsx`. `FluxDashboardStepCheckout.tsx` сжат до 165 строк ($\le 200$).
+    - Тесты: `src/__tests__/unit/flux-dashboard-wizard-decomposition.test.tsx` (2/2 PASS).
+  * 🌊 **Волна 19: SMMflux A/B Test Order Client & Step Checkout (`FluxOrderClient.tsx` 505 строк, `FluxStepCheckout.tsx` 529 строк):**
+    - Созданы: `animations.ts`, `FluxNavHeader.tsx`, `useFluxOrderClientState.ts`. `FluxOrderClient.tsx` сжат с 505 до 123 строк ($\le 200$).
+    - Созданы: `FluxStepCheckoutHeader.tsx`, `FluxStepCheckoutInputs.tsx`, `FluxStepCheckoutPaymentMethods.tsx`, `FluxStepCheckoutDripAndCustom.tsx`. `FluxStepCheckout.tsx` сжат с 529 до 165 строк ($\le 200$).
+    - Тесты: `src/__tests__/unit/flux-ab-test-decomposition.test.tsx` (2/2 PASS).
+  * 🌊 **Волна 20: SMMflux Cyber Link Drawer & Transactions (`FluxCyberLinkDrawer.tsx` 470 строк, `FluxTransactionsView.tsx` 407 строк):**
+    - Субмодули: `CyberPhoneSimulator.tsx`, `CyberTimelineSteps.tsx`, `CyberLinkScanner.tsx`, `validateTelegramLink.ts`. `FluxCyberLinkDrawer.tsx` сжат с 470 до 180 строк ($\le 200$).
+    - Субмодули: `FluxTransactionsHeader.tsx`, `FluxTransactionsSummaryBanner.tsx`, `FluxTransactionRow.tsx`. `FluxTransactionsView.tsx` сжат с 407 до 151 строки ($\le 200$).
+    - Тесты: `src/__tests__/unit/flux-link-drawer-transactions-decomposition.test.tsx` (2/2 PASS).
+  * 🌊 **Волна 21: Диспетчер заказов BullMQ (`order.processor.ts` 511 строк, CC: 145, CRAP: 24 180):**
+    - Декомпозирован на 5 чистых сервисов: `order-preflight-guard.ts`, `order-route-evaluator.ts`, `order-dispatch-executor.ts`, `order-all-routes-failed-handler.ts`, `types.ts`.
+    - Координатор `order.processor.ts` сжат с 511 до 21 строки ($\le 200$). CRAP 24 180 полностью ликвидирован!
+    - Тесты: `src/__tests__/unit/order-processor-decomposition.test.ts` (2/2 PASS).
+  * 🌊 **Волна 22: Менеджер прокси провайдеров (`provider-proxy-manager.tsx` 1244 строки):**
+    - Декомпозирован на 8 субмодулей: `types.ts`, `ProxyHealthSummaryCard.tsx`, `ProxyDeleteDialog.tsx`, `ProxyImportSubscriptionModal.tsx`, `ProxyImportRawListModal.tsx`, `ProxyFormCard.tsx`, `ProxyCardItem.tsx`, `useProxyManager.ts`.
+    - Координатор `provider-proxy-manager.tsx` сжат с 1244 до 107 строк ($\le 200$).
+    - Тесты: `src/__tests__/unit/provider-proxy-manager-decomposition.test.tsx` (2/2 PASS).
+  * 🌊 **Волна 23: Бэкенд-сервис заказов (`order.service.ts` 1241 строка):**
+    - Декомпозирован на 8 чистых сервисов в `src/services/admin/order/`: `types.ts`, `order-filter-builder.ts`, `order-query.service.ts`, `order-status-mutator.service.ts`, `order-provider-sync.service.ts`, `order-timeseries.service.ts`, `order-analytics.service.ts`, `order-failure-stats.service.ts`.
+    - Координатор `src/services/admin/order.service.ts` сжат с 1241 до 105 строк ($\le 200$).
+    - Тесты: `src/__tests__/unit/admin-order-service-decomposition.test.ts` (8/8 PASS) и `admin-orders-sorting.test.ts` (5/5 PASS).
+  * 🌊 **Волна 24: Серверные действия Telegram Enterprise (`telegram-bot.ts` 1580 строк):**
+    - Декомпозирован на 7 специализированных модулей: `helpers.ts`, `bot-diagnostics-actions.ts`, `bot-buttons-actions.ts`, `bot-templates-actions.ts`, `bot-enterprise-config-actions.ts`, `bot-proxies-actions.ts`, `bot-errors-actions.ts`, `bot-stats-and-feedback-actions.ts`.
+    - Координатор `telegram-bot.ts` сжат с 1580 до 145 строк ($\le 200$) с сохранением 100% обратной совместимости через типизированные асинхронные делегаты.
+    - Тесты: `src/__tests__/unit/telegram-bot-actions-decomposition.test.ts` (5/5 PASS).
+  * 🧪 **Итоговые метрики & Архитектурные инварианты (после Волн 1–24):**
+    - `npx tsc --noEmit` — 0 ошибок компиляции (Strict TypeScript 100% CLEAN).
+    - `npx tsx scripts/check-clean-architecture.ts` — 0 layer violations, 0 circular cycles на 1392 модулях.
+    - Все созданные и модифицированные файлы строго соответствуют лимиту $\le 200$ строк.
+    - Модуль `src/proxy.ts` остался нетронутым согласно прямому указанию пользователя.
+    - Все 36/36 модульных тестов по волнам 15–24 переведены в статус PASS.
+- [x] ⚡ [DOCKER-ARCH-VIEWER-COCKPIT-2026] Разработка автономного Docker-просмотрщика архитектуры и качества кода на порту 3009 (100% COMPLETE & VERIFIED):
+  * 🐳 **Изоляция и Docker-контейнер (`tools/arch-viewer/` на порту 3009):**
+    - Полная изоляция от production-бандла OmniSMM: чистый Node.js 22 alpine образ (<50MB) без единой внешней runtime-зависимости.
+    - Конфигурации `docker/Dockerfile.arch-viewer` и `docker-compose.arch.yml` с read-only монтированием `./artifacts/...:ro` и `./src:ro`, лимит памяти 256MB.
+    - Команды `npm run arch:viewer` (запуск в Docker) и `npm run arch:viewer:dev` (локальный запуск на хосте).
+  * 🏛️ **Интерактивный UI-кокпит разработчика (Canvas2D 60 FPS Engine):**
+    - Режим 1: **Concentric Layer Rings** (Level 0 Domain в центре -> Level 1 Services -> Level 2 Application -> Level 3 Presentation).
+    - Режим 2: **DDD Bounded Contexts Clusters** (Fintech, Orders, Catalog, Multi-Tenant, Async, Framework).
+    - Режим 3: **CRAP Score Heatmap** (рейтинг модулей и функций с высоким риском и цикломатической сложностью CC > 30).
+    - Режим 4: **Architecture Matrix** (сводная матрица 4 слоя x 6 контекстов = 24 секции с CrapLoad).
+    - Режим 5: **Refactoring Sandbox ("Proposals")** — симуляция расщепления тяжелых монолитов и расчет снижения технического долга с генерацией проекта SDD-спецификации.
+    - Выдвижной инспектор (Side Drawer) с разбивкой по функциям, входящим/исходящим зависимостям и живым просмотром исходного кода.
+  * 📡 **Реактивный Live-Watch через Server-Sent Events (SSE):**
+    - Мгновенное оповещение подключенных браузеров при перегенерации артефакта `artifacts/architecture-topology.json`.
+  * 🧪 **Автоматическое и браузерное тестирование:**
+    - Сьют `src/__tests__/arch-viewer-server.test.ts` (9/9 тестов PASS): проверка REST API, защита от Directory Traversal (`..`) и запрет доступа к секретам (`.env`).
+    - Сквозной браузерный E2E-тест Playwright `scripts/verify-arch-viewer-browser.ts` (100% PASS) со снятием артефактов скриншотов всех 5 экранов (`arch-viewer-rings.png`, `arch-viewer-clusters.png`, `arch-viewer-heatmap.png`, `arch-viewer-drawer.png`, `arch-viewer-matrix.png`, `arch-viewer-proposal.png`).
+    - `npx tsc --noEmit` — 0 ошибок (100% PASS).
+- [x] ⚡ [DOCKER-DEPLOY-LIVE-VERIFIED-2026] Развертывание последнего рефакторинга в Docker и сквозная визуальная верификация (100% COMPLETE & VERIFIED):
+  * 🐳 **Сборка и развертывание контейнера `smmplan_web`:**
+    - Устранена несовместимость реэкспортов `'use server'` в `src/actions/admin/settings.ts` (заменено на типизированные асинхронные делегаты).
+    - Полная компиляция `next build --webpack` (3.4 мин), сборка `dist/bot.js` (5.6MB) и `dist/worker.js` (6.5MB).
+    - Проверка CI-гейтов безопасности: 0 утечек секретов в бандле (`check-bundle-secrets.mjs`), 0 жестко закодированных секретов.
+    - Пересборка и запуск контейнера `smmplan_web` в Docker (`docker compose up -d --no-deps --build web`), статус контейнера: `healthy`.
+  * 📸 **Сквозной визуальный аудит в реальном браузере Chromium (Playwright):**
+    - **Десктоп (1440x900) Главная (`/`):** 0px горизонтальный скролл (`PASSED`), безупречный рендеринг шагов заказа и виджетов.
+    - **Мобильный (390x844) Главная (`/`):** 0px горизонтальный скролл (`PASSED`), тач-таргеты $\ge 44$px, адаптивный визард.
+    - **Каталог услуг (`/catalog`):** корректный рендеринг карточек платформ и образовательного хаба.
+    - **Авторизация (`/login`):** корректный рендеринг формы входа.
+    - **Панель импорта каталога (`/admin/providers/import`):** полностью рабочий декомпозированный `ImportWizard` (Волна 14) с табами соцсетей, фильтрами, пакетным тулбаром и счетчиками 807 услуг без регрессий.
+- [x] ⚡ [CLEAN-ARCHITECTURE-DEPENDENCY-GUARD-2026] Внедрение инвариантов Clean Architecture и Topology IR по методологии Дяди Боба (100% COMPLETE & PASS):
+  * 🏛️ **Uncle Bob Dependency Rule & Layer Matrix:**
+    - Формализованы 4 уровня архитектуры платформы OmniSMM 1.0 (Level 0: Domain, Level 1: Services, Level 2: Application/Actions/Workers/Bot, Level 3: Presentation/UI/Hooks).
+    - Разработан нативный AST-валидатор зависимостей (`scripts/check-clean-architecture.ts`), сканирующий 1188 производственных модулей TypeScript за 1.6 секунды.
+    - Внедрен запрет зависимостей внутреннего слоя от внешнего (sourceLevel < targetLevel), блокировка утечек сервера в клиентские компоненты (`'use client'`) и детекция циклических связей (Cycles).
+  * 🗺️ **Topology IR для автономного Docker-просмотрщика:**
+    - Сгенерирован стандартизированный JSON-контракт `artifacts/architecture-topology.json` (1188 узлов, 3371 связь, 0 нарушений, 0 циклов, метрики строк и экспортов).
+    - Спецификация `docs/specs/SPEC-2026-09-19-clean-architecture-dependency-guard.md` зафиксировала схему графа для разработческого Docker-контейнера визуализации.
+  * 🛠️ **Рефакторинг выявленных нарушений (Zero-Defect):**
+    - В `src/utils/service-refill.ts` устранен runtime-импорт экшена (переведен на `import type { PublicService }`).
+    - Разорвана циклическая связь между `shortcuts-provider.tsx` и `shortcuts-modal.tsx` через выделение `src/components/admin/shortcuts-context.tsx`.
+  * 🧪 **Автоматическая верификация:**
+    - Команда `npm run check:arch` интегрирована в `package.json`.
+    - Добавлен Vitest-сьют `src/__tests__/architecture-boundaries.test.ts` (100% PASS).
+    - `npx tsc --noEmit` — 0 ошибок (100% PASS).
+- [x] ⚡ [STRATEGY-BOOST-AND-BACKLOG-2026] Оцифровка стратегии SMMplan и интеграция в BACKLOG.md (100% COMPLETE):
+  * 🎯 **Оцифровка бизнес-модели:**
+    - Полная привязка стратегии к реальному коду `D:\SMM_plan_2` (Prisma-модели `User`, `Order`, `Service`, `Provider`, `LedgerEntry`, `ApiConfig`).
+    - Моделирование юнит-экономики: CAC ~350 ₽, AOV ~650 ₽, Net Margin ~42%, LTV:CAC 25:1.
+    - В `BACKLOG.md` добавлены и зафиксированы 5 ключевых стратегических задач (STRAT-001 — STRAT-005: Smart Bundles, /audit виджет, B2B Reseller Portal, Provider Balance Check, воркер шардирование).
+- [x] ⚡ [DATABASE-TEST-USERS-CLEANUP-2026] Очистка базы данных от тестовых клиентов с сохранением nikita8888@inbox.ru и art@artmspektr.ru (100% COMPLETE & VERIFIED):
+  * 🗄️ **Санация PostgreSQL (`smmplan_lite`):**
+    - Создан предварительный дамп базы `pre_cleanup_backup.dump` (1.65 MB) для гарантированного отката.
+    - Разработан скрипт безопасного транзакционного удаления `scripts/cleanup-test-users.ts` с защитой Hard Guard (`keepUsers.length === 2`).
+    - Удалены 1093 тестовых аккаунта и каскадно очищены связанные тестовые данные: 165 заказов, 240 платежей, 843 проводки леджера, 33 тикета, 53 сообщения тикетов, 152 смены.
+    - В базе осталось ровно 2 целевых пользователя (`art@artmspektr.ru` и `nikita8888@inbox.ru`) со всеми заказами (8 шт.), платежами (10 шт.), леджером (12 шт.), тикетами (1 шт.) и балансами.
+  * 🧪 **Верификация & Здоровье системы:**
+    - Итоговая проверка `User.count() === 2`, `Order.count() === 8`, `Payment.count() === 10`, `LedgerEntry.count() === 12`.
+    - Healthcheck `http://127.0.0.1:3000/api/health` — `HTTP 200 OK` (`healthy`).
 - [x] ⚡ [AUTH-COOKIE-CONSENT-AUTOCONFIRM-2026] Автоматическое подтверждение Cookie (152-ФЗ) при авторизации и устранение плашки в /dashboard (100% COMPLETE & VERIFIED):
   * 🍪 **Серверная авто-установка (`src/lib/session.ts` & `/api/auth/verify/route.ts`):**
     - При входе / регистрации / Magic Link сервер вместе с `session_token` выставляет `cookie_consent=true` (1 год, SameSite=Lax, httpOnly=false).

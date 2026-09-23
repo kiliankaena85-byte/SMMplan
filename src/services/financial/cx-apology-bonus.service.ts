@@ -38,7 +38,6 @@ export class CxApologyBonusService {
     try {
       await db.$transaction(async (tx) => {
         // 1. Fetch user
-        // tenant-isolation-ignore: manual IDOR check
         const user = await tx.user.findUnique({
           where: { id: userId },
           select: { id: true, balance: true, bonusBalance: true, tenantId: true },
@@ -63,7 +62,6 @@ export class CxApologyBonusService {
         });
 
         // 3. Update User bonusBalance
-        // tenant-isolation-ignore: manual IDOR check
         await tx.user.update({
           where: { id: user.id },
           data: {

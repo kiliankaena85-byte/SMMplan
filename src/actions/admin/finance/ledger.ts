@@ -4,8 +4,7 @@
  * Finance Ledger Server Action — Sprint 1.6
  *
  * Paginated ledger entries with filters.
- * Security: Admin-only route (layout enforces enforcePageRole).
- * No requireAdmin wrapper needed — page is behind /admin layout guard.
+ * Security: Admin-only route (guarded by requireAdmin and requireStaffPermission).
  */
 
 import { db } from '@/lib/db';
@@ -143,12 +142,7 @@ export async function getLedgerAction(params: Partial<LedgerParams>): Promise<Le
         });
       }
       if (activeTenantId && activeTenantId !== 'all') {
-        andConditions.push({
-          OR: [
-            { tenantId: activeTenantId },
-            { user: { tenantId: activeTenantId } },
-          ],
-        });
+        andConditions.push({ tenantId: activeTenantId });
       }
 
       if (p.type === 'TOPUP') {

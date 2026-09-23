@@ -1,3 +1,4 @@
+import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 /**
  * FeatureFlagService
  * 
@@ -43,17 +44,25 @@ class FeatureFlagService {
    * Returns 'OFF' if flag not found in DB.
    * Caches result in Redis for 60s.
    */
-  async getState(key: FlagKey): Promise<FlagState> {
+  async getState(key: FlagKey, tenantId: string = 'smmplan'): Promise<FlagState> {
+    const normalizedTenant = normalizeTenantId(tenantId);
+    const finalCacheKey = `${cacheKey(key)}:${normalizedTenant}`;
+
     // 1. Check Redis cache
-    const cached = await redis.get(cacheKey(key));
+    const cached = await redis.get(finalCacheKey);
     if (cached) return cached as FlagState;
 
     // 2. DB fallback
-    const flag = await db.featureFlag.findUnique({ where: { key } });
+    const flag = await db.featureFlag.findFirst({ 
+      where: { 
+        key,
+        tenantId: normalizedTenant
+      } 
+    });
     const state = (flag?.state as FlagState) ?? 'OFF';
 
     // 3. Write to cache
-    await redis.setex(cacheKey(key), CACHE_TTL_SECONDS, state);
+    await redis.setex(finalCacheKey, CACHE_TTL_SECONDS, state);
     return state;
   }
 
@@ -72,11 +81,15 @@ class FeatureFlagService {
    * Update flag state. Invalidates Redis cache immediately.
    * Records updatedBy for audit trail.
    */
-  async setState(key: FlagKey, state: FlagState, adminEmail: string): Promise<FeatureFlagDTO> {
+  async setState(key: FlagKey, state: FlagState, adminEmail: string, tenantId: string = 'smmplan'): Promise<FeatureFlagDTO> {
+    const normalizedTenant = normalizeTenantId(tenantId);
+    const finalCacheKey = `${cacheKey(key)}:${normalizedTenant}`;
+
     const flag = await db.featureFlag.upsert({
-      where: { key },
+      where: { tenantId_key: { tenantId: normalizedTenant, key } },
       update: { state, updatedBy: adminEmail },
       create: {
+        tenantId: normalizedTenant,
         key,
         label: PREDEFINED_FLAGS.find(f => f.key === key)?.label ?? key,
         description: PREDEFINED_FLAGS.find(f => f.key === key)?.description ?? '',
@@ -86,7 +99,7 @@ class FeatureFlagService {
     });
 
     // Invalidate cache immediately
-    await redis.del(cacheKey(key));
+    await redis.del(finalCacheKey);
 
     return {
       id: flag.id,

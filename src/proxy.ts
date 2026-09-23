@@ -80,7 +80,6 @@ const KNOWN_ROOT_DOMAINS = [
   'smmplan.pro',
   'smmflux.ru',
   'smmplan.ru',
-  'lovable.pro',
 ];
 
 // Dynamic Tunnel & Testing Suffixes
@@ -297,9 +296,11 @@ export async function proxy(request: NextRequest) {
   if (pathname.startsWith('/api') && request.method === 'OPTIONS') {
     const preflightHeaders = new Headers();
     if (isStorefrontApi) {
-      preflightHeaders.set('Access-Control-Allow-Origin', origin || '*');
       if (origin) {
+        preflightHeaders.set('Access-Control-Allow-Origin', origin);
         preflightHeaders.set('Access-Control-Allow-Credentials', 'true');
+      } else {
+        preflightHeaders.set('Access-Control-Allow-Origin', '*');
       }
       preflightHeaders.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
       preflightHeaders.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-tenant-id, idempotency-key, x-storefront-key');
@@ -328,14 +329,24 @@ export async function proxy(request: NextRequest) {
     }
   }
 
+  // IndexNow Key Route Rewrite: dynamically serve key for domain verification
+  if (pathname.endsWith('.txt') && (pathname.includes('indexnow') || pathname === `/${process.env.INDEXNOW_KEY || 'smmplan-indexnow-2026-key'}.txt`)) {
+    return NextResponse.rewrite(new URL('/api/seo/indexnow/key', request.url));
+  }
+
   // 0.5. Echelon DDoS Shield & Anomaly Inspection (SPEC-2026-09-11)
   const isExcludedFromShield = 
     pathname.startsWith('/api/webhooks/') ||
     pathname.startsWith('/api/storefront/') ||
+    pathname.startsWith('/api/seo/') ||
+    pathname.endsWith('.txt') ||
+    pathname.endsWith('.xml') ||
     pathname.startsWith('/_next/') ||
     pathname === '/favicon.ico' ||
     pathname === '/robots.txt' ||
     pathname === '/sitemap.xml' ||
+    pathname === '/yandex-feed.xml' ||
+    pathname === '/opensearch.xml' ||
     pathname === '/api/v1/internal-sync' || // honeypot itself
     pathname === '/api/security/challenge';
 
@@ -400,13 +411,20 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  let host = (fwdHost && !isInternalHost(fwdHost))
+  const isTailscaleHostHelper = (h: string | null | undefined): boolean => {
+    if (!h) return false;
+    const clean = h.split(',')[0].trim().toLowerCase().split(':')[0];
+    return clean.endsWith('.ts.net') || clean.includes('tailscale');
+  };
+
+  let host = (fwdHost && (!isInternalHost(fwdHost) || isTailscaleHostHelper(fwdHost)))
     ? fwdHost
     : (hostHeader?.split(',')[0]?.trim() || '');
 
   const isLocalhost = isPureLocalhost(host);
+  const isTailscale = isTailscaleHostHelper(host);
 
-  if (!isLocalhost && (isInternalHost(host) || !host)) {
+  if (!isLocalhost && !isTailscale && (isInternalHost(host) || !host)) {
     host = process.env.APP_URL ? new URL(process.env.APP_URL).host : 'test.smmplan.pro';
   }
   if (host.includes('0.0.0.0')) {
@@ -426,7 +444,7 @@ export async function proxy(request: NextRequest) {
     return new URL(target, originBase);
   };
 
-  const LOVABLE_HOSTS = new Set(['lovable.pro', 'www.lovable.pro', 'flux.lovable.pro']);
+  const LOVABLE_HOSTS = new Set(['lovable.pro', 'www.lovable.pro', 'flux.lovable.pro']); // audit-ignore: legacy host redirects
   const cleanHost = host.split(':')[0].toLowerCase();
   if (LOVABLE_HOSTS.has(cleanHost)) {
     const targetUrl = new URL(request.nextUrl.pathname + request.nextUrl.search, 'https://smmflux.ru');
@@ -576,7 +594,7 @@ export async function proxy(request: NextRequest) {
           { status: 503, headers: { 'Retry-After': '3600' } }
         );
       }
-      return applyStickyCookie(NextResponse.redirect(resolveRedirectUrl('/')));
+      return applyStickyCookie(NextResponse.redirect(resolveRedirectUrl('/prelaunch')));
     }
   }
 
@@ -617,9 +635,10 @@ export async function proxy(request: NextRequest) {
     const isTenantMismatch = isCustomer && !isStaffRole && !isAdminPath && !isOperatorPath && (!payload || normalizeTenantId(payload.tenantId) !== finalTenantId);
 
     // Enforce contour matching in JWT (tokens issued in test contour cannot be used in prod contour)
+    // Staff roles have global multi-tenant access across contours (OmniSMM 1.0 architecture)
     const currentContour = resolveContourFromHost(host);
     const tokenContour = (payload?.contour as ContourId) || (normalizeTenantId(payload?.tenantId) === 'flux' ? 'flux' : 'test');
-    const isContourMismatch = !isLocalhost && tokenContour !== currentContour && (tokenContour === 'prod' || currentContour === 'prod' || tokenContour === 'flux' || currentContour === 'flux');
+    const isContourMismatch = !isLocalhost && !isStaffRole && !isAdminPath && !isOperatorPath && tokenContour !== currentContour && (tokenContour === 'prod' || currentContour === 'prod' || tokenContour === 'flux' || currentContour === 'flux');
 
     if (!payload || isTenantMismatch || isContourMismatch) {
       if (isRSC) {
@@ -679,9 +698,11 @@ export async function proxy(request: NextRequest) {
 
   // Inject CORS headers for API routes when requested with an allowed origin
   if (isStorefrontApi) {
-    response.headers.set('Access-Control-Allow-Origin', origin || '*');
     if (origin) {
+      response.headers.set('Access-Control-Allow-Origin', origin);
       response.headers.set('Access-Control-Allow-Credentials', 'true');
+    } else {
+      response.headers.set('Access-Control-Allow-Origin', '*');
     }
     response.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-tenant-id, idempotency-key, x-storefront-key');

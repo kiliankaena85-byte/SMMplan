@@ -36,7 +36,7 @@ export function BalanceSnapshotPanel({
       {/* Financial Overview Card */}
       <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl p-6 ring-1 ring-border/5 space-y-4">
         <h4 className="text-sm font-bold tracking-tight text-foreground flex items-center gap-2 border-b border-border/50 pb-3">
-          <CreditCard className="w-4 h-4 text-primary" />
+          <CreditCard className="w-4 h-4 text-primary shrink-0" />
           Финансовая сводка клиента
         </h4>
 

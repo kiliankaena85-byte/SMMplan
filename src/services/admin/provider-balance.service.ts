@@ -3,6 +3,11 @@ import { redis } from '@/lib/redis';
 import { SettingsProvider } from '@/lib/settings';
 import { providerService } from '@/services/providers/provider.service';
 import { ProviderDiagnosticService } from './provider-diagnostic.service';
+import {
+  normalizeProviderCurrency,
+  isValidProviderCurrency,
+  resnapshotOnCurrencyChange,
+} from '@/lib/pricing/currency-invariant';
 
 export interface CachedProviderBalance {
   providerId: string;
@@ -111,16 +116,16 @@ export class ProviderBalanceService {
         const parsed = parseFloat(str.replace(/,/g, '.'));
         numBalance = isNaN(parsed) ? 0 : parsed;
       }
-      const reportedCurrency = balanceData.currency?.toUpperCase().trim();
+      const normalizedReported = normalizeProviderCurrency(balanceData.currency);
       const storedCurrency = provider.balanceCurrency?.toUpperCase().trim();
       let currency: string;
-      if (reportedCurrency && reportedCurrency !== 'UNKNOWN' && reportedCurrency.length >= 3) {
-        currency = reportedCurrency;
-      } else if (storedCurrency && storedCurrency.length >= 3) {
+      if (normalizedReported) {
+        currency = normalizedReported;
+      } else if (storedCurrency && isValidProviderCurrency(storedCurrency)) {
         currency = storedCurrency;
       } else {
         currency = 'USD';
-        console.warn(`[ProviderBalance] Provider ${provider.name} returned no currency and none stored in DB; fallback to USD`);
+        console.warn(`[ProviderBalance] Provider ${provider.name} returned no valid currency and none stored in DB; fallback to USD`);
       }
 
       // Normalize exchange rate
@@ -221,18 +226,48 @@ export class ProviderBalanceService {
         }
       }
 
-      // Update provider SLA metrics in DB
+      // Update provider SLA metrics and balanceCurrency in DB
       try {
         const prevAvg = provider.avgResponseMs || 0;
         const newAvg = prevAvg > 0 ? Math.round(prevAvg * 0.7 + latencyMs * 0.3) : latencyMs;
+        const currencyChanged = Boolean(
+          normalizedReported &&
+          provider.id &&
+          normalizedReported !== storedCurrency
+        );
+
+        const updateData: {
+          lastSuccessAt: Date;
+          avgResponseMs: number;
+          errorCount5m: number;
+          balanceCurrency?: string;
+        } = {
+          lastSuccessAt: new Date(),
+          avgResponseMs: newAvg,
+          errorCount5m: 0,
+        };
+
+        if (currencyChanged && normalizedReported) {
+          updateData.balanceCurrency = normalizedReported;
+        }
+
         await db.provider.update({
           where: { id: provider.id },
-          data: {
-            lastSuccessAt: new Date(),
-            avgResponseMs: newAvg,
-            errorCount5m: 0,
-          },
+          data: updateData,
         });
+
+        // If currency changed, resnapshot existing services to prevent price drift
+        if (currencyChanged && normalizedReported && provider.id) {
+          try {
+            await resnapshotOnCurrencyChange(
+              provider.id,
+              storedCurrency || 'USD',
+              normalizedReported
+            );
+          } catch (resnapErr) {
+            console.warn(`[ProviderBalanceService] Auto-resnapshot failed for provider ${provider.id}:`, resnapErr);
+          }
+        }
       } catch (dbErr) {
         console.warn(`[ProviderBalanceService] SLA update failed for provider ${provider.id}:`, dbErr);
       }
@@ -439,6 +474,18 @@ export class ProviderBalanceService {
     }
 
     return summary;
+  }
+
+  /**
+   * Invalidates cached global liquidity summary so toggles, creations,
+   * and deletions immediately reflect in the liquidity dashboard without stale cache.
+   */
+  async invalidateGlobalLiquidityCache(): Promise<void> {
+    try {
+      await redis.del('providers:global:liquidity');
+    } catch (err) {
+      console.warn('[ProviderBalanceService] Failed to invalidate liquidity cache:', err);
+    }
   }
 }
 

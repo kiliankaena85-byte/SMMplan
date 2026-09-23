@@ -97,7 +97,7 @@ export function ClientOrdersTable({ orders }: { orders: OrderType[] }) {
                   <Link href={`/admin/orders?q=${o.numericId}`} className="font-mono text-xs font-bold text-primary hover:underline">
                     #{o.numericId}
                   </Link>
-                  <span className="text-[11px] text-muted-foreground block truncate max-w-[200px]" title={o.service.name}>
+                  <span className="text-[11px] text-muted-foreground block truncate max-w-[200px] min-w-0" title={o.service.name}>
                     {o.service.name}
                   </span>
                 </div>

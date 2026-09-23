@@ -9,7 +9,6 @@ export class PromoAutomationService {
    */
   static async checkAndIssueLoyalty(userId: string) {
     try {
-      // tenant-isolation-ignore: manual IDOR check
       const user = await db.user.findUnique({ where: { id: userId } });
       if (!user) return;
 
@@ -36,9 +35,10 @@ export class PromoAutomationService {
 
           // Idempotency check: Upsert to gracefully handle race conditions without throwing unique constraint error
           await db.promoCode.upsert({
-            where: { code: deterministicCode },
+            where: { tenantId_code: { tenantId: user.tenantId, code: deterministicCode } },
             update: {}, // Do nothing if it exists
             create: {
+              tenantId: user.tenantId,
               code: deterministicCode,
               discountPercent: rule.percent,
               maxUses: 1, // One-time use reward

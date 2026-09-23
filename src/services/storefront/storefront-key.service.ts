@@ -62,6 +62,7 @@ export class StorefrontKeyService {
     }).catch((err: any) => log.error('Failed to update lastUsedAt for StorefrontKey', { err: err?.message }));
 
     return {
+      keyId: keyRecord.id,
       tenantId: keyRecord.tenantId,
       tenantSlug: keyRecord.tenant.slug,
       tenantName: keyRecord.tenant.name,

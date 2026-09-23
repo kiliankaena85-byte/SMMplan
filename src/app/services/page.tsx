@@ -11,6 +11,9 @@ import { db } from "@/lib/db";
 import { Header } from "@/components/landing/Header";
 import { MegaFooter } from "@/components/landing/MegaFooter";
 import { FluxServicesCatalog } from "@/components/services/flux/FluxServicesCatalog";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { SiloLinkingService } from "@/services/seo/silo-linking.service";
+import { SiloCrossLinking } from "@/components/seo/SiloCrossLinking";
 
 export const dynamic = 'force-dynamic';
 
@@ -63,41 +66,95 @@ export default async function ServicesCatalogPage() {
     ? articlesResult.articles.slice(0, 3) 
     : [];
 
+  const siloBundle = await SiloLinkingService.getPopularSiloBundle({
+    tenantId,
+    limit: 4,
+  });
+
+  const breadcrumbData = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Главная",
+        "item": absoluteCanonical(tenantId, "/"),
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Услуги",
+        "item": absoluteCanonical(tenantId, "/services"),
+      },
+    ],
+  };
+
+  const collectionData = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "name": `Каталог услуг для социальных сетей | ${siteName}`,
+    "description": `Все доступные услуги для продвижения в социальных сетях на платформе ${siteName}.`,
+    "url": absoluteCanonical(tenantId, "/services"),
+    "mainEntity": {
+      "@type": "ItemList",
+      "numberOfItems": networks.length,
+      "itemListElement": networks.map((net, idx) => ({
+        "@type": "ListItem",
+        "position": idx + 1,
+        "name": net.name,
+        "url": absoluteCanonical(tenantId, `/services/${net.slug}`),
+      })),
+    },
+  };
+
   // Dedicated UI for SMMflux
   if (isFlux) {
     return (
-      <div className="min-h-screen bg-background text-foreground font-sans flex flex-col relative overflow-x-clip">
+      <>
+        <JsonLd data={breadcrumbData} />
+        <JsonLd data={collectionData} />
+        <div className="min-h-screen bg-background text-foreground font-sans flex flex-col relative overflow-x-clip">
         {/* SMMFLUX RADIANT HERO BACKGROUND (Matching main page) */}
-        <div className="absolute top-0 inset-x-0 h-[1800px] z-0 pointer-events-none overflow-hidden select-none bg-white dark:bg-default-50">
+        <div className="absolute top-0 inset-x-0 h-[1800px] z-0 pointer-events-none overflow-hidden select-none bg-background transform-gpu contain-paint max-w-full" aria-hidden="true">
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
               background:
-                'radial-gradient(65% 55% at 15% 0%, rgba(59, 130, 246, 0.55), transparent 70%), ' +
-                'radial-gradient(55% 55% at 85% 5%, rgba(56, 189, 248, 0.45), transparent 70%), ' +
-                'radial-gradient(65% 55% at 20% 40%, rgba(244, 63, 94, 0.45), transparent 70%), ' +
-                'radial-gradient(55% 55% at 80% 50%, rgba(249, 115, 22, 0.40), transparent 70%), ' +
-                'radial-gradient(70% 70% at 50% 25%, rgba(217, 70, 239, 0.50), transparent 75%)',
+                'radial-gradient(65% 55% at 15% 0%, rgba(59, 130, 246, 0.28), transparent 70%), ' +
+                'radial-gradient(55% 55% at 85% 5%, rgba(56, 189, 248, 0.22), transparent 70%), ' +
+                'radial-gradient(65% 55% at 20% 40%, rgba(244, 63, 94, 0.20), transparent 70%), ' +
+                'radial-gradient(55% 55% at 80% 50%, rgba(249, 115, 22, 0.18), transparent 70%), ' +
+                'radial-gradient(70% 70% at 50% 25%, rgba(217, 70, 239, 0.22), transparent 75%)',
             }}
           />
-          <div className="absolute top-0 left-[2%] w-[700px] h-[700px] rounded-full bg-blue-500/35 blur-[120px] pointer-events-none" />
-          <div className="absolute top-4 left-[25%] w-[650px] h-[650px] rounded-full bg-purple-600/40 blur-[110px] pointer-events-none" />
-          <div className="absolute top-0 right-[5%] w-[700px] h-[700px] rounded-full bg-pink-500/35 blur-[120px] pointer-events-none" />
+          <div className="absolute top-0 left-0 w-[300px] sm:w-[500px] md:w-[700px] h-[300px] sm:h-[500px] md:h-[700px] rounded-full bg-blue-500/20 blur-[90px] sm:blur-[120px] pointer-events-none" />
+          <div className="absolute top-4 left-[15%] w-[280px] sm:w-[450px] md:w-[600px] h-[280px] sm:h-[450px] md:h-[600px] rounded-full bg-purple-600/25 blur-[80px] sm:blur-[110px] pointer-events-none" />
+          <div className="absolute top-0 right-0 w-[300px] sm:w-[500px] md:w-[650px] h-[300px] sm:h-[500px] md:h-[650px] rounded-full bg-pink-500/20 blur-[90px] sm:blur-[120px] pointer-events-none" />
           <div className="absolute bottom-0 inset-x-0 h-[300px] bg-gradient-to-t from-background to-transparent" />
         </div>
 
         <Header initialEmail={userEmail} siteName={siteName} tenantId={tenantId} activePath={undefined} />
         <main className="flex-1 w-full relative z-10">
           <FluxServicesCatalog networks={networks} featuredArticles={featuredArticles} />
+          {siloBundle && (
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+              <SiloCrossLinking bundle={siloBundle} tenantId={tenantId} />
+            </div>
+          )}
         </main>
         <MegaFooter contactSettings={settings} tenantId={tenantId} />
       </div>
+      </>
     );
   }
 
   // Classic API Blueprint UI for SMMplan
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans flex flex-col relative overflow-x-clip">
+    <>
+      <JsonLd data={breadcrumbData} />
+      <JsonLd data={collectionData} />
+      <div className="min-h-screen bg-background text-foreground font-sans flex flex-col relative overflow-x-clip">
       <Header initialEmail={userEmail} siteName={siteName} tenantId={tenantId} activePath={undefined} />
       
       <main className="flex-1 w-full py-12 px-4 sm:px-6 lg:px-8">
@@ -255,10 +312,18 @@ export default async function ServicesCatalogPage() {
             </div>
 
           </div>
+
+          {/* Silo 2026: Сопутствующие услуги / С этой услугой также заказывают */}
+          {siloBundle && (
+            <div className="pt-6 border-t border-border/60">
+              <SiloCrossLinking bundle={siloBundle} tenantId={tenantId} />
+            </div>
+          )}
         </div>
       </main>
 
       <MegaFooter contactSettings={settings} tenantId={tenantId} />
     </div>
+    </>
   );
 }

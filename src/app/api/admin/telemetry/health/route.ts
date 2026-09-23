@@ -10,7 +10,6 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // tenant-isolation-ignore: session ID is globally unique and secure
     const user = await db.user.findUnique({
       where: { id: session.userId },
       select: { role: true }

@@ -95,6 +95,30 @@ describe('Automatic Prisma Tenant Enforcer (SDD-TDD 2026)', () => {
       });
     });
 
+    it('should NOT inject tenantId into findUnique for user model when searching by composite unique key email_tenantId', async () => {
+      const mockQuery = vi.fn().mockResolvedValue({ id: 'user-cuid-2', email: 'user@example.com', tenantId: 'flux' });
+      const extension = createTenantEnforcerExtension();
+
+      const userFindUnique = extension.query?.user?.findUnique;
+      expect(userFindUnique).toBeDefined();
+
+      await runWithTenant('smmplan', async () => {
+        const args: any = {
+          where: {
+            email_tenantId: {
+              email: 'user@example.com',
+              tenantId: 'flux',
+            },
+          },
+        };
+        await userFindUnique!({ args, query: mockQuery });
+
+        // Composite key lookup email_tenantId on user must be passed directly without forcing findFirst with smmplan
+        expect(args.where.tenantId).toBeUndefined();
+        expect(mockQuery).toHaveBeenCalledWith(args);
+      });
+    });
+
     it('should reject create operation if data has mismatched tenantId', async () => {
       const mockQuery = vi.fn().mockResolvedValue({ id: 'order-1' });
       const extension = createTenantEnforcerExtension();

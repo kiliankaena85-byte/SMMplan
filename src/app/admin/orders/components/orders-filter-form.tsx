@@ -217,7 +217,7 @@ export function OrdersFilterForm({
   return (
     <div className="space-y-2">
       {/* ── ULTRA-COMPACT SINGLE-ROW TOOLBAR (Height ~38px, High-Density) ── */}
-      <div className="flex items-center gap-1.5 flex-wrap lg:flex-nowrap bg-card/90 backdrop-blur-sm border border-border/80 rounded-2xl p-1.5 shadow-xs">
+      <div className="flex items-center gap-1.5 flex-wrap bg-card/90 backdrop-blur-sm border border-border/80 rounded-2xl p-1.5 shadow-xs">
         {/* 1. Omni-Search Input */}
         <form onSubmit={handleSearchSubmit} className="flex-1 min-w-[200px] max-w-[300px] relative">
           <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -235,7 +235,7 @@ export function OrdersFilterForm({
                 setSearchVal('');
                 removeFilter('q');
               }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer p-0.5 rounded-sm"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer p-1.5 rounded-md hover:bg-muted/60 transition-colors"
               title="Очистить поиск"
             >
               <X className="w-3 h-3" />

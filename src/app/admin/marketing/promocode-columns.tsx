@@ -9,27 +9,23 @@ import { Trash2 } from 'lucide-react';
 import { togglePromoCode, deletePromoCode } from '@/actions/admin/marketing';
 import { useTransition, useState } from 'react';
 import { toast } from 'sonner';
-import { Switch, Modal as HeroUIModal, ModalHeader, ModalBody, ModalFooter } from '@heroui/react';
+import { Switch, Modal as HeroUIModal } from '@heroui/react';
 import { cn } from '@/lib/utils';
 import { formatRubles } from '@/utils/format-price';
 
-// Cast Modal with standard dot notation sub-components for HeroUI compliance
+// HeroUI v3 Compound Modal
 const Modal = Object.assign(HeroUIModal, {
-  Header: ModalHeader,
-  Body: ModalBody,
-  Footer: ModalFooter,
-}) as typeof HeroUIModal & {
-  Header: typeof ModalHeader;
-  Body: typeof ModalBody;
-  Footer: typeof ModalFooter;
-};
+  Content: HeroUIModal.Dialog,
+});
 
 export type PromoCodeWithUsages = PromoCode & {
-  usages: Array<Omit<PromoCodeUsage, 'discountCents' | 'revenueCents' | 'profitCents'> & {
+  /** @deprecated — replaced by _count.usages for performance. Use _count?.usages for display. */
+  usages?: Array<Omit<PromoCodeUsage, 'discountCents' | 'revenueCents' | 'profitCents'> & {
     discountCents: number;
     revenueCents: number;
     profitCents: number;
   }>;
+  _count?: { usages: number };
 };
 
 // Isolated Status Toggle Client Component

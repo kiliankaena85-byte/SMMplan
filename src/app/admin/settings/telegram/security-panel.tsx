@@ -18,6 +18,7 @@ interface Props {
   settings: SystemSettings;
   diagnostics: TelegramBotDiagnostics | null;
   onRefresh: () => void;
+  tenantId?: string;
 }
 
 interface SecurityFormData {
@@ -31,7 +32,7 @@ interface SecurityFormData {
   telegramEnableSmartBind: boolean;
 }
 
-export function SecurityPanel({ settings, diagnostics, onRefresh }: Props) {
+export function SecurityPanel({ settings, diagnostics, onRefresh, tenantId = 'smmplan' }: Props) {
   const [showSecret, setShowSecret] = useState(false);
   const [newIp, setNewIp] = useState('');
   const [isPending, startTransition] = useTransition();
@@ -58,7 +59,7 @@ export function SecurityPanel({ settings, diagnostics, onRefresh }: Props) {
         telegramLogErrors: form.telegramLogErrors,
         telegramEnableCsat: form.telegramEnableCsat,
         telegramEnableSmartBind: form.telegramEnableSmartBind,
-      });
+      }, tenantId);
       toast[res.success ? 'success' : 'error'](res.success ? res.message! : res.error!);
       if (res.success) onRefresh();
     });
@@ -222,7 +223,7 @@ export function SecurityPanel({ settings, diagnostics, onRefresh }: Props) {
 
         <div className="flex justify-end pt-2">
           <Button type="button" onClick={handleSave} disabled={isPending} className="font-bold uppercase tracking-widest text-xs h-11 px-6 shadow-lg shadow-primary/20 cursor-pointer">
-            {isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Shield className="w-4 h-4 mr-2" />}
+            {isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin shrink-0" /> : <Shield className="w-4 h-4 mr-2" />}
             Сохранить безопасность
           </Button>
         </div>

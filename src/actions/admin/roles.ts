@@ -4,13 +4,13 @@ import { z } from 'zod';
 import { db } from '@/lib/db';
 import { requireStaffPermission } from '@/lib/server/rbac';
 import { auditAdminAwaitable } from '@/lib/admin-audit';
-import { RBAC_SECTIONS, RbacSectionId } from '@/lib/rbac-sections';
+import { RBAC_SECTIONS, RbacCanonicalSectionId, RbacSectionId, normalizeRbacSection } from '@/lib/rbac-sections';
 import { revalidatePath } from 'next/cache';
 
-const SECTION_IDS = RBAC_SECTIONS.map(s => s.id) as [RbacSectionId, ...RbacSectionId[]];
+const SECTION_IDS = RBAC_SECTIONS.map(s => s.id) as [RbacCanonicalSectionId, ...RbacCanonicalSectionId[]];
 
 const permissionItemSchema = z.object({
-  section: z.enum(SECTION_IDS),
+  section: z.string().min(1),
   canView: z.boolean(),
   canEdit: z.boolean(),
 });
@@ -38,6 +38,38 @@ const cloneRoleSchema = z.object({
 const deleteRoleSchema = z.object({
   id: z.string().min(1, 'ID роли обязателен'),
 });
+
+function checkPermissionCeiling(
+  creatorRole: { permissions: Array<{ section: string; canView: boolean; canEdit: boolean }> } | null,
+  targetPermissions: Array<{ section: string; canView: boolean; canEdit: boolean }>,
+  actionVerb: 'предоставить' | 'клонировать' = 'предоставить'
+): { allowed: boolean; error?: string } {
+  if (!creatorRole) {
+    return { allowed: false, error: 'Роль создателя не найдена' };
+  }
+  const creatorPermKeys = new Set<string>();
+  for (const p of creatorRole.permissions) {
+    const norm = normalizeRbacSection(p.section);
+    if (p.canView || p.canEdit) {
+      creatorPermKeys.add(`${norm}:view`);
+    }
+    if (p.canEdit) {
+      creatorPermKeys.add(`${norm}:edit`);
+    }
+  }
+
+  const verbPhrase = actionVerb === 'клонировать' ? 'клонировать роль с правом' : 'предоставить право';
+  for (const p of targetPermissions) {
+    const norm = normalizeRbacSection(p.section);
+    if (p.canView && !creatorPermKeys.has(`${norm}:view`) && !creatorPermKeys.has(`${norm}:edit`)) {
+      return { allowed: false, error: `Нельзя ${verbPhrase} ${norm}:view, которым вы не обладаете` };
+    }
+    if (p.canEdit && !creatorPermKeys.has(`${norm}:edit`)) {
+      return { allowed: false, error: `Нельзя ${verbPhrase} ${norm}:edit, которым вы не обладаете` };
+    }
+  }
+  return { allowed: true };
+}
 
 /**
  * List all roles with their granular permissions and assigned users count
@@ -80,25 +112,23 @@ export async function createRoleAction(input: z.input<typeof createRoleSchema>) 
     }
 
     // Privilege escalation prevention: staff cannot grant permissions they do not possess
-    if (staffUser.role !== 'OWNER' && staffUser.staffRoleId) {
+    if (staffUser.role !== 'OWNER' && staffUser.role !== 'ADMIN') {
+      if (!staffUser.staffRoleId) {
+        return { success: false, error: 'У вас недостаточно прав для управления ролями' };
+      }
       const creatorRole = await db.staffRole.findUnique({
         where: { id: staffUser.staffRoleId },
         include: { permissions: true },
       });
-      const creatorPermKeys = new Set(creatorRole?.permissions.map(p => `${p.section}:${p.canEdit ? 'edit' : 'view'}`) || []);
-      for (const p of permissions) {
-        if (p.canView && !creatorPermKeys.has(`${p.section}:view`) && !creatorPermKeys.has(`${p.section}:edit`)) {
-          return { success: false, error: `Нельзя предоставить право ${p.section}:view, которым вы не обладаете` };
-        }
-        if (p.canEdit && !creatorPermKeys.has(`${p.section}:edit`)) {
-          return { success: false, error: `Нельзя предоставить право ${p.section}:edit, которым вы не обладаете` };
-        }
+      const ceilingCheck = checkPermissionCeiling(creatorRole, permissions, 'предоставить');
+      if (!ceilingCheck.allowed) {
+        return { success: false, error: ceilingCheck.error };
       }
     }
 
-    // Normalize permissions: canEdit implies canView
+    // Normalize permissions: canEdit implies canView, normalize section to canonical
     const normalizedPermissions = permissions.map(p => ({
-      section: p.section,
+      section: normalizeRbacSection(p.section),
       canView: p.canEdit ? true : p.canView,
       canEdit: p.canEdit,
     }));
@@ -181,6 +211,21 @@ export async function updateRoleAction(input: z.input<typeof updateRoleSchema>) 
       }
     }
 
+    // Privilege escalation prevention: staff cannot grant permissions they do not possess
+    if (staffUser.role !== 'OWNER' && staffUser.role !== 'ADMIN') {
+      if (!staffUser.staffRoleId) {
+        return { success: false, error: 'У вас недостаточно прав для управления ролями' };
+      }
+      const creatorRole = await db.staffRole.findUnique({
+        where: { id: staffUser.staffRoleId },
+        include: { permissions: true },
+      });
+      const ceilingCheck = checkPermissionCeiling(creatorRole, permissions, 'предоставить');
+      if (!ceilingCheck.allowed) {
+        return { success: false, error: ceilingCheck.error };
+      }
+    }
+
     // Check unique name if changed
     if (name.toLowerCase() !== existingRole.name.toLowerCase()) {
       const duplicateName = await db.staffRole.findFirst({
@@ -194,9 +239,9 @@ export async function updateRoleAction(input: z.input<typeof updateRoleSchema>) 
       }
     }
 
-    // Normalize permissions: canEdit implies canView
+    // Normalize permissions: canEdit implies canView, normalize section to canonical
     const normalizedPermissions = permissions.map(p => ({
-      section: p.section,
+      section: normalizeRbacSection(p.section),
       canView: p.canEdit ? true : p.canView,
       canEdit: p.canEdit,
     }));
@@ -286,6 +331,21 @@ export async function cloneRoleAction(input: z.infer<typeof cloneRoleSchema>) {
 
     if (existingName) {
       return { success: false, error: 'Роль с таким названием существует' };
+    }
+
+    // Privilege escalation prevention: staff cannot clone a role with permissions they do not possess
+    if (staffUser.role !== 'OWNER' && staffUser.role !== 'ADMIN') {
+      if (!staffUser.staffRoleId) {
+        return { success: false, error: 'У вас недостаточно прав для управления ролями' };
+      }
+      const creatorRole = await db.staffRole.findUnique({
+        where: { id: staffUser.staffRoleId },
+        include: { permissions: true },
+      });
+      const ceilingCheck = checkPermissionCeiling(creatorRole, sourceRole.permissions, 'клонировать');
+      if (!ceilingCheck.allowed) {
+        return { success: false, error: ceilingCheck.error };
+      }
     }
 
     const cloned = await db.$transaction(async (tx) => {
@@ -393,3 +453,84 @@ export async function deleteRoleAction(input: z.infer<typeof deleteRoleSchema>) 
     return { success: true, id };
   });
 }
+
+/**
+ * Granularly update or toggle a single section permission for a StaffRole
+ */
+export async function updateSingleRolePermissionAction(input: {
+  roleId: string;
+  section: string;
+  canView: boolean;
+  canEdit: boolean;
+}) {
+  return requireStaffPermission('settings', 'edit', async (staffUser) => {
+    // Only OWNER can modify role permissions
+    if (staffUser.role !== 'OWNER') {
+      return { success: false, error: 'Только Владелец может изменять права ролей' };
+    }
+
+    const { roleId, section, canEdit } = input;
+    const canView = canEdit ? true : Boolean(input.canView);
+    const canonicalSection = normalizeRbacSection(section);
+
+    const role = await db.staffRole.findUnique({
+      where: { id: roleId },
+      include: { permissions: true },
+    });
+
+    if (!role) {
+      return { success: false, error: 'Роль не найдена' };
+    }
+
+    if (role.name === 'Admin' && role.isSystem) {
+      return { success: false, error: 'Системную роль Admin нельзя изменять или удалять' };
+    }
+
+    // Lockout guard: non-owner staff editing own role
+    if (staffUser.role !== 'OWNER' && staffUser.staffRoleId === role.id && canonicalSection === 'settings' && !canEdit) {
+      return { success: false, error: 'Нельзя снять права settings:edit с собственной роли' };
+    }
+
+    const existingPermission = role.permissions.find(
+      p => normalizeRbacSection(p.section) === canonicalSection
+    );
+
+    await db.$transaction(async (tx) => {
+      // Clean up legacy alias if it had a different section name in DB
+      if (existingPermission && existingPermission.section !== canonicalSection) {
+        await tx.staffPermission.deleteMany({
+          where: { roleId, section: existingPermission.section }
+        });
+      }
+
+      await tx.staffPermission.upsert({
+        where: { roleId_section: { roleId, section: canonicalSection } },
+        update: {
+          canView,
+          canEdit,
+        },
+        create: {
+          roleId,
+          section: canonicalSection,
+          canView,
+          canEdit,
+        },
+      });
+    });
+
+    await auditAdminAwaitable({
+      adminId: staffUser.id,
+      adminEmail: staffUser.email,
+      action: 'UPDATE_STAFF_ROLE_PERMISSIONS',
+      target: roleId,
+      targetType: 'StaffRole',
+      oldValue: existingPermission ? { section: canonicalSection, canView: existingPermission.canView, canEdit: existingPermission.canEdit } : null,
+      newValue: { section: canonicalSection, canView, canEdit },
+    });
+
+    revalidatePath('/admin/settings');
+    revalidatePath('/admin/settings/roles');
+    return { success: true };
+  });
+}
+

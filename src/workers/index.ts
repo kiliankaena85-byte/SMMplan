@@ -48,6 +48,7 @@ import articlePublishProcessor from './processors/article-publish.processor';
 import aiObserverProcessor from './processors/ai-observer.processor';
 import aiEconomicOptimizerProcessor from './processors/ai-economic-optimizer.processor';
 import geoAvailabilityProcessor from './processors/geo-availability.processor';
+import indexNowProcessor from './processors/indexnow.processor';
 import { orderService } from '../services/core/order.service';
 import { trackEtaFailure, resetEtaFailureStreak } from './eta-alerts';
 
@@ -107,104 +108,12 @@ const articlePublishWorker = new Worker('articlePublishQueue', articlePublishPro
 const aiObserverWorker = new Worker('aiObserverQueue', aiObserverProcessor, workerConfig);
 const aiEconomicOptimizerWorker = new Worker('aiEconomicOptimizerQueue', aiEconomicOptimizerProcessor, workerConfig);
 const geoAvailabilityWorker = new Worker('geoAvailabilityQueue', geoAvailabilityProcessor, workerConfig);
+const indexNowWorker = new Worker('indexnow-queue', indexNowProcessor, workerConfig);
 
 // ── P2.1: DLQ — Dead Letter Queue handler ────────────────────────────────────
-const MAX_ATTEMPTS = 3; // Must match createQueue defaults
+import { handleDeadLetter } from './dead-letter';
+export { handleDeadLetter };
 
-async function handleDeadLetter(
-  queueName: string,
-  job: { id?: string; name?: string; data: unknown; attemptsMade: number; opts?: { attempts?: number } } | undefined,
-  err: Error
-): Promise<void> {
-  if (!job) return;
-
-  const maxAttempts = job.opts?.attempts ?? MAX_ATTEMPTS;
-
-  log.error(`Job failed`, {
-    queue: queueName,
-    jobId: job.id,
-    attemptsMade: job.attemptsMade,
-    error: err.message,
-  });
-
-  // Only DLQ after all retries are exhausted OR if it's a fatal error
-  if (job.attemptsMade >= maxAttempts || err.name === 'UnrecoverableError') {
-    if (job.attemptsMade >= maxAttempts) {
-      console.error(
-        `[WORKER][ACTION REQUIRED] Job ${job.id} (${job.name}) exhausted all ${job.attemptsMade} attempts. Last error: ${err.message}`
-      );
-    }
-    try {
-      await dlqQueue.add('dead-letter', {
-        originalQueue: queueName,
-        jobId: job.id,
-        payload: job.data,
-        error: err.message,
-        failedAt: new Date().toISOString(),
-      });
-
-      // 🔥 Safe State Handling: PENDING_CHECK orders are parked for triage/autoflush and MUST NOT be auto-failed
-      let isParkedForTriage = false;
-      if (queueName === 'ordersQueue') {
-        const payload = job.data as { orderId?: string; refillId?: string };
-        if (payload?.orderId) {
-          const currentOrder = await db.order.findUnique({
-            where: { id: payload.orderId },
-            select: { status: true, numericId: true }
-          });
-          if (currentOrder && (currentOrder.status === 'PENDING_CHECK' || currentOrder.status === 'IN_PROGRESS')) {
-            log.info(`[WORKER] Order #${currentOrder.numericId} (${payload.orderId}) is in '${currentOrder.status}'. Skipping auto-fail to allow operator triage / balance autoflush.`);
-            isParkedForTriage = true;
-          } else {
-            await orderService.failOrderTerminal(payload.orderId, err.message);
-            log.info(`Auto-refunded dead-letter order ${payload.orderId}`);
-          }
-        }
-      }
-
-      if (queueName === 'refillQueue') {
-        const payload = job.data as { orderId?: string; refillId?: string };
-        if (payload?.refillId) {
-          await db.refill.update({
-            where: { id: payload.refillId },
-            data: { status: 'ERROR' }
-          });
-          log.info(`Marked dead-letter refill ${payload.refillId} as ERROR`);
-        }
-      }
-
-      // ── Smart Alert Triage (P0 Critical vs P1 Maintenance with Deduplication) ─────
-      const isFinancialQueue = ['ordersQueue', 'paymentSyncQueue', 'paymentGatewayQueue'].includes(queueName);
-      
-      if (isFinancialQueue && !isParkedForTriage) {
-        // P0: Always alert immediately for customer money and orders
-        await sendAdminAlert(
-          `🪦 *Dead Letter Job (P0 Финансовый)*\n\nОчередь: \`${queueName}\`\nJob ID: \`${job.id}\`\nПопыток: ${job.attemptsMade}/${maxAttempts}\n\nОшибка: ${err.message}`,
-          'CRITICAL'
-        );
-      } else if (!isParkedForTriage) {
-        // P1: Deduplicate maintenance queues (catalog, articles, etc.) to prevent Telegram alert floods
-        const { P0AlertDebouncer } = await import('@/lib/alerts/p0-alert-debouncer');
-        const errKey = `dlq:${queueName}:${err.name || 'Error'}`;
-        const { shouldSend, occurrences } = await P0AlertDebouncer.checkDeduplicatedAlert(errKey, 7200);
-
-        if (shouldSend) {
-          const occInfo = occurrences > 1 ? ` (Повторов за 2ч: ${occurrences})` : '';
-          await sendAdminAlert(
-            `⚠️ *Фоновая задача в DLQ (P1 Обслуживание)*${occInfo}\n\nОчередь: \`${queueName}\`\nJob ID: \`${job.id}\`\nОшибка: ${err.message}`,
-            'WARNING'
-          );
-        } else {
-          log.info(`Suppressed duplicate DLQ alert for ${queueName} (${occurrences} occurrences in window)`);
-        }
-      }
-
-      log.error('Job dead-lettered', { queue: queueName, jobId: job.id });
-    } catch (dlqErr) {
-      log.error('Failed to write to DLQ', { error: (dlqErr as Error).message });
-    }
-  }
-}
 
 orderWorker.on('failed', (job, err) => { handleDeadLetter('ordersQueue', job, err); });
 syncWorker.on('failed', (job, err) => { handleDeadLetter('syncQueue', job, err); });
@@ -215,6 +124,10 @@ paymentSyncWorker.on('failed', (job, err) => { handleDeadLetter('paymentSyncQueu
 paymentGatewayWorker.on('failed', (job, err) => { handleDeadLetter('paymentGatewayQueue', job, err); });
 refillWorker.on('failed', (job, err) => { handleDeadLetter('refillQueue', job, err); });
 articlePublishWorker.on('failed', (job, err) => { handleDeadLetter('articlePublishQueue', job, err); });
+aiObserverWorker.on('failed', (job, err) => { handleDeadLetter('aiObserverQueue', job, err); });
+aiEconomicOptimizerWorker.on('failed', (job, err) => { handleDeadLetter('aiEconomicOptimizerQueue', job, err); });
+geoAvailabilityWorker.on('failed', (job, err) => { handleDeadLetter('geoAvailabilityQueue', job, err); });
+indexNowWorker.on('failed', (job, err) => { handleDeadLetter('indexnow-queue', job, err); });
 // WRK-04: alert on consecutive ETA failures
 etaWorker.on('failed', (job, err) => {
   trackEtaFailure(job, err);
@@ -277,6 +190,7 @@ const shutdown = async () => {
     aiObserverWorker.close(),
     aiEconomicOptimizerWorker.close(),
     geoAvailabilityWorker.close(),
+    indexNowWorker.close(),
   ]);
   await db.$disconnect();
   if (connection) await connection.quit();

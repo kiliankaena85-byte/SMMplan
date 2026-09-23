@@ -21,7 +21,6 @@ export class ReferralValidatorService {
     let depth = 0;
 
     while (currentId && depth < maxDepth) {
-      // tenant-isolation-ignore: manual IDOR check
       const targetUser: { referredById: string | null } | null = await db.user.findUnique({
         where: { id: currentId },
         select: { referredById: true },
@@ -61,7 +60,6 @@ export class ReferralValidatorService {
       return { valid: false, riskLevel: 'CRITICAL', reason: 'SELF_REFERRAL_FORBIDDEN' };
     }
 
-    // tenant-isolation-ignore: manual IDOR check
     const inviter = await db.user.findUnique({
       where: { id: inviterId },
       select: { id: true, email: true, referralCode: true, tenantId: true, isDeleted: true },
@@ -71,7 +69,7 @@ export class ReferralValidatorService {
       return { valid: false, riskLevel: 'CRITICAL', reason: 'INVITER_NOT_FOUND' };
     }
 
-    if (context?.inviteeEmail && inviter.email.toLowerCase() === context.inviteeEmail.toLowerCase()) {
+    if (context?.inviteeEmail && inviter.email?.toLowerCase() === context.inviteeEmail.toLowerCase()) {
       return { valid: false, riskLevel: 'CRITICAL', reason: 'SELF_REFERRAL_BY_EMAIL' };
     }
 

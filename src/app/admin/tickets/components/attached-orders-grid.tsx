@@ -60,7 +60,7 @@ export function AttachedOrdersGrid({ orders, ticketId, isApiEnabledClient }: Att
         const res = await bulkRefillOrdersAction(ticketId, selectedIds);
         if (res.success) {
           toast.success(`Массовый перезапуск: обработано ${res.processedCount} заказов.`);
-          if (res.errors.length > 0) {
+          if (res.errors && res.errors.length > 0) {
             res.errors.forEach(err => toast.error(err));
           }
           setSelectedIds([]);
@@ -71,7 +71,7 @@ export function AttachedOrdersGrid({ orders, ticketId, isApiEnabledClient }: Att
         const res = await bulkRefundOrdersAction(ticketId, selectedIds);
         if (res.success) {
           toast.success(`Массовый частичный возврат: возвращено ${res.totalRefundedAmount} ₽ по ${res.processedCount} заказам.`);
-          if (res.errors.length > 0) {
+          if (res.errors && res.errors.length > 0) {
             res.errors.forEach(err => toast.error(err));
           }
           setSelectedIds([]);

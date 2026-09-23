@@ -16,14 +16,12 @@ import { getUnifiedLinkSpecification } from "@/services/link-engine/link-rules-r
 
 export async function ensureTaxonomyTenantAccess(categoryId: string) {
   return requireStaffPermission('CATALOG', 'edit', async (admin) => {
-    // tenant-isolation-ignore: manual IDOR check
     const category = await db.category.findUnique({
       where: { id: categoryId },
       select: { id: true, tenantId: true, networkId: true }
     });
     if (category && category.tenantId !== 'all') {
       await db.$transaction(async (tx) => {
-        // tenant-isolation-ignore: manual IDOR check
         await tx.category.update({
           where: { id: categoryId },
           data: { tenantId: 'all' }
@@ -101,7 +99,6 @@ export async function createServiceAction(rawData: unknown) {
     const data = parsed.data;
 
     // Verify category exists and ensure taxonomy is accessible to all tenants
-    // tenant-isolation-ignore: manual IDOR check
     const category = await db.category.findUnique({
       where: { id: data.categoryId },
       include: { network: true }
@@ -257,7 +254,6 @@ export async function updateServiceAction(id: string, rawData: unknown) {
     const data = parsed.data;
 
     // Verify service exists
-    // tenant-isolation-ignore: manual IDOR check
     const service = await db.service.findUnique({
       where: { id }
     });
@@ -266,7 +262,6 @@ export async function updateServiceAction(id: string, rawData: unknown) {
     }
 
     // Verify category exists
-    // tenant-isolation-ignore: manual IDOR check
     const category = await db.category.findUnique({
       where: { id: data.categoryId }
     });
@@ -324,7 +319,6 @@ export async function updateServiceAction(id: string, rawData: unknown) {
 
     // Atomically update the service
     const updatedService = await db.$transaction(async (tx) => {
-      // tenant-isolation-ignore: manual IDOR check
       return await tx.service.update({
         where: { id },
         data: {
@@ -421,7 +415,6 @@ export async function deleteOrArchiveServiceAction(id: string) {
       return { success: false as const, error: 'ID услуги обязателен' };
     }
 
-    // tenant-isolation-ignore: manual IDOR check
     const service = await db.service.findUnique({
       where: { id },
       select: { id: true, name: true, tenantId: true, isActive: true, _count: { select: { orders: true } } }
@@ -436,7 +429,6 @@ export async function deleteOrArchiveServiceAction(id: string) {
     if (orderCount === 0) {
       // Safe Hard Delete: No FK constraints broken
       try {
-        // tenant-isolation-ignore: manual IDOR check
         await db.service.delete({ where: { id } });
 
         await auditAdminAwaitable({
@@ -471,7 +463,6 @@ export async function deleteOrArchiveServiceAction(id: string) {
           ? service.name
           : `[АРХИВ] ${service.name}`;
 
-        // tenant-isolation-ignore: manual IDOR check
         await db.service.update({
           where: { id },
           data: {
@@ -510,7 +501,6 @@ export async function deleteOrArchiveServiceAction(id: string) {
         ? service.name
         : `[АРХИВ] ${service.name}`;
 
-      // tenant-isolation-ignore: manual IDOR check
       await db.service.update({
         where: { id },
         data: {
@@ -555,7 +545,6 @@ export async function toggleServiceStatusAction(id: string, isActive: boolean) {
       return { success: false as const, error: 'ID услуги обязателен' };
     }
 
-    // tenant-isolation-ignore: manual IDOR check
     const service = await db.service.findUnique({
       where: { id },
       select: { id: true, name: true, isActive: true }
@@ -565,7 +554,6 @@ export async function toggleServiceStatusAction(id: string, isActive: boolean) {
       return { success: false as const, error: 'Услуга не найдена' };
     }
 
-    // tenant-isolation-ignore: manual IDOR check
     await db.service.update({
       where: { id },
       data: { isActive }
@@ -604,7 +592,6 @@ export async function bulkDeleteOrArchiveServicesAction(serviceIds: string[]) {
     let archivedCount = 0;
 
     for (const id of serviceIds) {
-      // tenant-isolation-ignore: manual IDOR check
       const service = await db.service.findUnique({
         where: { id },
         select: { id: true, name: true, isActive: true, _count: { select: { orders: true } } }
@@ -613,7 +600,6 @@ export async function bulkDeleteOrArchiveServicesAction(serviceIds: string[]) {
       if (!service) continue;
 
       if (service._count.orders === 0) {
-        // tenant-isolation-ignore: manual IDOR check
         await db.service.delete({ where: { id } });
         deletedCount++;
       } else {
@@ -621,7 +607,6 @@ export async function bulkDeleteOrArchiveServicesAction(serviceIds: string[]) {
           ? service.name
           : `[АРХИВ] ${service.name}`;
 
-        // tenant-isolation-ignore: manual IDOR check
         await db.service.update({
           where: { id },
           data: {
@@ -668,7 +653,6 @@ export async function resetCustomFlagsAction(id: string) {
       return { success: false as const, error: 'ID услуги обязателен' };
     }
 
-    // tenant-isolation-ignore: manual IDOR check
     const service = await db.service.update({
       where: { id },
       data: {

@@ -5,7 +5,7 @@ services:
     image: postgres:15-alpine
     container_name: smmplan_lite_db
     restart: always
-    mem_limit: 128m
+    mem_limit: 256m
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-postgres}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
@@ -13,8 +13,6 @@ services:
     command: >
       postgres
       -c log_statement=ddl
-      -c log_connections=on
-      -c log_disconnections=on
       -c log_line_prefix='%m [%p] %q%u@%d '
     volumes:
       - lite_postgres_data:/var/lib/postgresql/data
@@ -36,8 +34,8 @@ services:
     image: redis:7-alpine
     container_name: smmplan_lite_redis
     restart: always
-    mem_limit: 64m
-    command: redis-server --requirepass ${REDIS_PASSWORD:-SmmP1anR3dis2026Secure!} --save 60 1 --loglevel warning --maxmemory 64mb --maxmemory-policy volatile-lru
+    mem_limit: 96m
+    command: redis-server --requirepass ${REDIS_PASSWORD:-SmmP1anR3dis2026Secure!} --save 60 1 --loglevel warning --maxmemory 96mb --maxmemory-policy noeviction
     volumes:
       - lite_redis_data:/data
     ports:
@@ -58,7 +56,7 @@ services:
     image: metacubex/mihomo:latest
     container_name: smmplan_clash
     restart: always
-    mem_limit: 64m
+    mem_limit: 96m
     # TUN mode requires NET_ADMIN + /dev/net/tun
     cap_add:
       - NET_ADMIN
@@ -128,12 +126,12 @@ services:
       target: worker-runner
     container_name: smmplan_lite_worker
     restart: always
-    mem_limit: 128m
+    mem_limit: 192m
     env_file:
       - .env
     environment:
       - NODE_ENV=production
-      - NODE_OPTIONS=--max-old-space-size=96
+      - NODE_OPTIONS=--max-old-space-size=160
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/smmplan_lite?schema=public&connection_limit=5&pool_timeout=30
       - REDIS_URL=redis://:${REDIS_PASSWORD:-SmmP1anR3dis2026Secure!}@redis:6379
       - CLASH_PROXY_URL=http://clash:7890
@@ -163,17 +161,18 @@ services:
       target: runner
     container_name: smmplan_web
     restart: always
-    mem_limit: 384m
+    mem_limit: 512m
     # Load all secrets from .env (local dev keys, API tokens, etc.)
     # DATABASE_URL and REDIS_URL are overridden below to use Docker service names
     env_file:
       - .env
     environment:
       - NODE_ENV=production
-      - NODE_OPTIONS=--max-old-space-size=256
+      - NODE_OPTIONS=--max-old-space-size=384
       # Override to use Docker internal service DNS (not localhost)
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/smmplan_lite?schema=public&connection_limit=5&pool_timeout=30
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/smmplan_lite?schema=public&connection_limit=25&pool_timeout=30
       - REDIS_URL=redis://:${REDIS_PASSWORD:-SmmP1anR3dis2026Secure!}@redis:6379
+      - VECTOR_MEMORY_URL=http://remote-graphrag-api:8100
       - CLASH_PROXY_URL=http://clash:7890
       - RUN_MIGRATIONS=true
       - SKIP_BOT=true

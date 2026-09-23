@@ -116,7 +116,7 @@ export function OnboardingReadinessBar({ settings }: OnboardingReadinessBarProps
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 min-w-0">
           <div className="p-2 bg-primary/15 text-primary rounded-lg border border-primary/20 shrink-0">
-            <Sparkles className="w-4 h-4" />
+            <Sparkles className="w-4 h-4 shrink-0" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
@@ -195,7 +195,7 @@ export function OnboardingReadinessBar({ settings }: OnboardingReadinessBarProps
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-bold text-foreground truncate">{step.title}</span>
+                      <span className="text-xs font-bold text-foreground truncate min-w-0">{step.title}</span>
                       {step.isCompleted ? (
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                       ) : (

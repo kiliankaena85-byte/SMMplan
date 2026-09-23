@@ -29,6 +29,7 @@ export interface MutationDefinition {
   originalPattern: string | RegExp;
   mutatedReplacement: string;
   targetTestSuite: string;
+  targetTestName?: string;
 }
 
 export interface MutationResult {
@@ -102,6 +103,7 @@ export const CORE_MUTATIONS: MutationDefinition[] = [
     originalPattern: 'return `className="${classList} shrink-0"`;',
     mutatedReplacement: 'return `className="${classList}"`; // MUTANT: shrink-0 injection disabled',
     targetTestSuite: 'src/__tests__/skills/layout-overflow-sentry.test.ts',
+    targetTestName: 'anti-patterns',
   },
   // 6. Layout Healer: Отключение исправления горизонтального скролла w-screen
   {
@@ -112,6 +114,7 @@ export const CORE_MUTATIONS: MutationDefinition[] = [
     originalPattern: "line = line.replace(/(?<![\\w-])w-screen(?![\\w-])/g, 'w-full max-w-full');",
     mutatedReplacement: "// MUTANT: w-screen replacement disabled",
     targetTestSuite: 'src/__tests__/skills/layout-overflow-sentry.test.ts',
+    targetTestName: 'anti-patterns',
   },
   // 7. Layout Healer: Отключение защиты от iOS Auto-Zoom
   {
@@ -119,9 +122,50 @@ export const CORE_MUTATIONS: MutationDefinition[] = [
     category: 'UI_HEALER',
     description: 'Отключение защиты от авто-зума на iPhone: сохранение мелкого шрифта text-xs в инпутах',
     targetFile: 'scripts/ui/layout-healer.ts',
-    originalPattern: "line = line.replace(/\\btext-(?:xs|\\[1[0-3]px\\])\\b/g, 'text-base sm:text-xs');",
-    mutatedReplacement: "// MUTANT: iOS font zoom fix disabled",
+    originalPattern: "line = line.replace(/\\btext-(?:xs|sm|\\[1[0-4]px\\])\\b/, isSm ? 'text-base sm:text-sm' : 'text-base sm:text-xs');",
+    mutatedReplacement: "line = line; // MUTANT: iOS font zoom fix disabled",
     targetTestSuite: 'src/__tests__/skills/layout-overflow-sentry.test.ts',
+    targetTestName: 'anti-patterns',
+  },
+  // 8. Multi-Tenant: Промокод — снятие фильтра по activeTenant (утечка промокодов между витринами)
+  {
+    id: 'MUT-TEN-01',
+    category: 'TENANT_ISOLATION',
+    description: 'Устранение изоляции тенанта из поиска промокода в activatePromoCodeAction',
+    targetFile: 'src/actions/user/promo.ts',
+    originalPattern: 'const promo = await tx.promoCode.findFirst({ where: { code: cleanCode, tenantId: activeTenant } });',
+    mutatedReplacement: 'const promo = await tx.promoCode.findFirst({ where: { code: cleanCode } }); // MUTANT: Cross-tenant promo bypass',
+    targetTestSuite: 'src/__tests__/unit/multi-tenant-blind-spots-package-3.test.ts',
+  },
+  // 9. Multi-Tenant: Retry Checkout — списание баланса с сессионного пользователя вместо владельца заказа
+  {
+    id: 'MUT-TEN-02',
+    category: 'TENANT_ISOLATION',
+    description: 'Подмена списания с баланса фактического владельца заказа (freshOrder.userId) на сессионного пользователя',
+    targetFile: 'src/services/orders/retry-checkout.service.ts',
+    originalPattern: 'await WalletOps.charge(tx, freshOrder.userId, totalChargeCents, `Повторная оплата заказа с баланса`, {',
+    mutatedReplacement: 'await WalletOps.charge(tx, sessionUserId, totalChargeCents, `Повторная оплата заказа с баланса`, { // MUTANT: Debits session user instead of order owner',
+    targetTestSuite: 'src/__tests__/unit/multi-tenant-blind-spots-package-3.test.ts',
+  },
+  // 10. Multi-Tenant: Support Ticket — отключение проверки принадлежности тикета активной витрине
+  {
+    id: 'MUT-TEN-03',
+    category: 'TENANT_ISOLATION',
+    description: 'Отключение проверки совпадения витрины тикета с текущей витриной клиента в addTicketMessage',
+    targetFile: 'src/actions/support/ticket.ts',
+    originalPattern: 'if (ticket.tenantId && ticket.tenantId !== currentTenant) {',
+    mutatedReplacement: 'if (false && ticket.tenantId !== currentTenant) { // MUTANT: Cross-tenant ticket message injection',
+    targetTestSuite: 'src/__tests__/unit/multi-tenant-blind-spots-package-3.test.ts',
+  },
+  // 11. Multi-Tenant: Telegram Smart Bind — хардкод smmplan при генерации токена привязки
+  {
+    id: 'MUT-TEN-04',
+    category: 'TENANT_ISOLATION',
+    description: 'Хардкод tenantId: "smmplan" при создании токена привязки Telegram в getTelegramBindDetailsAction',
+    targetFile: 'src/actions/user/settings/telegram.action.ts',
+    originalPattern: 'tenantId: tenantId,',
+    mutatedReplacement: "tenantId: 'smmplan', // MUTANT: Hardcoded tenantId drops active storefront",
+    targetTestSuite: 'src/__tests__/unit/financial-isolation-package-2.test.ts',
   },
 ];
 
@@ -172,13 +216,23 @@ export class MutationTestingHarness {
       const mutatedContent = originalContent.replace(mutation.originalPattern, mutation.mutatedReplacement);
       fs.writeFileSync(fullPath, mutatedContent, 'utf-8');
 
-      // Запускаем Vitest в изолированном процессе
-      const testArgs = ['vitest', 'run', mutation.targetTestSuite, '--reporter=basic'];
+      // Запускаем Vitest в изолированном процессе через dotenv-cli с подключением test DB
+      const testArgs = [
+        'dotenv',
+        '-e',
+        '.env.test',
+        '--',
+        'vitest',
+        'run',
+        mutation.targetTestSuite,
+        ...(mutation.targetTestName ? ['-t', mutation.targetTestName] : []),
+        '--reporter=dot',
+      ];
       const npxCmd = process.platform === 'win32' ? 'npx.cmd' : 'npx';
       const runResult = spawnSync(npxCmd, testArgs, {
         cwd: this.projectRoot,
         encoding: 'utf-8',
-        timeout: 60000,
+        timeout: 90000,
         shell: process.platform === 'win32',
         env: {
           ...process.env,

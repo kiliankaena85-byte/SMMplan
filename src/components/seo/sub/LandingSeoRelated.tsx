@@ -1,12 +1,16 @@
 import React from "react";
 import Link from "next/link";
 import { CreditCard, ShieldCheck } from "lucide-react";
+import type { SiloRecommendationBundle } from "@/types/silo";
+import { SiloCrossLinking } from "@/components/seo/SiloCrossLinking";
 
 interface LandingSeoRelatedProps {
   networkName: string;
   networkSlug: string;
   relatedCategories?: Array<{ id: string; name: string; slug: string }>;
   relatedNetworks?: Array<{ id: string; name: string; slug: string }>;
+  siloBundle?: SiloRecommendationBundle | null;
+  tenantId?: string;
 }
 
 export function LandingSeoRelated({
@@ -14,9 +18,16 @@ export function LandingSeoRelated({
   networkSlug,
   relatedCategories = [],
   relatedNetworks = [],
+  siloBundle = null,
+  tenantId = "smmplan",
 }: LandingSeoRelatedProps) {
   return (
     <div className="space-y-8">
+      {/* ── SILO COMPLEMENTARY SERVICES & CROSS-LINKING ── */}
+      {siloBundle && (
+        <SiloCrossLinking bundle={siloBundle} tenantId={tenantId} />
+      )}
+
       {/* ── SILO CROSS-LINKING & ТЕГИ ПЕРЕЛИНКОВКИ ── */}
       <section className="space-y-6 pt-4">
         <div className="border-b border-border pb-3">

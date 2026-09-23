@@ -116,7 +116,6 @@ export class ServiceAuditEngine {
 
     if (nameChanged || descriptionChanged || priceChanged || markupChanged) {
       payloads.push(
-        // tenant-isolation-ignore: manual IDOR check
         db.service.update({
           where: { id: service.id },
           data: {

@@ -9,6 +9,7 @@ export interface BalanceUpdatedDetail {
   balanceRub?: string;
   balanceCents?: number;
   source?: string;
+  tenantId?: string;
 }
 
 const BALANCE_EVENT_NAME = 'smmplan:balance_updated';
@@ -27,8 +28,9 @@ export function dispatchBalanceUpdate(detail: BalanceUpdatedDetail) {
 
 /**
  * Unified hook for user balance synchronization across Sidebar, Header, Dashboard Home, and Modals.
+ * Supports explicit tenant isolation to prevent cross-tenant balance leakage.
  */
-export function useUserBalance(initialBalance?: string | number | bigint) {
+export function useUserBalance(initialBalance?: string | number | bigint, explicitTenantId?: string) {
   const parseInitial = (): string => {
     if (typeof initialBalance === 'string') return initialBalance;
     if (typeof initialBalance === 'number' || typeof initialBalance === 'bigint') {
@@ -47,13 +49,17 @@ export function useUserBalance(initialBalance?: string | number | bigint) {
     }
   }, [initialBalance]);
 
-  // Global event listener for instant cross-component synchronization
+  // Global event listener for instant cross-component synchronization with tenant filtering
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     const handleEvent = (event: Event) => {
       const customEvent = event as CustomEvent<BalanceUpdatedDetail>;
       if (customEvent.detail?.balanceRub) {
+        if (explicitTenantId && customEvent.detail.tenantId && customEvent.detail.tenantId !== explicitTenantId) {
+          // Ignore balance event originating from a different tenant
+          return;
+        }
         setBalance(customEvent.detail.balanceRub);
       }
     };
@@ -62,17 +68,22 @@ export function useUserBalance(initialBalance?: string | number | bigint) {
     return () => {
       window.removeEventListener(BALANCE_EVENT_NAME, handleEvent);
     };
-  }, []);
+  }, [explicitTenantId]);
 
   // Trigger server action to fetch latest ledger-backed balance
   const refreshBalance = useCallback(async (isSilent = true) => {
     if (isRefreshing) return;
     setIsRefreshing(true);
     try {
-      const res = await refreshBalanceAction();
+      const res = await refreshBalanceAction(explicitTenantId);
       if (res.success && res.balanceRub) {
         setBalance(res.balanceRub);
-        dispatchBalanceUpdate({ balanceRub: res.balanceRub, source: 'refreshBalance' });
+        dispatchBalanceUpdate({
+          balanceRub: res.balanceRub,
+          balanceCents: res.balanceCents,
+          source: 'refreshBalance',
+          tenantId: res.tenantId || explicitTenantId,
+        });
         if (!isSilent) {
           toast.success('Баланс успешно обновлен!');
         }
@@ -87,7 +98,7 @@ export function useUserBalance(initialBalance?: string | number | bigint) {
     } finally {
       setIsRefreshing(false);
     }
-  }, [isRefreshing]);
+  }, [isRefreshing, explicitTenantId]);
 
   // Window focus & visibility change listener to keep balance fresh
   useEffect(() => {
@@ -114,7 +125,7 @@ export function useUserBalance(initialBalance?: string | number | bigint) {
     refreshBalance,
     setBalance: (newBalanceRub: string) => {
       setBalance(newBalanceRub);
-      dispatchBalanceUpdate({ balanceRub: newBalanceRub, source: 'manualSet' });
+      dispatchBalanceUpdate({ balanceRub: newBalanceRub, source: 'manualSet', tenantId: explicitTenantId });
     },
   };
 }

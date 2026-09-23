@@ -11,6 +11,8 @@ import { db } from "@/lib/db";
 import { Header } from "@/components/landing/Header";
 import { MegaFooter } from "@/components/landing/MegaFooter";
 import { ServiceIdBadge } from "@/components/ui/service-id-badge";
+import { SiloLinkingService } from "@/services/seo/silo-linking.service";
+import { SiloCrossLinking } from "@/components/seo/SiloCrossLinking";
 
 export const dynamic = 'force-dynamic';
 
@@ -72,17 +74,17 @@ export default async function ServiceDetailPage({
 
   const net = service.category.network;
   const cat = service.category;
-  const pageUrl = `https://${host}/services/${net.slug}/${cat.slug}/${service.slug}`;
+  const pageUrl = absoluteCanonical(tenantId, `/services/${net.slug}/${cat.slug}/${service.slug}`);
 
   // Хлебные крошки JSON-LD
   const breadcrumbData = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     "itemListElement": [
-      { "@type": "ListItem", "position": 1, "name": "Главная", "item": `https://${host}` },
-      { "@type": "ListItem", "position": 2, "name": "Услуги", "item": `https://${host}/services` },
-      { "@type": "ListItem", "position": 3, "name": net.name, "item": `https://${host}/services/${net.slug}` },
-      { "@type": "ListItem", "position": 4, "name": cat.name, "item": `https://${host}/services/${net.slug}/${cat.slug}` },
+      { "@type": "ListItem", "position": 1, "name": "Главная", "item": absoluteCanonical(tenantId, "/") },
+      { "@type": "ListItem", "position": 2, "name": "Услуги", "item": absoluteCanonical(tenantId, "/services") },
+      { "@type": "ListItem", "position": 3, "name": net.name, "item": absoluteCanonical(tenantId, `/services/${net.slug}`) },
+      { "@type": "ListItem", "position": 4, "name": cat.name, "item": absoluteCanonical(tenantId, `/services/${net.slug}/${cat.slug}`) },
       { "@type": "ListItem", "position": 5, "name": service.name, "item": pageUrl },
     ],
   };
@@ -96,7 +98,7 @@ export default async function ServiceDetailPage({
     "provider": {
       "@type": "Organization",
       "name": siteName,
-      "url": `https://${host}`,
+      "url": absoluteCanonical(tenantId, "/"),
     },
     "hasOfferCatalog": {
       "@type": "OfferCatalog",
@@ -105,13 +107,25 @@ export default async function ServiceDetailPage({
     "offers": {
       "@type": "Offer",
       "priceCurrency": "RUB",
-      "price": String(service.pricePer1kRub),
+      "price": service.pricePerUnitRub.toFixed(4),
       "url": pageUrl,
       "availability": "https://schema.org/InStock",
     },
   };
 
   const faqItems = getFaqForCategory(net.slug, cat.slug);
+  const faqData = faqItems && faqItems.length > 0 ? {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faqItems.map(item => ({
+      "@type": "Question",
+      "name": item.question,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": item.answer,
+      },
+    })),
+  } : null;
 
   // Смежные услуги категории
   const siblingServices = await db.service.findMany({
@@ -126,12 +140,20 @@ export default async function ServiceDetailPage({
     select: { id: true, name: true, slug: true, rate: true, markup: true }
   });
 
+  // Silo 2026: сопутствующие услуги из смежных категорий текущей соцсети
+  const siloBundle = await SiloLinkingService.getComplementaryServicesForService({
+    serviceId: service.id,
+    tenantId,
+    limit: 4,
+  });
+
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
-      <Header siteName={siteName} activePath="/services" />
+      <Header siteName={siteName} tenantId={tenantId} activePath="/services" />
 
       <JsonLd data={breadcrumbData} />
       <JsonLd data={serviceData} />
+      {faqData && <JsonLd data={faqData} />}
 
       <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-8 space-y-8">
         {/* Breadcrumb UI */}
@@ -209,6 +231,11 @@ export default async function ServiceDetailPage({
             </Link>
           </div>
         </div>
+
+        {/* Silo 2026: Блок сопутствующих услуг «С этой услугой также заказывают» */}
+        {siloBundle && (
+          <SiloCrossLinking bundle={siloBundle} tenantId={tenantId} />
+        )}
 
         {/* Смежные услуги */}
         {siblingServices.length > 0 && (

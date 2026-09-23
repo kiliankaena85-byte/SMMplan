@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { 
   User, 
@@ -39,10 +40,14 @@ export function AdminProfileDropdown({
 }: AdminProfileDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
   const { theme, resolvedTheme, setTheme } = useTheme();
   const { setIsHelpOpen } = useShortcuts();
   const { isCompact, toggleDensity } = useDensity();
   const [mounted, setMounted] = useState(false);
+
 
   // Workspace Settings
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -82,52 +87,87 @@ export function AdminProfileDropdown({
     toast.success(isDark ? 'Включена светлая тема' : 'Включена тёмная тема');
   };
 
-  // Close dropdown on click outside
+  // Close dropdown on click outside the trigger button or menu
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+    if (!isOpen) return;
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as Node;
+      if (
+        triggerRef.current &&
+        !triggerRef.current.contains(target) &&
+        menuRef.current &&
+        !menuRef.current.contains(target)
+      ) {
+        setIsOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
         setIsOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    document.addEventListener('touchstart', handleClickOutside);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
 
   const initials = userEmail.slice(0, 2).toUpperCase();
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative min-w-0 shrink" ref={dropdownRef}>
       {/* Profile Trigger Button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2.5 p-1.5 pr-2.5 rounded-xl border border-border/60 bg-card/80 hover:bg-muted/80 backdrop-blur-md transition-all duration-200 cursor-pointer shadow-xs group"
+        ref={triggerRef}
+        onClick={() => {
+          if (!isOpen && triggerRef.current) {
+            const rect = triggerRef.current.getBoundingClientRect();
+            setDropdownStyle({
+              position: 'fixed',
+              top: rect.bottom + 8,
+              right: window.innerWidth - rect.right,
+              width: 288,
+            });
+          }
+          setIsOpen(!isOpen);
+        }}
+        className="flex items-center gap-1.5 sm:gap-2.5 p-1 sm:p-1.5 pr-1.5 sm:pr-2.5 rounded-xl border border-border/60 bg-card/80 hover:bg-muted/80 backdrop-blur-md transition-all duration-200 cursor-pointer shadow-xs group shrink min-w-0"
         aria-label="Профиль администратора и настройки"
       >
-        <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 text-primary font-black text-xs flex items-center justify-center shadow-xs">
+        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-primary/10 border border-primary/20 text-primary font-black text-xs flex items-center justify-center shadow-xs shrink-0">
           {initials}
         </div>
         <div className="hidden sm:flex flex-col text-left">
-          <span className="text-xs font-bold text-foreground leading-tight max-w-[120px] truncate">
+          <span className="text-xs font-bold text-foreground leading-tight max-w-[120px] truncate min-w-0">
             {userEmail.split('@')[0]}
           </span>
           <span className="text-[10px] text-muted-foreground font-medium">
             {roleLabel}
           </span>
         </div>
-        <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
-      {/* Dropdown Menu */}
-      {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-72 bg-card/95 backdrop-blur-xl border border-border/80 rounded-2xl shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150 divide-y divide-border/40">
+      {/* Dropdown Menu — portalled to document.body to escape overflow-y-auto clipping */}
+      {isOpen && mounted && createPortal(
+        <div
+          ref={menuRef}
+          style={dropdownStyle}
+          className="bg-card/95 backdrop-blur-xl border border-border/80 rounded-2xl shadow-2xl p-2 z-[200] animate-in fade-in zoom-in-95 duration-150 divide-y divide-border/40"
+        >
           {/* User Header */}
+
           <div className="p-3">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary font-black text-sm flex items-center justify-center">
                 {initials}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-xs font-bold text-foreground truncate" title={userEmail}>
+                <div className="text-xs font-bold text-foreground truncate min-w-0" title={userEmail}>
                   {userEmail}
                 </div>
                 <div className="flex items-center gap-1.5 mt-1">
@@ -154,7 +194,7 @@ export function AdminProfileDropdown({
               className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium text-foreground hover:bg-muted transition-colors cursor-pointer"
             >
               <span className="flex items-center gap-2">
-                <Keyboard className="w-4 h-4 text-primary" />
+                <Keyboard className="w-4 h-4 text-primary shrink-0" />
                 Горячие клавиши
               </span>
               <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-muted border border-border rounded">
@@ -171,7 +211,7 @@ export function AdminProfileDropdown({
                 {soundEnabled ? (
                   <Volume2 className="w-4 h-4 text-success" />
                 ) : (
-                  <VolumeX className="w-4 h-4 text-muted-foreground" />
+                  <VolumeX className="w-4 h-4 text-muted-foreground shrink-0" />
                 )}
                 Звук уведомлений
               </span>
@@ -186,7 +226,7 @@ export function AdminProfileDropdown({
               className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium text-foreground hover:bg-muted transition-colors cursor-pointer"
             >
               <span className="flex items-center gap-2">
-                <LayoutGrid className="w-4 h-4 text-primary" />
+                <LayoutGrid className="w-4 h-4 text-primary shrink-0" />
                 Компактность таблиц
               </span>
               <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isCompact ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
@@ -202,9 +242,9 @@ export function AdminProfileDropdown({
             >
               <span className="flex items-center gap-2">
                 {isDark ? (
-                  <Sun className="w-4 h-4 text-warning" />
+                  <Sun className="w-4 h-4 text-warning shrink-0" />
                 ) : (
-                  <Moon className="w-4 h-4 text-info" />
+                  <Moon className="w-4 h-4 text-info shrink-0" />
                 )}
                 Тема оформления
               </span>
@@ -221,7 +261,7 @@ export function AdminProfileDropdown({
               onClick={() => setIsOpen(false)}
               className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium text-foreground hover:bg-muted transition-colors"
             >
-              <ArrowLeft className="w-4 h-4 text-muted-foreground" />
+              <ArrowLeft className="w-4 h-4 text-muted-foreground shrink-0" />
               В кабинет клиента
             </Link>
 
@@ -230,7 +270,7 @@ export function AdminProfileDropdown({
               onClick={() => setIsOpen(false)}
               className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium text-foreground hover:bg-muted transition-colors"
             >
-              <HelpCircle className="w-4 h-4 text-primary" />
+              <HelpCircle className="w-4 h-4 text-primary shrink-0" />
               Справочник статусов
             </Link>
 
@@ -239,7 +279,7 @@ export function AdminProfileDropdown({
               onClick={() => setIsOpen(false)}
               className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium text-foreground hover:bg-muted transition-colors"
             >
-              <ShieldCheck className="w-4 h-4 text-primary" />
+              <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
               Сотрудники и смены
             </Link>
 
@@ -254,11 +294,12 @@ export function AdminProfileDropdown({
               }}
               className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer text-left"
             >
-              <LogOut className="w-4 h-4 text-rose-500" />
+              <LogOut className="w-4 h-4 text-rose-500 shrink-0" />
               Выйти из системы
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -16,6 +16,17 @@ function getDatasourceUrl(): string | undefined {
   if (url && url.startsWith('prisma://')) {
     url = process.env.POSTGRES_URL_NON_POOLING || process.env.DATABASE_URL_UNPOOLED || process.env.DIRECT_URL || url.replace(/^prisma:\/\//, 'postgresql://');
   }
+  if (url && typeof window === 'undefined') {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const fs = require('fs');
+      if (!fs.existsSync('/.dockerenv') && url.includes('@db:')) {
+        url = url.replace('@db:5432', '@127.0.0.1:5435').replace('@db:', '@127.0.0.1:5435');
+      }
+    } catch {
+      // ignore
+    }
+  }
   return url;
 }
 

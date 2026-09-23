@@ -4,7 +4,7 @@ async function main() {
   const users = await db.user.findMany({
     where: {
       email: {
-        in: ['art@artmspektr.ru', 'art@artmspektr.pro', 'art@artmspektr.com', 'art@artmspektr']
+        in: ['art@artmspektr.ru', 'art@artmspektr.pro', 'art@artmspektr.com', 'art@artmspektr', 'nikita8888@inbox.ru']
       }
     },
     select: {

@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { requireStaffPermission } from "@/lib/server/rbac";
 import { VaultService } from "@/lib/vault";
 import { auditAdminAwaitable } from "@/lib/admin-audit";
-import { providerService } from "@/services/providers/provider.service";
+import { providerBalanceService } from "@/services/admin/provider-balance.service";
 import { getBaseUrlAsync } from "@/utils/get-base-url";
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
@@ -162,7 +162,10 @@ export async function deleteProviderAction(rawId: string) {
         newValue: { deleted: true },
       });
 
+      await providerBalanceService.invalidateGlobalLiquidityCache();
+
       revalidatePath('/admin/providers');
+      revalidatePath('/admin', 'layout');
 
       return { success: true as const, deletedName: deleted.name };
     } catch (err) {
@@ -225,6 +228,11 @@ export async function createProvider(rawData: {
         targetType: "PROVIDER",
         newValue: { name: provider.name, apiUrl: provider.apiUrl }
       });
+
+      await providerBalanceService.invalidateGlobalLiquidityCache();
+
+      revalidatePath('/admin/providers');
+      revalidatePath('/admin', 'layout');
 
       return { success: true as const, error: undefined, providerId: provider.id };
     } catch (err) {
@@ -308,6 +316,12 @@ export async function updateProvider(rawId: string, rawData: {
         newValue: { name: provider.name, isActive: provider.isActive }
       });
 
+      await providerBalanceService.invalidateGlobalLiquidityCache();
+
+      revalidatePath('/admin/providers');
+      revalidatePath(`/admin/providers/${id}`);
+      revalidatePath('/admin', 'layout');
+
       return { success: true as const, error: undefined };
     } catch (err) {
       return { success: false as const, error: mapProviderDbError(err) || 'Ошибка сервера при обновлении провайдера' };
@@ -342,10 +356,24 @@ export async function checkProviderConnection(rawId: string) {
               };
             }
             
+            let finalCurrency = providerRecord.balanceCurrency;
+            if (probeResult.detectedCurrency) {
+              const { normalizeProviderCurrency, reconcileCurrencyBeforeSync } = await import('@/lib/pricing/currency-invariant');
+              const normalized = normalizeProviderCurrency(probeResult.detectedCurrency);
+              if (normalized) {
+                finalCurrency = normalized;
+                try {
+                  await reconcileCurrencyBeforeSync(providerRecord.id, normalized);
+                } catch (reconcileErr) {
+                  console.warn(`[checkProviderConnection] Reconcile error:`, reconcileErr);
+                }
+              }
+            }
+            
             return { 
                 success: true, 
                 balance: probeResult.balance, 
-                currency: probeResult.detectedCurrency || providerRecord.balanceCurrency,
+                currency: finalCurrency,
                 servicesCount: probeResult.servicesCount,
                 latencyMs: probeResult.latencyMs
             };
@@ -382,7 +410,19 @@ export async function probeProviderAction(params: {
       }
     }
 
-    return await ProviderDiagnosticService.probe(targetUrl, targetKey, mapping);
+    const probeRes = await ProviderDiagnosticService.probe(targetUrl, targetKey, mapping);
+    if (params.providerId && probeRes.success && probeRes.detectedCurrency) {
+      const { normalizeProviderCurrency, reconcileCurrencyBeforeSync } = await import('@/lib/pricing/currency-invariant');
+      const normalized = normalizeProviderCurrency(probeRes.detectedCurrency);
+      if (normalized) {
+        try {
+          await reconcileCurrencyBeforeSync(params.providerId, normalized);
+        } catch (reconcileErr) {
+          console.warn(`[probeProviderAction] Reconcile error:`, reconcileErr);
+        }
+      }
+    }
+    return probeRes;
   });
 }
 
@@ -483,6 +523,10 @@ export async function syncProviderCatalogAction(rawId: string) {
             
             const stats = await adminCatalogService.syncProviderCatalog(id, admin);
             
+            revalidatePath('/admin/providers');
+            revalidatePath('/admin/catalog');
+            revalidatePath('/admin', 'layout');
+
             return {
                 success: true,
                 stats
@@ -583,6 +627,11 @@ export async function toggleProviderActiveAction(providerId: string, isActive: b
         newValue: { isActive: provider.isActive, name: provider.name },
       });
 
+      await providerBalanceService.invalidateGlobalLiquidityCache();
+
+      revalidatePath('/admin/providers');
+      revalidatePath('/admin', 'layout');
+
       return { success: true as const, isActive: provider.isActive };
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -612,6 +661,11 @@ export async function resetProviderErrorsAction(providerId: string) {
         newValue: { errorCount5m: 0, name: provider.name },
       });
 
+      await providerBalanceService.invalidateGlobalLiquidityCache();
+
+      revalidatePath('/admin/providers');
+      revalidatePath('/admin', 'layout');
+
       return { success: true as const };
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -636,6 +690,9 @@ export async function createMockProviderPresetAction() {
           where: { id: existing.id },
           data: { isActive: true, errorCount5m: 0 },
         });
+        await providerBalanceService.invalidateGlobalLiquidityCache();
+        revalidatePath('/admin/providers');
+        revalidatePath('/admin', 'layout');
         return { success: true as const, message: "Mock Sandbox уже подключён и активирован!", providerId: existing.id };
       }
 
@@ -662,6 +719,11 @@ export async function createMockProviderPresetAction() {
         targetType: "PROVIDER",
         newValue: { name: provider.name, apiUrl: provider.apiUrl },
       });
+
+      await providerBalanceService.invalidateGlobalLiquidityCache();
+
+      revalidatePath('/admin/providers');
+      revalidatePath('/admin', 'layout');
 
       return { success: true as const, message: "Mock Sandbox успешно создан и активирован!", providerId: provider.id };
     } catch (err: unknown) {

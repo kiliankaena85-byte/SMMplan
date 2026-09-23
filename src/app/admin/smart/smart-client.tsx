@@ -327,7 +327,7 @@ export function SmartDripClient({
         <Card className="rounded-2xl border border-border/50 shadow-sm bg-background/60 backdrop-blur-xl">
           <CardContent className="p-6 flex items-center gap-4 h-full">
             <div className="p-3 bg-primary/10 text-primary rounded-xl">
-              <Layers className="w-6 h-6" />
+              <Layers className="w-6 h-6 shrink-0" />
             </div>
             <div>
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Активных кампаний</p>
@@ -617,7 +617,7 @@ export function SmartDripClient({
                             {s.category?.network?.slug && <SocialIcon slug={s.category.network.slug} size={16} />}
                             <span className="font-semibold text-foreground text-xs">{s.category?.network?.name || 'Без сети'}</span>
                           </div>
-                          <div className="text-[10px] text-muted-foreground truncate max-w-[120px] mt-0.5">
+                          <div className="text-[10px] text-muted-foreground truncate max-w-[120px] mt-0.5 min-w-0">
                             {s.category?.name || 'Без категории'}
                           </div>
                         </TableCell>
@@ -700,7 +700,7 @@ export function SmartDripClient({
           <Card className="rounded-2xl border border-border/50 shadow-sm bg-background/60 backdrop-blur-xl">
             <CardHeader className="border-b border-border/50 bg-muted/50 rounded-t-2xl pb-4">
               <CardTitle className="text-foreground text-sm font-bold uppercase tracking-widest flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-warning animate-pulse" />
+                <AlertTriangle className="w-4 h-4 text-warning animate-pulse shrink-0" />
                 Экстренные меры / Kill-Switch
               </CardTitle>
               <CardDescription className="text-xs text-muted-foreground mt-1">
@@ -734,7 +734,7 @@ export function SmartDripClient({
 
               <div className="text-[11px] text-muted-foreground/80 leading-relaxed bg-amber-500/5 border border-amber-500/20 p-4 rounded-xl space-y-2">
                 <div className="font-bold text-amber-700 flex items-center gap-1.5">
-                  <AlertCircle className="w-4 h-4" /> Когда использовать Kill-Switch:
+                  <AlertCircle className="w-4 h-4 shrink-0" /> Когда использовать Kill-Switch:
                 </div>
                 <ul className="list-disc pl-4 space-y-1.5">
                   <li>При резких скачках балансов на панели, намекающих на фрод или баг.</li>
@@ -752,7 +752,7 @@ export function SmartDripClient({
         <DialogContent className="sm:max-w-md rounded-2xl border border-border bg-background shadow-2xl p-6">
           <DialogHeader className="pb-3 border-b border-border/50">
             <DialogTitle className="text-foreground font-black text-base flex items-center gap-2">
-              <Settings className="w-5 h-5 text-primary" />
+              <Settings className="w-5 h-5 text-primary shrink-0" />
               Умный Dripfeed: {editingService?.category?.network?.name || 'Без сети'}
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">

@@ -3,7 +3,30 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, Button, Modal, ModalHeader, ModalBody, ModalFooter, Checkbox, Chip, Alert, Input, Switch } from '@heroui/react';
+import { Card, Button as HeroUIButton, Modal as HeroUIModal, Checkbox, Chip, Alert, Input, Switch } from '@heroui/react';
+
+interface HeroUIButtonProps extends React.ComponentProps<typeof HeroUIButton> {
+  isLoading?: boolean;
+}
+const Button = ({ isLoading, isDisabled, children, ...props }: HeroUIButtonProps) => (
+  <HeroUIButton isDisabled={isLoading || isDisabled} {...props}>
+    {children}
+  </HeroUIButton>
+);
+
+// HeroUI v3 Compound Modal
+const Modal = Object.assign(HeroUIModal, {
+  Content: Object.assign(
+    ({ children, className, ...props }: React.ComponentProps<typeof HeroUIModal.Dialog>) => (
+      <HeroUIModal.Container className={className}>
+        <HeroUIModal.Dialog {...props}>
+          {children}
+        </HeroUIModal.Dialog>
+      </HeroUIModal.Container>
+    ),
+    HeroUIModal.Dialog
+  ),
+});
 import { Table } from '@/components/admin/hero-ui';
 import { previewHotSwap, executeHotSwap, addServiceRoute, toggleRouteStatus, changeRoutePriority, deleteServiceRoute, ensurePrimaryRouteAction } from '@/actions/admin/routing.actions';
 import { toast } from 'sonner';
@@ -411,12 +434,13 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
 
       {/* HOT SWAP MODAL */}
       <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
-        <div className="bg-background rounded-large shadow-large">
+        <Modal.Backdrop variant="blur" />
+        <Modal.Content className="bg-background rounded-large shadow-large">
           <div className="p-6">
-            <ModalHeader className="flex flex-col gap-1">
+            <Modal.Header className="flex flex-col gap-1">
               Конфигурация Hot-Swap
-            </ModalHeader>
-            <ModalBody>
+            </Modal.Header>
+            <Modal.Body>
               {previewData ? (
                 <div className="space-y-4">
                   <Alert color="warning" title="Осторожно! Вы меняете маршрут живого трафика.">
@@ -468,15 +492,15 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
               ) : (
                 <div className="p-8 text-center text-muted-foreground">Загрузка аналитики...</div>
               )}
-            </ModalBody>
-            <ModalFooter>
+            </Modal.Body>
+            <Modal.Footer>
               <Button variant="ghost" onPress={onClose} isDisabled={isPending}>Отмена</Button>
-              <Button variant="danger" onPress={confirmSwap} isPending={isPending} isDisabled={!previewData}>
+              <Button variant="danger" onPress={confirmSwap} isLoading={isPending} isDisabled={!previewData}>
                 Confirm Traffic Swap
               </Button>
-            </ModalFooter>
+            </Modal.Footer>
           </div>
-        </div>
+        </Modal.Content>
       </Modal>
 
       <ConfirmModal

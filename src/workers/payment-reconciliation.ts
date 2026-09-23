@@ -73,8 +73,24 @@ export async function reconcileStalePayments(): Promise<ReconciliationReport> {
         try {
           const secrets = await SettingsManager.getPaymentSecrets(payment.tenantId).catch(() => null);
           const isTestMode = await SettingsManager.isTestMode(payment.tenantId);
-          const authHeader = (secrets?.yookassaShopId && secrets?.yookassaSecretKey)
-            ? 'Basic ' + Buffer.from(`${secrets.yookassaShopId}:${secrets.yookassaSecretKey}`).toString('base64')
+          const hasCredentials = Boolean(secrets?.yookassaShopId && secrets?.yookassaSecretKey);
+
+          if (!hasCredentials) {
+            const isTestEnv = isTestMode || process.env.NODE_ENV === 'test';
+            if (!isTestEnv) {
+              report.errors += 1;
+              log.error(`Missing YooKassa credentials during reconciliation for tenant ${payment.tenantId}, payment ${payment.id}`);
+              sendAdminAlert(
+                `🚨 <b>CRITICAL: YooKassa Reconciliation Credentials Missing</b>\n\nНе удалось получить ключи YooKassa (сбой Redis/БД или ключи не настроены) для платежа <code>${payment.id}</code> (tenant: ${payment.tenantId}). Деньги зависают в PENDING!`,
+                'CRITICAL',
+                payment.tenantId
+              );
+              continue;
+            }
+          }
+
+          const authHeader = hasCredentials
+            ? 'Basic ' + Buffer.from(`${secrets!.yookassaShopId}:${secrets!.yookassaSecretKey}`).toString('base64')
             : 'Basic mock_auth';
 
           const res = await safeFetch(`https://api.yookassa.ru/v3/payments/${payment.gatewayId}`, {
@@ -83,9 +99,26 @@ export async function reconcileStalePayments(): Promise<ReconciliationReport> {
             signal: AbortSignal.timeout(10000),
           });
 
+          if (res.status === 401 || res.status === 403) {
+            report.errors += 1;
+            log.error(`YooKassa authorization failed (HTTP ${res.status}) for payment ${payment.id}`);
+            sendAdminAlert(
+              `🚨 <b>CRITICAL: YooKassa Auth Failed during Reconciliation</b>\n\nОшибка авторизации в YooKassa (HTTP ${res.status}) для платежа <code>${payment.id}</code> (gatewayId: <code>${payment.gatewayId}</code>). Проверьте актуальность shopId / secretKey!`,
+              'CRITICAL',
+              payment.tenantId
+            );
+            continue;
+          }
+
           if (res.status === 404) {
             report.orphans += 1;
             log.warn(`Payment ${payment.id} (YooKassa: ${payment.gatewayId}) not found on remote gateway`);
+            continue;
+          }
+
+          if (!res.ok) {
+            report.errors += 1;
+            log.error(`YooKassa reconciliation request failed for payment ${payment.id} with status ${res.status}`);
             continue;
           }
 

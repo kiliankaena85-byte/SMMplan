@@ -1,0 +1,253 @@
+/**
+ * (c) 2024-2026 SMMplan. All rights reserved.
+ * Order payment retry and YooKassa sync service.
+ */
+import { revalidatePath } from 'next/cache';
+import { db } from '@/lib/db';
+import { SettingsManager, SettingsProvider } from '@/lib/settings';
+import { runSerializableTransaction } from '@/lib/transactions';
+import { WalletOps } from '@/services/financial/wallet-ops';
+import { normalizeTenantId, absoluteCanonical } from '@/lib/seo-helpers';
+import { resolveTenantUser } from '@/lib/tenant-user-resolver';
+
+export async function checkYookassaStatusSync(gatewayId: string, tenantId: string = 'smmplan'): Promise<boolean> {
+  try {
+    const secrets = await SettingsManager.getPaymentSecrets(tenantId);
+    const shopId = secrets.yookassaShopId;
+    const secretKey = secrets.yookassaSecretKey;
+    if (!shopId || !secretKey) return false;
+
+    const authHeader = 'Basic ' + Buffer.from(`${shopId}:${secretKey}`).toString('base64');
+    const resp = await fetch(`https://api.yookassa.ru/v3/payments/${gatewayId}`, {
+      method: 'GET',
+      headers: { 'Authorization': authHeader },
+      signal: AbortSignal.timeout(5000),
+    });
+
+    if (!resp.ok) return false;
+    const data = await resp.json();
+    return data.status === 'succeeded' || data.status === 'waiting_for_capture';
+  } catch (e) {
+    console.error('[YookassaSync] Error checking status', e);
+    return false;
+  }
+}
+
+export interface RetryCheckoutInput {
+  orderId: string;
+  gateway: string;
+  sessionUserId: string;
+  currentTenantId: string;
+  consentIp: string;
+  consentUserAgent: string;
+  reqHeaders: { get: (key: string) => string | null };
+}
+
+export class RetryCheckoutService {
+  static async execute(input: RetryCheckoutInput) {
+    const { orderId, gateway, sessionUserId, currentTenantId, consentIp, consentUserAgent, reqHeaders } = input;
+
+    const normalizedCurrentTenant = normalizeTenantId(currentTenantId) || 'smmplan';
+
+    const sessionUser = await db.user.findUnique({
+      where: { id: sessionUserId },
+      select: { id: true, email: true, role: true, tenantId: true }
+    });
+    if (!sessionUser) throw new Error("Пользователь не найден");
+
+    const order = await db.order.findUnique({
+      where: { id: orderId },
+      include: { user: true, payment: true, service: true }
+    });
+
+    if (!order) throw new Error("Заказ не найден");
+
+    const orderTenantId = normalizeTenantId(order.tenantId) || 'smmplan';
+
+    // Tenant boundary check: Order must belong to current storefront (unless platform OWNER)
+    const isOwner = sessionUser.role === 'OWNER';
+    if (orderTenantId !== normalizedCurrentTenant && !isOwner) {
+      throw new Error("Заказ недоступен для текущей площадки");
+    }
+
+    // Ownership check: sessionUser direct, email match, tenantUser match, or staff
+    const isStaff = ['ADMIN', 'MANAGER', 'SUPPORT'].includes(sessionUser.role);
+    let isAuthorized = order.userId === sessionUserId;
+    if (!isAuthorized && order.user?.email && sessionUser.email) {
+      isAuthorized = order.user.email.toLowerCase() === sessionUser.email.toLowerCase();
+    }
+    if (!isAuthorized) {
+      const tenantUser = await resolveTenantUser(sessionUserId, orderTenantId);
+      if (tenantUser && tenantUser.id === order.userId) {
+        isAuthorized = true;
+      }
+    }
+    if (!isAuthorized && !isStaff && !isOwner) {
+      throw new Error("Заказ не найден");
+    }
+
+    if (order.user.isDeleted === true || order.user.isActive === false) {
+      throw new Error("Ваш аккаунт заблокирован или удален");
+    }
+    if (order.status !== 'AWAITING_PAYMENT') throw new Error("Этот заказ больше не ожидает оплаты");
+
+    const incomingHost = reqHeaders.get("x-forwarded-host") || reqHeaders.get("host");
+    const tenantSuccessUrl = absoluteCanonical(orderTenantId, `/success?orderId=${order.id}`, incomingHost);
+
+    // YooKassa status sync guard
+    if (order.payment?.gateway === 'yookassa' && order.payment.gatewayId) {
+      const isActuallyPaid = await checkYookassaStatusSync(order.payment.gatewayId, orderTenantId);
+      if (isActuallyPaid) {
+        const { paymentService } = await import('@/services/financial/payment.service');
+        const isTestMode = await SettingsManager.isTestMode(orderTenantId);
+        await paymentService.confirmPayment(
+          order.payment.gatewayId,
+          Number(order.payment.amount),
+          order.userId,
+          isTestMode,
+          'yookassa',
+          order.payment.id,
+          'order'
+        );
+        return { orderId: order.id, paymentId: order.payment.id, paymentUrl: tenantSuccessUrl };
+      }
+    }
+
+    const isTestMode = await SettingsManager.isTestMode();
+
+    const result = await runSerializableTransaction<{ paymentId: string; totalPaymentAmount: number; linkedOrderIds: string[] }>(async (tx) => {
+      // Concurrency guard: re-fetch fresh order inside transaction to eliminate TOCTOU races
+      const freshOrder = await tx.order.findUnique({
+        where: { id: order.id },
+        include: { service: true, payment: true, user: { select: { email: true } } }
+      });
+      if (!freshOrder || freshOrder.status !== 'AWAITING_PAYMENT') {
+        throw new Error("Этот заказ больше не ожидает оплаты");
+      }
+
+      const existingPayment = freshOrder.payment || await tx.payment.findUnique({ where: { orderId: freshOrder.id } });
+      let ordersToProcess = [freshOrder];
+      if (existingPayment) {
+        const linkedOrders = await tx.order.findMany({
+          where: { paymentId: existingPayment.id, status: 'AWAITING_PAYMENT', ...(freshOrder.tenantId ? { tenantId: freshOrder.tenantId } : {}) }
+        });
+        if (linkedOrders.length > 0) {
+          const orderMap = new Map();
+          orderMap.set(freshOrder.id, freshOrder);
+          for (const lo of linkedOrders) orderMap.set(lo.id, lo);
+          ordersToProcess = Array.from(orderMap.values());
+        }
+      }
+
+      let totalChargeCents = 0;
+      for (const o of ordersToProcess) totalChargeCents += Number(o.charge);
+
+      let paymentAmount = totalChargeCents;
+      if (gateway !== 'balance' && totalChargeCents < 1000) paymentAmount = 1000;
+
+      const orderTenantId = freshOrder.tenantId || 'smmplan';
+
+      if (gateway === 'balance') {
+        await WalletOps.charge(tx, freshOrder.userId, totalChargeCents, `Повторная оплата заказа с баланса`, {
+          idempotencyKey: `retry-balance-${freshOrder.id}`,
+          tenantId: orderTenantId
+        });
+        for (const o of ordersToProcess) {
+          await tx.order.update({
+            where: { id: o.id },
+            data: { status: 'PENDING' }
+          });
+        }
+      }
+
+      let paymentId = existingPayment?.id;
+      if (existingPayment) {
+        await tx.payment.update({
+          where: { id: existingPayment.id },
+          data: {
+            gateway,
+            amount: paymentAmount,
+            consentIp,
+            consentUserAgent,
+            status: gateway === 'balance' ? 'SUCCEEDED' : existingPayment.status
+          }
+        });
+        for (const o of ordersToProcess) {
+          await tx.order.update({ where: { id: o.id }, data: { paymentId: existingPayment.id } });
+        }
+      } else {
+        const p = await tx.payment.create({
+          data: {
+            userId: freshOrder.userId,
+            amount: paymentAmount,
+            currency: 'RUB',
+            status: gateway === 'balance' ? 'SUCCEEDED' : 'PENDING',
+            gateway,
+            consentIp,
+            consentUserAgent,
+            tenantId: orderTenantId
+          }
+        });
+        paymentId = p.id;
+        for (const o of ordersToProcess) {
+          await tx.order.update({ where: { id: o.id }, data: { paymentId: p.id } });
+        }
+      }
+
+      return { paymentId: paymentId!, totalPaymentAmount: paymentAmount, linkedOrderIds: ordersToProcess.map(o => o.id) };
+    });
+
+    if (gateway === 'balance') {
+      const { ordersQueue } = await import('@/lib/queue-manager');
+      const { ORDER_COOLING_OFF_MS } = await import('@/config/order-constants');
+      for (const oId of result.linkedOrderIds) {
+        await ordersQueue.add('order-dispatch', { orderId: oId }, { jobId: `dispatch-${oId}`, delay: ORDER_COOLING_OFF_MS });
+      }
+      try {
+        revalidatePath('/dashboard', 'layout');
+      } catch {
+        /* ignore non-HTTP */
+      }
+      return {
+        orderId: order.id,
+        paymentId: result.paymentId,
+        paymentUrl: tenantSuccessUrl
+      };
+    }
+
+    const isMockPayment = typeof SettingsProvider.isMockPaymentEnabled === 'function' ? await SettingsProvider.isMockPaymentEnabled(order.tenantId || 'smmplan') : false;
+    const { PaymentGatewayFactory } = await import('@/services/financial/payment-gateway.service');
+    const gatewaySvc = PaymentGatewayFactory.getGateway(gateway || 'yookassa', { isMockPayment });
+    const gatewayResult = await gatewaySvc.createPayment({
+      paymentId: result.paymentId,
+      orderId: order.id,
+      userId: order.userId,
+      tenantId: order.tenantId || 'smmplan',
+      amountRub: result.totalPaymentAmount / 100,
+      email: order.user.email,
+      successUrl: tenantSuccessUrl,
+      description: `Повторная оплата заказа #${order.numericId}`,
+      isTestMode,
+      metadata: { type: 'checkout', tenantId: order.tenantId }
+    });
+
+    if (gatewayResult.remoteGatewayId || gatewayResult.paymentUrl) {
+      await db.payment.update({
+        where: { id: result.paymentId },
+        data: { gatewayId: gatewayResult.remoteGatewayId || undefined, checkoutUrl: gatewayResult.paymentUrl || undefined }
+      });
+    }
+
+    try {
+      revalidatePath('/dashboard', 'layout');
+    } catch {
+      /* ignore non-HTTP */
+    }
+
+    return {
+      orderId: order.id,
+      paymentId: result.paymentId,
+      paymentUrl: gatewayResult.paymentUrl || `/payment-redirect?id=${result.paymentId}`
+    };
+  }
+}

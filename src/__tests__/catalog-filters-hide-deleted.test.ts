@@ -7,7 +7,7 @@ describe('Catalog Filters & SQL Three-Valued Logic Matrix Audit', () => {
 
   beforeEach(async () => {
     const cat = await db.category.upsert({
-      where: { slug: 'test-filter-matrix-cat' },
+      where: { tenantId_slug: { tenantId: 'all', slug: 'test-filter-matrix-cat' } },
       update: { tenantId: 'smmplan' },
       create: {
         name: 'Filter Matrix Test Category',

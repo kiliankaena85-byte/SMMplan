@@ -4,6 +4,8 @@ import { requireOperatorPermission, getOperatorContext } from '@/lib/operator/rb
 import { addUserNote } from '@/services/operator/users/user-notes.query';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { db } from '@/lib/db';
+import { isTenantAllowedForUser } from '@/utils/admin-tenant';
 
 const schema = z.object({
   userId: z.string().min(1),
@@ -25,9 +27,17 @@ export async function createUserNoteAction(data: {
   }
 
   try {
-    const result = await requireOperatorPermission('orders', 'edit', async () => {
+    const result = await requireOperatorPermission('orders', 'edit', async (admin) => {
+      const targetUser = await db.user.findUnique({
+        where: { id: parsed.data.userId },
+        select: { id: true, tenantId: true },
+      });
+      if (!targetUser || !isTenantAllowedForUser(admin, targetUser.tenantId || 'smmplan')) {
+        return { success: false, error: 'Пользователь не найден или доступ ограничен' };
+      }
+
       const context = await getOperatorContext();
-      const authorId = context?.user?.id || null;
+      const authorId = context?.user?.id || admin?.id || null;
 
       await addUserNote(
         parsed.data.userId,

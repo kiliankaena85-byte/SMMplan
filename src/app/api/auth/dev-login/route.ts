@@ -62,7 +62,6 @@ export async function GET(request: Request) {
         }
       });
     } else {
-      // tenant-isolation-ignore: dev-only route
       user = await db.user.update({
         where: { id: user.id },
         data: { role: role as any, tenantId },

@@ -10,13 +10,25 @@ import { DashboardBreadcrumbs } from '@/components/dashboard/DashboardBreadcrumb
 import { ServiceIdBadge } from '@/components/ui/service-id-badge';
 import { Metadata } from 'next';
 
-export const metadata: Metadata = {
-  title: 'Мои заказы | SMMplan',
-  description: 'История всех ваших заказов на платформе SMMplan. Отслеживайте статус, количество и историю выполнения.',
-};
+import { headers } from 'next/headers';
+import { resolveTenantFromRequest, normalizeTenantId } from '@/lib/tenant-resolver-edge';
+import { resolveTenantUser } from '@/lib/tenant-user-resolver';
+import { runWithTenant } from '@/lib/tenant-context';
+
+export async function generateMetadata({ searchParams }: OrdersPageProps): Promise<Metadata> {
+  const params = await searchParams;
+  const reqHeaders = await headers();
+  const rawTenantId = params?.tenant || reqHeaders.get('x-tenant-id');
+  const tenantId = normalizeTenantId(rawTenantId) || 'smmplan';
+  const isFlux = tenantId === 'flux';
+  const siteName = isFlux ? 'SMMflux' : 'SMMplan';
+  return {
+    title: `Мои заказы | ${siteName}`,
+    description: `История всех ваших заказов на платформе ${siteName}. Отслеживайте статус, количество и историю выполнения.`,
+  };
+}
 
 export const dynamic = 'force-dynamic';
-
 
 interface OrdersPageProps {
   searchParams: Promise<{
@@ -24,38 +36,35 @@ interface OrdersPageProps {
     status?: string;
     search?: string;
     network?: string;
+    tenant?: string;
   }>;
 }
-
-import { headers } from 'next/headers';
-import { resolveTenantFromRequest } from '@/lib/tenant-resolver-edge';
 
 export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   const session = await verifySession();
   if (!session) redirect('/login');
 
   const reqHeaders = await headers();
-  const tenantId = resolveTenantFromRequest(reqHeaders);
-
   const params = await searchParams;
-  const currentPage = parseInt(params.page || '1', 10);
-  const limit = 15; // 15 records per page matches SaaS data density standards
-  const skip = (currentPage - 1) * limit;
+  const rawTenantId = params.tenant || reqHeaders.get('x-tenant-id') || session.tenantId;
+  const tenantId = normalizeTenantId(rawTenantId) || 'smmplan';
 
-  const search = params.search || '';
-  const status = params.status || '';
-  const network = params.network || '';
+  return runWithTenant(tenantId, async () => {
+    const currentPage = parseInt(params.page || '1', 10);
+    const limit = 15; // 15 records per page matches SaaS data density standards
+    const skip = (currentPage - 1) * limit;
 
-  const user = await db.user.findUnique({
-    where: { id: session.userId },
-    select: { balance: true }
-  });
+    const search = params.search || '';
+    const status = params.status || '';
+    const network = params.network || '';
 
-  if (!user) redirect('/login');
+    const user = await resolveTenantUser(session.userId, tenantId, true);
+    if (!user) redirect('/login');
 
   // Build the DB where filter dynamically
   const where: Prisma.OrderWhereInput = {
-    userId: session.userId,
+    userId: user.id,
+    tenantId,
   };
 
   if (status && status !== 'ALL') {
@@ -155,7 +164,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
     }),
     db.order.groupBy({
       by: ['status'],
-      where: { userId: session.userId },
+      where: { userId: user.id, tenantId },
       _count: true,
     }),
   ]);
@@ -246,5 +255,6 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
         />
       )}
     </div>
-  );
+    );
+  });
 }

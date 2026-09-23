@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from 'next-themes';
-import { isNavTabActive } from '@/components/admin/navigation-data';
+import { isNavTabActive, resolveSidebarDomain } from '@/components/admin/navigation-data';
 
 interface NavItem {
   href: string;
@@ -97,6 +97,10 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
     return navigation.flatMap((g) => g.items.map((item) => item.href));
   }, [navigation]);
 
+  // Domain-resolved pathname: maps ghost pages (e.g. /admin/refills) to their
+  // logical sidebar parent (e.g. /admin/orders) so the sidebar stays highlighted.
+  const resolvedPathname = React.useMemo(() => resolveSidebarDomain(pathname), [pathname]);
+
   // All flat items map for pinned rendering
   const allItemsMap = React.useMemo(() => {
     const map = new Map<string, NavItem>();
@@ -113,7 +117,7 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
       className={cn(
         "relative z-20 h-screen flex-shrink-0 transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] group hidden md:flex flex-col",
         "bg-background/40 backdrop-blur-xl border-r border-border/40 shadow-[4px_0_24px_rgba(0,0,0,0.02)] dark:shadow-[4px_0_24px_rgba(0,0,0,0.1)]",
-        collapsed ? "w-16" : "w-[280px]"
+        collapsed ? "w-16" : "w-[280px] max-w-full"
       )}
     >
       {/* Collapse Toggle */}
@@ -123,7 +127,7 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
           aria-label={collapsed ? "Развернуть меню" : "Свернуть меню"}
           className="flex items-center justify-center w-9 h-9 min-h-[36px] min-w-[36px] rounded-[10px] bg-card/80 backdrop-blur-md border border-border/40 text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-all duration-300 active:scale-95 shadow-sm cursor-pointer"
         >
-          {collapsed ? <PanelLeftOpen className="w-4 h-4 ml-0.5" /> : <PanelLeftClose className="w-4 h-4 mr-0.5" />}
+          {collapsed ? <PanelLeftOpen className="w-4 h-4 ml-0.5 shrink-0" /> : <PanelLeftClose className="w-4 h-4 mr-0.5" />}
         </button>
       </div>
 
@@ -166,12 +170,12 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
           <div className="space-y-1 pb-3 mb-2 border-b border-border/40">
             {!collapsed && (
               <h3 className="px-3 mb-1.5 text-[10px] font-black text-warning uppercase tracking-[0.2em] flex items-center gap-1.5">
-                <Star className="w-3 h-3 fill-warning/20" />
+                <Star className="w-3 h-3 fill-warning/20 shrink-0" />
                 Избранное
               </h3>
             )}
             {pinnedItems.map((tab) => {
-              const isActive = isNavTabActive(pathname, tab.href, allNavHrefs);
+              const isActive = isNavTabActive(pathname, tab.href, allNavHrefs, resolvedPathname);
               const IconComponent = ICON_MAP[tab.icon] || Home;
               return (
                 <Link
@@ -193,7 +197,7 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
                   )}>
                     <IconComponent className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={isActive ? 2.5 : 2} />
                   </span>
-                  {!collapsed && <span className="tracking-wide flex-1 truncate">{tab.label}</span>}
+                  {!collapsed && <span className="tracking-wide flex-1 truncate min-w-0">{tab.label}</span>}
                   
                   {/* Unpin button */}
                   {!collapsed && (
@@ -225,7 +229,7 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
                 >
                   <span>{section.group}</span>
                   <span className="opacity-0 group-hover/hdr:opacity-100 transition-opacity">
-                    {isGroupCollapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                    {isGroupCollapsed ? <ChevronRight className="w-3 h-3 shrink-0" /> : <ChevronDown className="w-3 h-3" />}
                   </span>
                 </button>
               )}
@@ -234,7 +238,7 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
               {(!isGroupCollapsed || collapsed) && (
                 <div className="space-y-0.5">
                   {section.items.map((tab) => {
-                    const isActive = isNavTabActive(pathname, tab.href, allNavHrefs);
+                    const isActive = isNavTabActive(pathname, tab.href, allNavHrefs, resolvedPathname);
                     const isPinned = pinnedHrefs.includes(tab.href);
                     const IconComponent = ICON_MAP[tab.icon] || Home;
 
@@ -253,22 +257,22 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
                         )}
                       >
                         <span className={cn(
-                          "transition-transform duration-200 group-hover:scale-110", 
+                          "relative transition-transform duration-200 group-hover:scale-110 flex items-center justify-center", 
                           collapsed ? "" : "mr-3 w-5 text-center flex justify-center",
                           isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
                         )}>
                           <IconComponent className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={isActive ? 2.5 : 2} />
+                          {collapsed && tab.badge !== undefined && tab.badge > 0 && (
+                            <span className="absolute -top-1 -right-1.5 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-card shadow-sm animate-pulse" />
+                          )}
                         </span>
-                        {!collapsed && <span className="tracking-wide flex-1 truncate">{tab.label}</span>}
+                        {!collapsed && <span className="tracking-wide flex-1 truncate min-w-0">{tab.label}</span>}
                         
                         {/* Badge counter */}
                         {!collapsed && tab.badge !== undefined && tab.badge > 0 && (
                           <span className="ml-auto mr-1.5 px-2 py-0.5 text-[10px] font-black leading-none rounded-full bg-rose-500 text-white shadow-sm shadow-rose-500/30 flex items-center justify-center animate-pulse">
                             {tab.badge > 99 ? '99+' : tab.badge}
                           </span>
-                        )}
-                        {collapsed && tab.badge !== undefined && tab.badge > 0 && (
-                          <span className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-card shadow-sm animate-pulse" />
                         )}
 
                         {/* Pin / Favorite button on hover */}

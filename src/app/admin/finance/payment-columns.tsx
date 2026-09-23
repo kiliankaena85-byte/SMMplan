@@ -70,14 +70,14 @@ export const columns: ColumnDef<PaymentDTO>[] = [
         <div className="flex flex-col gap-0.5 min-w-0 w-full max-w-full">
           <Link
             href={`/admin/clients?q=${encodeURIComponent(row.original.userEmail)}`}
-            className="text-primary hover:text-primary/80 hover:underline font-mono text-xs font-semibold truncate block transition-colors"
+            className="text-primary hover:text-primary/80 hover:underline font-mono text-xs font-semibold truncate block transition-colors min-w-0"
             title={row.original.userEmail}
           >
             {row.original.userEmail}
           </Link>
           <div className="flex items-center gap-1 min-w-0">
             <span 
-              className="text-[10px] text-muted-foreground font-mono truncate"
+              className="text-[10px] text-muted-foreground font-mono truncate min-w-0"
               title={displayId}
             >
               ID: {displayId.slice(0, 8)}...

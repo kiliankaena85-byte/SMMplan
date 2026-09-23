@@ -6,8 +6,13 @@ import { SettingsProvider } from "@/lib/settings";
 /** @public Public legal document reader */
 export async function getLegalDocumentAction(slug: string) {
   try {
-    const post = await prisma.contentItem.findUnique({
-      where: { slug },
+    const { headers } = await import('next/headers');
+    const { normalizeTenantId } = await import('@/lib/tenant-resolver-edge');
+    const reqHeaders = await headers().catch(() => null);
+    const resolvedTenantId = normalizeTenantId(reqHeaders?.get('x-tenant-id')) || 'smmplan';
+
+    const post = await prisma.contentItem.findFirst({
+      where: { slug, tenantId: resolvedTenantId },
       select: { title: true, contentHtml: true, isPublished: true },
     });
 
@@ -19,10 +24,7 @@ export async function getLegalDocumentAction(slug: string) {
       return { success: false, error: "Документ не опубликован" };
     }
 
-    const { headers } = await import('next/headers');
-    const { normalizeTenantId } = await import('@/lib/tenant-resolver-edge');
-    const reqHeaders = await headers().catch(() => null);
-    const resolvedTenantId = normalizeTenantId(reqHeaders?.get('x-tenant-id')) || 'smmplan';
+
     const isFlux = resolvedTenantId === 'flux';
 
     const settings = await SettingsProvider.getContactAndLegalSettings(resolvedTenantId);

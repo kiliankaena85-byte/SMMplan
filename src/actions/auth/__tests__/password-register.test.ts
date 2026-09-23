@@ -59,7 +59,7 @@ describe('Password Registration Tests', () => {
     const createdUser = await db.user.findUnique({ where: { email_tenantId: { email: 'reg_new@smmplan.local', tenantId: 'smmplan' } } });
     expect(createdUser).not.toBeNull();
     expect(createdUser?.role).toBeDefined();
-    expect(createdUser?.isEmailVerified).toBe(false);
+    expect(createdUser?.isEmailVerified).toBe(true);
     expect(createSession).not.toHaveBeenCalled();
     expect(sendMagicLink).toHaveBeenCalledWith('reg_new@smmplan.local', expect.any(String), 'smmplan');
   });

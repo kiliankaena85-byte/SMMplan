@@ -7,6 +7,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import crypto from 'crypto';
 import { getEncodedKey, readSessionTokenFromCookies } from '@/lib/session';
+import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 
 const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml', 'image/x-icon', 'image/vnd.microsoft.icon'];
 const MAX_LOGO_SIZE = 2 * 1024 * 1024; // 2 MB
@@ -20,7 +21,6 @@ export async function POST(req: NextRequest) {
 
     const { payload } = await jwtVerify(token, getEncodedKey(), { algorithms: ['HS256'] });
     const userId = payload.userId as string;
-    // tenant-isolation-ignore: JWT verified user id
     const user = await db.user.findUnique({
       where: { id: userId },
       include: { staffRole: { include: { permissions: true } } }
@@ -42,6 +42,9 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
     const type = formData.get('type') as 'logo' | 'favicon' | null; // logo or favicon
+    const formTenant = formData.get('tenantId') as string | null;
+    const headerTenant = req.headers.get('x-tenant-id');
+    const activeTenantId = normalizeTenantId(formTenant || headerTenant || 'smmplan') || 'smmplan';
 
     if (!file || !type || !['logo', 'favicon'].includes(type)) {
       return new NextResponse('Missing file or invalid upload type', { status: 400 });
@@ -59,7 +62,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Read settings to find old branding path
-    const settings = await settingsService.getSystemSettings();
+    const settings = await settingsService.getSystemSettings(activeTenantId);
 
     // 5. Generate secure name & path
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -86,11 +89,23 @@ export async function POST(req: NextRequest) {
     const oldUrl = type === 'logo' ? settings.siteLogoUrl : settings.siteFaviconUrl;
     if (oldUrl && oldUrl.startsWith('/uploads/site/')) {
       const oldFilename = path.basename(oldUrl);
-      // Delete only if it is a different file
+      // Delete only if it is a different file and not referenced by another brand
       if (oldFilename !== filename) {
         const oldFilePath = path.join(uploadsDir, oldFilename);
         try {
-          await fs.unlink(oldFilePath);
+          const { db } = await import('@/lib/db');
+          const isReferencedByOtherTenant = await db.systemSettings.findFirst({
+            where: {
+              id: { not: activeTenantId },
+              OR: [
+                { siteLogoUrl: oldUrl },
+                { siteFaviconUrl: oldUrl },
+              ],
+            },
+          });
+          if (!isReferencedByOtherTenant) {
+            await fs.unlink(oldFilePath);
+          }
         } catch (unlinkErr) {
           // Log and continue, maybe file was already deleted manually
           console.warn('[BrandingUpload] Failed to delete old branding file:', oldFilePath, unlinkErr);
@@ -106,12 +121,15 @@ export async function POST(req: NextRequest) {
     // 8. Update DB SystemSettings
     await settingsService.updateSystemSettings({
       [type === 'logo' ? 'siteLogoUrl' : 'siteFaviconUrl']: relativeUrl
-    });
+    }, activeTenantId);
 
     // 9. Invalidate next/cache settings tag
     try {
-      const { revalidateTag } = await import('next/cache');
-      revalidateTag('settings', {});
+      const { revalidateTag } = (await import('next/cache')) as unknown as {
+        revalidateTag: (tag: string) => unknown;
+      };
+      revalidateTag('settings');
+      revalidateTag(`settings-${activeTenantId}`);
     } catch (cacheErr) {
       console.error('[BrandingUpload] Warning: Failed to invalidate cache tag:', cacheErr);
     }

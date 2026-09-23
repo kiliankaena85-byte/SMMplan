@@ -41,7 +41,7 @@ export function VatThresholdWidget({
     <Card className="rounded-2xl border border-border/60 shadow-xs bg-card/60 backdrop-blur-xl p-6 space-y-5 transition-all hover:border-border">
       <div className="flex items-center gap-3">
         <div className="p-2 bg-primary/20 text-primary rounded-xl border border-primary/30">
-          <Landmark className="w-5 h-5" />
+          <Landmark className="w-5 h-5 shrink-0" />
         </div>
         <div className="space-y-0.5">
           <h3 className="text-sm font-bold uppercase tracking-widest text-foreground">Порог НДС (УСН 2026)</h3>
@@ -73,9 +73,9 @@ export function VatThresholdWidget({
       <div className="p-3.5 rounded-xl border border-border/50 bg-muted/30 space-y-2">
         <div className="flex items-center gap-2">
           {isVatThresholdExceeded ? (
-            <AlertCircle className="w-4 h-4 text-warning" />
+            <AlertCircle className="w-4 h-4 text-warning shrink-0" />
           ) : (
-            <ShieldCheck className="w-4 h-4 text-success" />
+            <ShieldCheck className="w-4 h-4 text-success shrink-0" />
           )}
           <span className="text-xs font-bold text-foreground">
             Текущий статус: {isVatThresholdExceeded ? 'Лимит превышен' : 'НДС освобожден (0%)'}

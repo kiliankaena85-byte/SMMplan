@@ -94,7 +94,7 @@ export function StorefrontKeysSettings({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <KeyRound className="w-5 h-5 text-primary" />
+              <KeyRound className="w-5 h-5 text-primary shrink-0" />
               <h3 className="text-lg font-semibold text-foreground">
                 Ключи витрин (Storefront API v1)
               </h3>
@@ -113,7 +113,7 @@ export function StorefrontKeysSettings({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="p-4 rounded-xl border border-blue-500/20 bg-blue-500/5 space-y-2 text-xs">
             <div className="flex items-center gap-2 font-medium text-blue-500">
-              <Globe className="w-4 h-4" />
+              <Globe className="w-4 h-4 shrink-0" />
               <span>Публичные ключи (`pk_live_*`)</span>
             </div>
             <p className="text-muted-foreground leading-relaxed">

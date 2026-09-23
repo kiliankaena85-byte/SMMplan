@@ -16,7 +16,6 @@ export interface FinancialSummary {
  * Returns all values in cents as standard numbers for ease of JSON serialization.
  */
 export async function getClientFinancialSummary(userId: string, tenantId?: string): Promise<FinancialSummary> {
-  // tenant-isolation-ignore: manual IDOR check
   const user = await db.user.findUnique({
     where: { id: userId },
     select: { balance: true, tenantId: true }

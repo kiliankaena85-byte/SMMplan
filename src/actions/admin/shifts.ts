@@ -96,7 +96,7 @@ export async function getMonthShiftsAction(year: number, month: number) {
     const staffUsers = await db.user.findMany({
       where: {
         OR: [
-          { role: { in: ['SUPPORT', 'MANAGER', 'ADMIN', 'OWNER'] } },
+          { role: { in: ['SUPPORT', 'OPERATOR', 'MANAGER', 'ADMIN', 'OWNER'] } },
           { staffRoleId: { not: null } },
         ],
         ...tenantFilter
@@ -313,7 +313,7 @@ export async function getAvailableSubstitutesAction(shiftId: string) {
       where: {
         id: { not: shift.userId },
         OR: [
-          { role: { in: ['SUPPORT', 'MANAGER', 'ADMIN', 'OWNER'] } },
+          { role: { in: ['SUPPORT', 'OPERATOR', 'MANAGER', 'ADMIN', 'OWNER'] } },
           { staffRoleId: { not: null } },
         ],
         ...tenantFilter
@@ -718,7 +718,7 @@ export async function getMonthlyPayrollAction(year: number, month: number) {
     const staffUsers = await db.user.findMany({
       where: {
         OR: [
-          { role: { in: ['SUPPORT', 'MANAGER', 'ADMIN', 'OWNER'] } },
+          { role: { in: ['SUPPORT', 'OPERATOR', 'MANAGER', 'ADMIN', 'OWNER'] } },
           { staffRoleId: { not: null } },
         ],
         ...tenantFilter

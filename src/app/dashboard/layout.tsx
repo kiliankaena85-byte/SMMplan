@@ -4,8 +4,9 @@ import { db } from '@/lib/db';
 import { headers } from 'next/headers';
 import { getTenantDashboardViews } from '@/tenants/factory';
 import { TenantErrorBoundary } from '@/tenants/TenantErrorBoundary';
-
-import { resolveTenantFromRequest } from '@/lib/tenant-resolver-edge';
+import { resolveTenantFromRequest, normalizeTenantId } from '@/lib/tenant-resolver-edge';
+import { resolveTenantUser } from '@/lib/tenant-user-resolver';
+import { runWithTenant } from '@/lib/tenant-context';
 
 export default async function DashboardLayout({
   children,
@@ -16,35 +17,34 @@ export default async function DashboardLayout({
   if (!session) redirect('/login');
 
   const reqHeaders = await headers();
-  const tenantId = resolveTenantFromRequest(reqHeaders);
+  const reqTenantId = normalizeTenantId(resolveTenantFromRequest(reqHeaders)) || 'smmplan';
+  const effectiveTenantId = reqTenantId;
 
-  const [user, unreadTicketsCount] = await Promise.all([
-    db.user.findUnique({
-      where: { id: session.userId },
-      select: { email: true, balance: true, tenantId: true },
-    }),
-    db.ticket.count({
+  return runWithTenant(effectiveTenantId, async () => {
+    const user = await resolveTenantUser(session.userId, effectiveTenantId, true);
+    if (!user) redirect('/login');
+
+    const unreadTicketsCount = await db.ticket.count({
       where: {
-        userId: session.userId,
+        userId: user.id,
+        tenantId: effectiveTenantId,
         status: 'PENDING',
       },
-    }),
-  ]);
+    });
 
-  if (!user) redirect('/login');
+    const userForClient = {
+      email: user.email,
+      tenantId: effectiveTenantId,
+      balanceCents: Number(user.balance),
+      unreadTicketsCount,
+    };
 
-  const userForClient = {
-    email: user.email,
-    tenantId: user.tenantId,
-    balanceCents: Number(user.balance),
-    unreadTicketsCount,
-  };
+    const { ShellLayout } = await getTenantDashboardViews(effectiveTenantId);
 
-  const { ShellLayout } = await getTenantDashboardViews(tenantId);
-
-  return (
-    <TenantErrorBoundary tenantId={tenantId}>
-      <ShellLayout user={userForClient}>{children}</ShellLayout>
-    </TenantErrorBoundary>
-  );
+    return (
+      <TenantErrorBoundary tenantId={effectiveTenantId}>
+        <ShellLayout user={userForClient}>{children}</ShellLayout>
+      </TenantErrorBoundary>
+    );
+  });
 }

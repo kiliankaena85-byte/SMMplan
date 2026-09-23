@@ -7,6 +7,9 @@ import fs from 'fs/promises';
 
 import { getEncodedKey, readSessionTokenFromCookies } from '@/lib/session';
 import { getMimeType } from '@/lib/mime';
+import { resolveTenantFromHostEdge, normalizeTenantId } from '@/lib/tenant-resolver-edge';
+import { isTenantAllowedForUser } from '@/utils/admin-tenant';
+import { resolveTenantUser } from '@/lib/tenant-user-resolver';
 
 export async function GET(
   req: NextRequest,
@@ -19,7 +22,6 @@ export async function GET(
 
     const { payload } = await jwtVerify(token, getEncodedKey(), { algorithms: ['HS256'] });
     const userId = payload.userId as string;
-    // tenant-isolation-ignore: JWT verified user id
     const user = await db.user.findUnique({ where: { id: userId } });
     if (!user) return new NextResponse('Unauthorized', { status: 401 });
 
@@ -39,12 +41,45 @@ export async function GET(
     const ticketMatch = relativePath.match(/^tickets\/([^/]+)\//);
     if (ticketMatch) {
       const ticketId = ticketMatch[1];
-      // tenant-isolation-ignore: IDOR protected by userId check below
-      const ticket = await db.ticket.findUnique({ where: { id: ticketId } });
+      const ticket = await db.ticket.findUnique({
+        where: { id: ticketId },
+        include: { user: { select: { id: true, email: true, tenantId: true } } }
+      });
       if (!ticket) return new NextResponse('Not Found', { status: 404 });
 
+      const isOwner = user.role === 'OWNER';
       const isStaff = ['ADMIN', 'SUPPORT', 'OWNER'].includes(user.role);
-      if (ticket.userId !== userId && !isStaff) {
+      const isStaffAllowed = isStaff && (isOwner || isTenantAllowedForUser(user, ticket.tenantId));
+
+      let isClientOwner = ticket.userId === userId;
+      if (!isClientOwner && ticket.user?.email && user.email) {
+        isClientOwner = ticket.user.email.toLowerCase() === user.email.toLowerCase();
+      }
+      if (!isClientOwner) {
+        const tenantUser = await resolveTenantUser(userId, ticket.tenantId || 'smmplan');
+        if (tenantUser && tenantUser.id === ticket.userId) {
+          isClientOwner = true;
+        }
+      }
+
+      if (!isClientOwner && !isStaffAllowed) {
+        return new NextResponse('Forbidden', { status: 403 });
+      }
+
+      // Multi-tenant domain isolation: ticket tenant must match request domain for clients
+      const host = req.headers.get('host') || '';
+      const requestTenant = normalizeTenantId(req.headers.get('x-tenant-id')) || resolveTenantFromHostEdge(host);
+      if (!isStaffAllowed && ticket.tenantId !== requestTenant) {
+        return new NextResponse('Forbidden', { status: 403 });
+      }
+    }
+
+    // Access control: if path starts with "avatars/{userId}/", verify user matches or is owner
+    const avatarMatch = relativePath.match(/^avatars\/([^/]+)\//);
+    if (avatarMatch) {
+      const targetUserId = avatarMatch[1];
+      const isOwner = user.role === 'OWNER';
+      if (targetUserId !== userId && !isOwner) {
         return new NextResponse('Forbidden', { status: 403 });
       }
     }

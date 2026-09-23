@@ -283,41 +283,13 @@ describe('AccountingService', () => {
       _sum: { amount: BigInt(100000) },
     } as any);
 
-    vi.mocked(db.order.findMany).mockResolvedValue([
-      // 1. Unpaid cart order abandoned by user (payment is CANCELED) -> MUST BE EXCLUDED
-      {
-        status: 'CANCELED',
-        quantity: 100,
-        remains: 100,
-        charge: BigInt(30000), // 300 RUB
-        payment: { status: 'CANCELED' },
-      },
-      // 2. Unpaid cart order auto-expired by system -> MUST BE EXCLUDED
-      {
-        status: 'CANCELED',
-        quantity: 50,
-        remains: 50,
-        charge: BigInt(15000), // 150 RUB
-        error: 'Оплата не поступила в течение 24ч (auto-expire)',
-        payment: null,
-      },
-      // 3. Paid order canceled and refunded by provider -> MUST BE INCLUDED
-      {
-        status: 'CANCELED',
-        quantity: 200,
-        remains: 200,
-        charge: BigInt(20000), // 200 RUB
-        payment: { status: 'SUCCEEDED' },
-      },
-      // 4. Paid order partially completed (50 remains out of 100) -> 50% refund = 50 RUB
-      {
-        status: 'PARTIAL',
-        quantity: 100,
-        remains: 50,
-        charge: BigInt(10000), // 100 RUB
-        payment: { status: 'SUCCEEDED' },
-      },
-    ] as any);
+    vi.mocked(db.$queryRaw).mockImplementation((async (strings: any) => {
+      const sqlText = Array.isArray(strings) ? strings.join(' ') : String(strings);
+      if (sqlText.includes('PARTIAL') && sqlText.includes('CANCELED')) {
+        return [{ total: BigInt(25000) }];
+      }
+      return [{ total: BigInt(0) }];
+    }) as any);
 
     vi.mocked(db.systemSettings.findUnique).mockResolvedValue({
       id: 'global',

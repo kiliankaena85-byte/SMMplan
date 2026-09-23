@@ -153,24 +153,33 @@ export class QuarantineService {
                 _count: { id: true }
             });
 
-            for (const group of stuckOrders) {
-                if (group._count.id >= 5) {
-                    const service = await db.service.findUnique({ where: { id: group.serviceId }, select: { id: true, name: true }});
-                    if (service) {
-                        // Prevent spamming alerts every 2 minutes: check Redis if we already alerted
-                        const { redis } = await import('@/lib/redis');
-                        if (redis) {
-                            const alertKey = `alert:stuck_orders:${service.id}`;
-                            const alreadyAlerted = await redis.get(alertKey);
-                            if (alreadyAlerted) continue;
-                            
-                            // Set lock for 12 hours so we don't spam the admin
-                            await redis.set(alertKey, '1', 'EX', 12 * 60 * 60);
-                        }
+            // P2-FIX: batch fetch all services instead of N+1 findUnique per group
+            const alertCandidates = stuckOrders.filter(g => g._count.id >= 5 && g.serviceId);
+            const serviceIds = alertCandidates.map(g => g.serviceId as string);
+            const services = serviceIds.length > 0
+                ? await db.service.findMany({
+                    where: { id: { in: serviceIds } },
+                    select: { id: true, name: true },
+                })
+                : [];
+            const serviceMap = new Map(services.map(s => [s.id, s]));
 
-                        console.warn(`[ElasticQuarantine] Trigger C fired for Service ${service.id}. Stuck orders: ${group._count.id}. (ALERT ONLY)`);
-                        await sendAdminAlert(`🟨 [Очередь] Услуга ${service.id} (${service.name}) задерживается.\nВ очереди висят ${group._count.id} заказов более 24 часов.\nВозможно, у провайдера очередь. Автоотключение НЕ применялось.`);
+            for (const group of alertCandidates) {
+                const service = serviceMap.get(group.serviceId as string);
+                if (service) {
+                    // Prevent spamming alerts every 2 minutes: check Redis if we already alerted
+                    const { redis } = await import('@/lib/redis');
+                    if (redis) {
+                        const alertKey = `alert:stuck_orders:${service.id}`;
+                        const alreadyAlerted = await redis.get(alertKey);
+                        if (alreadyAlerted) continue;
+                        
+                        // Set lock for 12 hours so we don't spam the admin
+                        await redis.set(alertKey, '1', 'EX', 12 * 60 * 60);
                     }
+
+                    console.warn(`[ElasticQuarantine] Trigger C fired for Service ${service.id}. Stuck orders: ${group._count.id}. (ALERT ONLY)`);
+                    await sendAdminAlert(`🟨 [Очередь] Услуга ${service.id} (${service.name}) задерживается.\nВ очереди висят ${group._count.id} заказов более 24 часов.\nВозможно, у провайдера очередь. Автоотключение НЕ применялось.`);
                 }
             }
         } catch (error) {

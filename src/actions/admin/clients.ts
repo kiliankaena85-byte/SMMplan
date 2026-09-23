@@ -19,6 +19,7 @@ import { serializeForClient } from '@/lib/bigint-serializer';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import type { Prisma } from '@prisma/client';
+import { isTenantAllowedForUser } from '@/utils/admin-tenant';
 
 const MAX_DISCOUNT = 50; // Business rule: max personal discount
 
@@ -53,14 +54,16 @@ export async function updateClientDiscountAction(
       return { success: false as const, error: `Максимальная скидка ${MAX_DISCOUNT}%` };
     }
 
-    // tenant-isolation-ignore: manual IDOR check
     const user = await db.user.findUnique({
       where: { id: parsed.data.userId },
-      select: { id: true, email: true, personalDiscount: true },
+      select: { id: true, email: true, personalDiscount: true, tenantId: true },
     });
     if (!user) return { success: false as const, error: 'Пользователь не найден' };
 
-    // tenant-isolation-ignore: manual IDOR check
+    if (!isTenantAllowedForUser(admin, user.tenantId || 'smmplan')) {
+      return { success: false as const, error: 'Доступ запрещен: клиент принадлежит другой витрине' };
+    }
+
     await db.user.update({
       where: { id: user.id },
       data: {
@@ -89,9 +92,18 @@ import { SUPPORT_CREDIT_REASONS, SUPPORT_DEBIT_REASONS } from '@/lib/constants/s
 
 /** Get all historical notes for a client */
 export async function getClientNotesAction(userId: string) {
-  return requireStaffPermission('clients', 'view', async () => {
+  return requireStaffPermission('clients', 'view', async (admin) => {
     if (!userId) {
       return { success: false as const, error: 'Не указан ID клиента' };
+    }
+
+    const targetUser = await db.user.findUnique({
+      where: { id: userId },
+      select: { id: true, tenantId: true }
+    });
+    if (!targetUser) return { success: false as const, error: 'Пользователь не найден' };
+    if (!isTenantAllowedForUser(admin, targetUser.tenantId || 'smmplan')) {
+      return { success: false as const, error: 'Доступ запрещен: клиент принадлежит другой витрине' };
     }
 
     const notes = await db.userNote.findMany({
@@ -128,7 +140,15 @@ export async function createClientNoteAction(userId: string, content: string) {
       return { success: false as const, error: 'Заметка слишком длинная (макс 2000 символов)' };
     }
 
-    // tenant-isolation-ignore: manual IDOR check
+    const targetUser = await db.user.findUnique({
+      where: { id: userId },
+      select: { id: true, tenantId: true }
+    });
+    if (!targetUser) return { success: false as const, error: 'Пользователь не найден' };
+    if (!isTenantAllowedForUser(admin, targetUser.tenantId || 'smmplan')) {
+      return { success: false as const, error: 'Доступ запрещен: клиент принадлежит другой витрине' };
+    }
+
     const authorExists = admin.id ? await db.user.findUnique({ where: { id: admin.id }, select: { id: true } }) : null;
 
     const newNote = await db.userNote.create({
@@ -143,7 +163,6 @@ export async function createClientNoteAction(userId: string, content: string) {
     });
 
     // Sync latest note to User.adminNote for backward compatibility
-    // tenant-isolation-ignore: manual IDOR check
     await db.user.update({
       where: { id: userId },
       data: {
@@ -184,7 +203,6 @@ export async function editClientNoteAction(noteId: string, userId: string, conte
     }
 
     if (noteId === 'legacy-note') {
-      // tenant-isolation-ignore: manual IDOR check
       const authorExists = admin.id ? await db.user.findUnique({ where: { id: admin.id }, select: { id: true } }) : null;
       const created = await db.userNote.create({
         data: {
@@ -195,7 +213,6 @@ export async function editClientNoteAction(noteId: string, userId: string, conte
         include: { author: { select: { email: true } } }
       });
 
-      // tenant-isolation-ignore: manual IDOR check
       await db.user.update({
         where: { id: userId },
         data: {
@@ -232,7 +249,6 @@ export async function editClientNoteAction(noteId: string, userId: string, conte
       include: { author: { select: { email: true } } }
     });
 
-    // tenant-isolation-ignore: manual IDOR check
     await db.user.update({
       where: { id: userId },
       data: {
@@ -272,7 +288,6 @@ export async function deleteClientNoteAction(noteId: string, userId: string) {
     }
 
     if (noteId === 'legacy-note') {
-      // tenant-isolation-ignore: manual IDOR check
       await db.user.update({
         where: { id: userId },
         data: {
@@ -296,7 +311,6 @@ export async function deleteClientNoteAction(noteId: string, userId: string) {
       include: { author: { select: { email: true } } }
     });
 
-    // tenant-isolation-ignore: manual IDOR check
     await db.user.update({
       where: { id: userId },
       data: {
@@ -331,11 +345,19 @@ export async function clearClientNoteAction(userId: string) {
       return { success: false as const, error: 'Не указан ID клиента' };
     }
 
+    const targetUser = await db.user.findUnique({
+      where: { id: userId },
+      select: { id: true, tenantId: true }
+    });
+    if (!targetUser) return { success: false as const, error: 'Пользователь не найден' };
+    if (!isTenantAllowedForUser(admin, targetUser.tenantId || 'smmplan')) {
+      return { success: false as const, error: 'Доступ запрещен: клиент принадлежит другой витрине' };
+    }
+
     await db.userNote.deleteMany({
       where: { userId }
     });
 
-    // tenant-isolation-ignore: manual IDOR check
     await db.user.update({
       where: { id: userId },
       data: {
@@ -361,7 +383,6 @@ export async function clearClientNoteAction(userId: string) {
 /** Send password reset link to client email */
 export async function sendPasswordResetEmailAction(userId: string) {
   return requireStaffPermission('clients', 'edit', async (admin) => {
-    // tenant-isolation-ignore: manual IDOR check
     const user = await db.user.findUnique({
       where: { id: userId },
       select: { id: true, email: true, tenantId: true },
@@ -369,6 +390,10 @@ export async function sendPasswordResetEmailAction(userId: string) {
 
     if (!user) {
       return { success: false as const, error: 'Клиент не найден' };
+    }
+
+    if (!isTenantAllowedForUser(admin, user.tenantId || 'smmplan')) {
+      return { success: false as const, error: 'Доступ запрещен: клиент принадлежит другой витрине' };
     }
 
     const rawToken = (await import('crypto')).randomBytes(32).toString('hex');
@@ -442,7 +467,6 @@ export async function supportGoodwillCreditAction(formData: FormData) {
       }
     }
 
-    // tenant-isolation-ignore: manual IDOR check
     const targetUser = await db.user.findUnique({
       where: { id: userId },
       select: { id: true, email: true, balance: true, tenantId: true }
@@ -450,6 +474,10 @@ export async function supportGoodwillCreditAction(formData: FormData) {
 
     if (!targetUser) {
       return { success: false as const, error: 'Клиент не найден' };
+    }
+
+    if (!isTenantAllowedForUser(admin, targetUser.tenantId || 'smmplan')) {
+      return { success: false as const, error: 'Доступ запрещен: клиент принадлежит другой витрине' };
     }
 
     const amountKopecks = BigInt(Math.round(amountRub * 100));
@@ -585,13 +613,16 @@ export async function getClientLedgerAction(userId: string, filterType = 'ALL') 
       return { success: false as const, error: 'Не указан ID клиента' };
     }
 
-    // tenant-isolation-ignore: manual IDOR check
     const targetUser = await db.user.findUnique({
       where: { id: userId },
       select: { id: true, tenantId: true }
     });
     if (!targetUser) {
       return { success: false as const, error: 'Пользователь не найден' };
+    }
+
+    if (!isTenantAllowedForUser(admin, targetUser.tenantId || 'smmplan')) {
+      return { success: false as const, error: 'Доступ запрещен: клиент принадлежит другой витрине' };
     }
 
     const where: Prisma.LedgerEntryWhereInput = {
@@ -628,7 +659,7 @@ export async function getClientLedgerAction(userId: string, filterType = 'ALL') 
     const [entries, rawSummary] = await Promise.all([
       db.ledgerEntry.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         take: 50,
         select: {
           id: true,
@@ -716,7 +747,6 @@ export async function getClientLedgerAction(userId: string, filterType = 'ALL') 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function getClientProfileAction(userId: string) {
   return requireStaffPermission('clients', 'view', async () => {
-    // tenant-isolation-ignore: manual IDOR check
     const user = await db.user.findUnique({
       where: { id: userId },
       select: {

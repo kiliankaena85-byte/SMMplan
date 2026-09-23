@@ -185,7 +185,7 @@ export default function BalancePoliciesPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <div className="p-2 bg-primary/10 text-primary border border-primary/20 rounded-xl">
-              <ShieldCheck className="w-4 h-4" />
+              <ShieldCheck className="w-4 h-4 shrink-0" />
             </div>
             <div>
               <h2 className="text-sm font-bold text-foreground">Реестр действующих правил и лимитов</h2>
@@ -199,12 +199,13 @@ export default function BalancePoliciesPage() {
           </span>
         </div>
 
+        <div className="overflow-x-auto">
         <PlanTable compact={true} className="w-full table-fixed">
           <PlanTableHeader>
             <tr>
-              <PlanTableHeadCell className="w-[110px]">Область</PlanTableHeadCell>
+              <PlanTableHeadCell className="w-[110px] max-w-full">Область</PlanTableHeadCell>
               <PlanTableHeadCell className="w-[95px]">Статус</PlanTableHeadCell>
-              <PlanTableHeadCell className="w-[140px]">Права</PlanTableHeadCell>
+              <PlanTableHeadCell className="w-[140px] max-w-full">Права</PlanTableHeadCell>
               <PlanTableHeadCell className="text-right w-[18%]">Лимит заявки (+/-)</PlanTableHeadCell>
               <PlanTableHeadCell className="text-right w-[18%]">Дневной лимит (+/-)</PlanTableHeadCell>
               <PlanTableHeadCell className="text-right w-[18%]">Лимит утверждения</PlanTableHeadCell>
@@ -282,6 +283,7 @@ export default function BalancePoliciesPage() {
             )}
           </tbody>
         </PlanTable>
+        </div>
       </div>
 
       {loading ? (
@@ -306,7 +308,7 @@ export default function BalancePoliciesPage() {
           <div className="flex items-center justify-between border-b border-border/80 pb-4">
             <div className="flex items-center gap-2">
               <div className="p-2 bg-muted text-foreground rounded-xl">
-                <Sliders className="w-4 h-4" />
+                <Sliders className="w-4 h-4 shrink-0" />
               </div>
               <div>
                 <h2 className="text-base font-bold text-foreground">Глобальная политика (GLOBAL)</h2>

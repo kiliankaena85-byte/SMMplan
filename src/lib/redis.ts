@@ -3,7 +3,27 @@ import { redactSensitiveTokens } from '@/lib/logger/sensitive-data-filter';
 
 const globalForRedis = global as unknown as { redis: Redis };
 
-const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+function getRedisUrl(): string {
+  let url = process.env.REDIS_URL || 'redis://localhost:6379';
+  if (typeof window === 'undefined') {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const fs = require('fs');
+      if (!fs.existsSync('/.dockerenv')) {
+        if (url.includes('@redis:')) {
+          url = url.replace('@redis:', '@127.0.0.1:');
+        } else if (url.includes('//redis:')) {
+          url = url.replace('//redis:', '//127.0.0.1:');
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return url;
+}
+
+const redisUrl = getRedisUrl();
 
 export interface RedisValidationResult {
   valid: boolean;

@@ -66,7 +66,6 @@ export class UnifiedPaymentService {
       });
 
       if (gatewayResult.remoteGatewayId || gatewayResult.paymentUrl) {
-        // tenant-isolation-ignore: manual IDOR check
         await db.payment.update({
           where: { id: payment.id },
           data: {

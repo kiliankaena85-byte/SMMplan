@@ -59,7 +59,7 @@ export function CreatePromoForm({ onSuccess }: CreatePromoFormProps) {
   return (
     <form action={action} ref={formRef} className="space-y-5">
       <div className="space-y-2">
-        <Label className="text-xs uppercase tracking-wider text-muted-foreground font-extrabold">Код (до 12 символов)</Label>
+        <Label className="text-xs uppercase tracking-wider text-muted-foreground font-extrabold">Код (до 64 символов)</Label>
         <div className="flex gap-2">
           <Input 
             name="code" 
@@ -67,7 +67,7 @@ export function CreatePromoForm({ onSuccess }: CreatePromoFormProps) {
             onChange={(e) => setCodeValue(e.target.value.toUpperCase())}
             placeholder="WELCOME2026" 
             required 
-            maxLength={12}
+            maxLength={64}
             disabled={isPending}
             className="uppercase font-mono tracking-widest text-foreground bg-muted/60 border-border flex-grow focus:border-primary focus:ring-2 focus:ring-primary/20 h-[44px]" 
           />
@@ -78,7 +78,7 @@ export function CreatePromoForm({ onSuccess }: CreatePromoFormProps) {
             className="w-[44px] h-[44px] flex items-center justify-center rounded-lg border border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground transition-all active:scale-95 disabled:opacity-50"
             title="Сгенерировать случайный код"
           >
-            <Shuffle className="w-4 h-4" />
+            <Shuffle className="w-4 h-4 shrink-0" />
           </button>
         </div>
       </div>
@@ -189,7 +189,7 @@ export function CreatePromoModal() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger className="flex items-center gap-1.5 px-4 text-xs font-bold uppercase tracking-wider bg-primary text-primary-foreground hover:opacity-90 active:scale-95 transition-all rounded-xl shadow-sm cursor-pointer h-[44px]">
-        <Plus className="w-4 h-4" />
+        <Plus className="w-4 h-4 shrink-0" />
         Создать
       </DialogTrigger>
       <DialogContent className="sm:max-w-[450px] max-h-[90vh] overflow-y-auto bg-card border-border/80">

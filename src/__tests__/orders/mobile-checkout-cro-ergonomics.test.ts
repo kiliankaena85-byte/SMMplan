@@ -1,4 +1,4 @@
-﻿import { describe, it, expect } from "vitest";
+import { describe, it, expect } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
 import { getDripFeedFloor, validateDripFeedLimits } from "@/hooks/useOrderWizard";
@@ -61,8 +61,16 @@ describe("Wave 3: Mobile Checkout CRO & Touch Ergonomics Invariants (WCAG 2.2 AA
   });
 
   describe("SMMflux FluxOrderClient Touch Targets & iOS Auto-Zoom Guard", () => {
-    const filePath = path.join(rootDir, "src/components/ab-test/FluxOrderClient.tsx");
-    const content = fs.readFileSync(filePath, "utf-8");
+    const componentPaths = [
+      "src/components/ab-test/FluxOrderClient.tsx",
+      "src/components/ab-test/sub/FluxNavHeader.tsx",
+      "src/components/ab-test/flux-steps/FluxStepLink.tsx",
+      "src/components/ab-test/flux-steps/sub/FluxStepCheckoutInputs.tsx",
+      "src/components/ab-test/flux-steps/sub/FluxStepCheckoutDripAndCustom.tsx",
+    ];
+    const content = componentPaths
+      .map((p) => fs.readFileSync(path.join(rootDir, p), "utf-8"))
+      .join("\n");
 
     it("link and quantity inputs have text-base on mobile to prevent iOS Safari auto-zoom", () => {
       expect(content).toMatch(/name="link"[\s\S]*?text-base/);

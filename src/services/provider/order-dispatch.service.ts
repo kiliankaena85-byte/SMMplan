@@ -112,7 +112,6 @@ export class OrderDispatchService {
         },
       });
 
-      // tenant-isolation-ignore: manual IDOR check
       await db.order.update({
         where: { id: input.orderId },
         data: {
@@ -169,7 +168,6 @@ export class OrderDispatchService {
     }
 
     // 3. Get order charge to verify margin
-    // tenant-isolation-ignore: manual IDOR check
     const order = await db.order.findUnique({
       where: { id: input.orderId },
       select: { charge: true, quantity: true }

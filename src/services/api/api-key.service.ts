@@ -38,7 +38,6 @@ export class ApiKeyService {
 
     try {
       const hashedKey = this.hashKey(plainKey);
-      // tenant-isolation-ignore: manual IDOR check
       const user = await db.user.findUnique({
         where: { apiKeyHash: hashedKey },
       });
@@ -60,7 +59,6 @@ export class ApiKeyService {
   static async assignNewKeyToUser(userId: string): Promise<{ plainKey: string; maskedKey: string }> {
     const { plainKey, keyHash, maskedKey } = this.generateKey();
 
-    // tenant-isolation-ignore: manual IDOR check
     await db.user.update({
       where: { id: userId },
       data: { apiKeyHash: keyHash },
@@ -73,7 +71,6 @@ export class ApiKeyService {
    * Revokes (deletes) the API key of a user.
    */
   static async revokeKey(userId: string): Promise<void> {
-    // tenant-isolation-ignore: manual IDOR check
     await db.user.update({
       where: { id: userId },
       data: { apiKeyHash: null },

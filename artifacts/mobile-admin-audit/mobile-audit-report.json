@@ -1,0 +1,74 @@
+[
+  {
+    "name": "01_dashboard",
+    "path": "/admin/dashboard",
+    "scrollWidth": 390,
+    "innerWidth": 390,
+    "hasOverflow": false,
+    "overflowPx": 0
+  },
+  {
+    "name": "02_orders",
+    "path": "/admin/orders",
+    "scrollWidth": 390,
+    "innerWidth": 390,
+    "hasOverflow": false,
+    "overflowPx": 0
+  },
+  {
+    "name": "03_catalog",
+    "path": "/admin/catalog",
+    "scrollWidth": 390,
+    "innerWidth": 390,
+    "hasOverflow": false,
+    "overflowPx": 0
+  },
+  {
+    "name": "04_catalog_categories",
+    "path": "/admin/catalog/categories",
+    "scrollWidth": 390,
+    "innerWidth": 390,
+    "hasOverflow": false,
+    "overflowPx": 0
+  },
+  {
+    "name": "05_catalog_networks",
+    "path": "/admin/catalog/networks",
+    "scrollWidth": 390,
+    "innerWidth": 390,
+    "hasOverflow": false,
+    "overflowPx": 0
+  },
+  {
+    "name": "06_catalog_import",
+    "path": "/admin/catalog/import",
+    "scrollWidth": 390,
+    "innerWidth": 390,
+    "hasOverflow": false,
+    "overflowPx": 0
+  },
+  {
+    "name": "07_catalog_quarantine",
+    "path": "/admin/catalog/quarantine",
+    "scrollWidth": 390,
+    "innerWidth": 390,
+    "hasOverflow": false,
+    "overflowPx": 0
+  },
+  {
+    "name": "08_tickets",
+    "path": "/admin/tickets",
+    "scrollWidth": 390,
+    "innerWidth": 390,
+    "hasOverflow": false,
+    "overflowPx": 0
+  },
+  {
+    "name": "10_finance",
+    "path": "/admin/finance",
+    "scrollWidth": 390,
+    "innerWidth": 390,
+    "hasOverflow": false,
+    "overflowPx": 0
+  }
+]

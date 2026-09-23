@@ -233,7 +233,7 @@ export function RefillsTable({
               isModuleEnabled ? 'bg-success/20 text-success' : 'bg-destructive/20 text-destructive'
             }`}
           >
-            {isModuleEnabled ? <ShieldCheck className="w-5 h-5" /> : <ShieldAlert className="w-5 h-5" />}
+            {isModuleEnabled ? <ShieldCheck className="w-5 h-5 shrink-0" /> : <ShieldAlert className="w-5 h-5" />}
           </div>
           <div>
             <div className="flex items-center gap-2">
@@ -402,7 +402,7 @@ export function RefillsTable({
                 <TableCell colSpan={6} className="py-12 px-6">
                   <div className="py-10 text-center space-y-4 max-w-md mx-auto">
                     <div className="w-12 h-12 rounded-lg bg-primary/10 text-primary flex items-center justify-center mx-auto">
-                      <SlidersHorizontal className="w-6 h-6" />
+                      <SlidersHorizontal className="w-6 h-6 shrink-0" />
                     </div>
                     <div>
                       <h3 className="font-bold text-foreground text-sm">
@@ -453,7 +453,7 @@ export function RefillsTable({
                         #{r.numericId}
                       </div>
                       <div className="flex items-center gap-1 mt-0.5">
-                        <Clock className="w-3 h-3 text-muted-foreground" />
+                        <Clock className="w-3 h-3 text-muted-foreground shrink-0" />
                         <span
                           className={`text-[10px] font-medium ${
                             age.isOld && r.status === 'IN_PROGRESS'
@@ -487,11 +487,11 @@ export function RefillsTable({
                           href={r.order.link}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-[11px] text-muted-foreground hover:text-foreground truncate max-w-[170px] inline-flex items-center gap-1"
+                          className="text-[11px] text-muted-foreground hover:text-foreground truncate max-w-[170px] inline-flex items-center gap-1 min-w-0"
                           title={r.order.link}
                         >
                           <ExternalLink className="w-3 h-3 shrink-0 text-primary" />
-                          <span className="truncate">{r.order.link}</span>
+                          <span className="truncate min-w-0">{r.order.link}</span>
                         </a>
                         <button
                           onClick={() => handleCopyLink(r.order.link)}
@@ -511,11 +511,11 @@ export function RefillsTable({
                     <TableCell className="py-4 px-6">
                       <Link
                         href={`/admin/orders?q=${encodeURIComponent(r.order.user.email)}`}
-                        className="text-xs font-mono text-foreground hover:text-primary transition-colors flex items-center gap-1.5 truncate max-w-[160px]"
+                        className="text-xs font-mono text-foreground hover:text-primary transition-colors flex items-center gap-1.5 truncate max-w-[160px] min-w-0"
                         title={r.order.user.email}
                       >
                         <User className="w-3 h-3 text-muted-foreground shrink-0" />
-                        <span className="truncate">{r.order.user.email}</span>
+                        <span className="truncate min-w-0">{r.order.user.email}</span>
                       </Link>
                     </TableCell>
 
@@ -568,7 +568,7 @@ export function RefillsTable({
                             title="Перезапустить отправку провайдеру"
                             className="px-2 py-1 text-[10px] font-bold rounded-lg border border-border/60 bg-background/50 hover:bg-muted/80 text-foreground transition-all duration-200 cursor-pointer disabled:opacity-50 inline-flex items-center gap-1"
                           >
-                            <RotateCcw className="w-3 h-3" />
+                            <RotateCcw className="w-3 h-3 shrink-0" />
                             {isPending ? '...' : 'Повтор'}
                           </button>
                         )}

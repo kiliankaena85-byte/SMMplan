@@ -18,6 +18,8 @@ import {
   Terminal 
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
+import { FINANCE_TABS } from '@/components/admin/navigation-data';
 import { getSecurityEventsAction, getSecurityStatsAction } from '@/actions/admin/security';
 import { type SecurityEvent } from '@prisma/client';
 
@@ -120,44 +122,40 @@ export function AntiFraudMonitorClient() {
   };
 
   return (
-    <div className="space-y-6 p-6 max-w-[1600px] mx-auto">
+    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 min-h-full pb-10">
       {/* Top Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
-            <ShieldAlert className="w-7 h-7 text-primary" />
-            Security & Anti-Fraud Center
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Мониторинг атак на вебхуки в реальном времени, аномалий трафика и защита финансовых контуров.
-          </p>
-        </div>
+      <AdminTabbedHeader
+        icon={ShieldAlert}
+        title="Антифрод & Защита контуров"
+        description="Мониторинг атак на вебхуки в реальном времени, аномалий трафика и защита финансовых контуров"
+        action={(
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-card text-xs">
+              <span className={`w-2 h-2 rounded-full ${autoRefresh ? 'bg-emerald-500 animate-ping' : 'bg-muted-foreground'}`} />
+              <span className="text-muted-foreground">Live Feed:</span>
+              <button
+                onClick={() => setAutoRefresh(!autoRefresh)}
+                className={`font-semibold transition-colors cursor-pointer ${autoRefresh ? 'text-emerald-500' : 'text-muted-foreground'}`}
+              >
+                {autoRefresh ? 'ВКЛ (5s)' : 'ВЫКЛ'}
+              </button>
+            </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-card text-xs">
-            <span className={`w-2 h-2 rounded-full ${autoRefresh ? 'bg-emerald-500 animate-ping' : 'bg-muted-foreground'}`} />
-            <span className="text-muted-foreground">Live Feed:</span>
             <button
-              onClick={() => setAutoRefresh(!autoRefresh)}
-              className={`font-semibold transition-colors ${autoRefresh ? 'text-emerald-500' : 'text-muted-foreground'}`}
+              onClick={() => {
+                fetchData();
+                toast.success('Данные обновлены');
+              }}
+              disabled={loading}
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-medium rounded-lg bg-card border border-border text-foreground hover:bg-muted transition-all duration-200 cursor-pointer"
             >
-              {autoRefresh ? 'ВКЛ (5s)' : 'ВЫКЛ'}
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+              Обновить
             </button>
           </div>
-
-          <button
-            onClick={() => {
-              fetchData();
-              toast.success('Данные обновлены');
-            }}
-            disabled={loading}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-medium rounded-lg bg-card border border-border text-foreground hover:bg-muted transition-all duration-200"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            Обновить
-          </button>
-        </div>
-      </div>
+        )}
+        tabs={FINANCE_TABS}
+      />
 
       {/* Tabs */}
       <div className="flex items-center gap-2 border-b border-border pb-2">
@@ -197,7 +195,7 @@ export function AntiFraudMonitorClient() {
             <div className="rounded-xl border border-border bg-card p-4 space-y-1">
               <div className="flex items-center justify-between text-muted-foreground">
                 <span className="text-xs font-medium uppercase tracking-wider">Алертов за 24ч</span>
-                <Activity className="w-4 h-4 text-primary" />
+                <Activity className="w-4 h-4 text-primary shrink-0" />
               </div>
               <div className="text-2xl font-bold text-foreground">{stats.total24h}</div>
               <p className="text-[11px] text-muted-foreground">Все зафиксированные инциденты</p>
@@ -206,7 +204,7 @@ export function AntiFraudMonitorClient() {
             <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-4 space-y-1">
               <div className="flex items-center justify-between text-red-500">
                 <span className="text-xs font-medium uppercase tracking-wider">Критических атак (P0)</span>
-                <AlertTriangle className="w-4 h-4 text-red-500" />
+                <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
               </div>
               <div className="text-2xl font-bold text-red-500">{stats.critical24h}</div>
               <p className="text-[11px] text-muted-foreground">Подделки HMAC, Replay, IP spoofing</p>
@@ -215,7 +213,7 @@ export function AntiFraudMonitorClient() {
             <div className="rounded-xl border border-border bg-card p-4 space-y-1">
               <div className="flex items-center justify-between text-amber-500">
                 <span className="text-xs font-medium uppercase tracking-wider">Высокий риск (P1)</span>
-                <ShieldAlert className="w-4 h-4 text-amber-500" />
+                <ShieldAlert className="w-4 h-4 text-amber-500 shrink-0" />
               </div>
               <div className="text-2xl font-bold text-foreground">{stats.high24h}</div>
               <p className="text-[11px] text-muted-foreground">Отсутствие подписи, stale timestamp</p>
@@ -224,7 +222,7 @@ export function AntiFraudMonitorClient() {
             <div className="rounded-xl border border-border bg-card p-4 space-y-1">
               <div className="flex items-center justify-between text-muted-foreground">
                 <span className="text-xs font-medium uppercase tracking-wider">Уникальных IP</span>
-                <Globe className="w-4 h-4 text-primary" />
+                <Globe className="w-4 h-4 text-primary shrink-0" />
               </div>
               <div className="text-2xl font-bold text-foreground">{stats.uniqueIpsCount}</div>
               <p className="text-[11px] text-muted-foreground">Источники аномальной активности</p>
@@ -264,7 +262,7 @@ export function AntiFraudMonitorClient() {
           <div className="rounded-xl border border-border bg-card overflow-hidden">
             <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Terminal className="w-4 h-4 text-primary" />
+                <Terminal className="w-4 h-4 text-primary shrink-0" />
                 <h2 className="text-sm font-semibold text-foreground">
                   Лента инцидентов и атак на вебхуки
                 </h2>
@@ -344,7 +342,7 @@ export function AntiFraudMonitorClient() {
                               onClick={() => setSelectedEvent(ev)}
                               className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded bg-muted hover:bg-muted/80 text-foreground border border-border transition-all"
                             >
-                              <Eye className="w-3 h-3" />
+                              <Eye className="w-3 h-3 shrink-0" />
                               Payload
                             </button>
                           </td>
@@ -364,7 +362,7 @@ export function AntiFraudMonitorClient() {
             <div className="rounded-xl border border-border bg-card p-5 space-y-1">
               <div className="flex items-center justify-between text-muted-foreground">
                 <span className="text-xs font-medium uppercase tracking-wider">Заморожено (Vesting)</span>
-                <Lock className="w-4 h-4 text-amber-500" />
+                <Lock className="w-4 h-4 text-amber-500 shrink-0" />
               </div>
               <div className="text-2xl font-bold text-foreground">0 ₽</div>
               <p className="text-xs text-muted-foreground">Период заморозки: 72 часа</p>
@@ -373,7 +371,7 @@ export function AntiFraudMonitorClient() {
             <div className="rounded-xl border border-border bg-card p-5 space-y-1">
               <div className="flex items-center justify-between text-muted-foreground">
                 <span className="text-xs font-medium uppercase tracking-wider">Подозрительные кластеры</span>
-                <Users className="w-4 h-4 text-primary" />
+                <Users className="w-4 h-4 text-primary shrink-0" />
               </div>
               <div className="text-2xl font-bold text-foreground">0</div>
               <p className="text-xs text-muted-foreground">IP / User-Agent совпадения</p>
@@ -382,7 +380,7 @@ export function AntiFraudMonitorClient() {
             <div className="rounded-xl border border-border bg-card p-5 space-y-1">
               <div className="flex items-center justify-between text-muted-foreground">
                 <span className="text-xs font-medium uppercase tracking-wider">Заблокировано фрода</span>
-                <Ban className="w-4 h-4 text-red-500" />
+                <Ban className="w-4 h-4 text-red-500 shrink-0" />
               </div>
               <div className="text-2xl font-bold text-foreground">100%</div>
               <p className="text-xs text-muted-foreground">Self-referral & Duplicate Fingerprints</p>
@@ -392,7 +390,7 @@ export function AntiFraudMonitorClient() {
           <div className="rounded-xl border border-border bg-card overflow-hidden">
             <div className="px-5 py-4 border-b border-border flex items-center justify-between">
               <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
-                <Lock className="w-4 h-4 text-amber-500" />
+                <Lock className="w-4 h-4 text-amber-500 shrink-0" />
                 Замороженные бонусы (Vesting 72h)
               </h2>
               <span className="text-xs text-muted-foreground">Авто-разблокировка после завершения холда</span>
@@ -412,7 +410,7 @@ export function AntiFraudMonitorClient() {
             <div className="flex items-center justify-between border-b border-border pb-3">
               <div>
                 <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
-                  <Terminal className="w-4 h-4 text-primary" />
+                  <Terminal className="w-4 h-4 text-primary shrink-0" />
                   Инспектор инцидента безопасности
                 </h3>
                 <p className="text-xs text-muted-foreground font-mono">
@@ -454,7 +452,7 @@ export function AntiFraudMonitorClient() {
                     onClick={() => copyToClipboard(JSON.stringify(selectedEvent.details, null, 2), 'modal-payload')}
                     className="inline-flex items-center gap-1 hover:text-foreground"
                   >
-                    {copiedId === 'modal-payload' ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                    {copiedId === 'modal-payload' ? <Check className="w-3 h-3 text-emerald-500 shrink-0" /> : <Copy className="w-3 h-3" />}
                     Копировать JSON
                   </button>
                 </div>

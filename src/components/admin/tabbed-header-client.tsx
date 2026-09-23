@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Info, ChevronDown, ChevronUp, BookOpen } from 'lucide-react';
+import { Info, ChevronDown, ChevronUp, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface OnboardingFaq {
@@ -57,12 +57,12 @@ export function OnboardingSection({
         {onboarding && (
           <button
             onClick={toggleOpen}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-muted-foreground hover:text-primary bg-muted/50 border border-border hover:border-primary/20 rounded-lg shadow-sm transition-all duration-200"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-muted-foreground hover:text-primary bg-muted/50 border border-border hover:border-primary/20 rounded-xl shadow-xs transition-all duration-150 active:scale-95"
             aria-label="Toggle onboarding guide"
           >
             <Info className="w-3.5 h-3.5" />
             <span>База знаний</span>
-            {isOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+            {isOpen ? <ChevronUp className="w-3 h-3 shrink-0" /> : <ChevronDown className="w-3 h-3" />}
           </button>
         )}
         {children && <div className="flex items-center gap-2">{children}</div>}
@@ -73,7 +73,7 @@ export function OnboardingSection({
           <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
           <div className="flex items-start gap-3 relative z-10">
             <div className="p-1.5 bg-primary/10 text-primary rounded-lg shadow-sm shrink-0 mt-0.5">
-              <BookOpen className="w-4 h-4" />
+              <BookOpen className="w-4 h-4 shrink-0" />
             </div>
             <div className="space-y-3 flex-1 min-w-0">
               <div>
@@ -100,7 +100,7 @@ export function OnboardingSection({
                   >
                     📖 Полное руководство оператора →
                   </a>
-                  <button onClick={toggleOpen} className="text-[10px] font-bold text-muted-foreground hover:text-foreground">
+                  <button type="button" onClick={toggleOpen} className="text-[10px] font-bold text-muted-foreground hover:text-foreground">
                     Скрыть справочник
                   </button>
                 </div>
@@ -114,30 +114,135 @@ export function OnboardingSection({
 }
 
 import { isNavTabActive } from '@/components/admin/navigation-data';
+import { Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 
-export function AdminTabs({ tabs }: { tabs: TabItem[] }) {
+function AdminTabsInner({ tabs }: { tabs: TabItem[] }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const allHrefs = React.useMemo(() => tabs.map((t) => t.href), [tabs]);
+  const activeTabRef = React.useRef<HTMLAnchorElement>(null);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = React.useState(false);
+  const [canScrollRight, setCanScrollRight] = React.useState(false);
+
+  // Build full path including ?query for correct query-param tab matching
+  const fullPath = React.useMemo(() => {
+    const qs = searchParams.toString();
+    return qs ? `${pathname}?${qs}` : pathname;
+  }, [pathname, searchParams]);
+
+  const checkScroll = React.useCallback(() => {
+    const el = containerRef.current;
+    if (el) {
+      setCanScrollLeft(el.scrollLeft > 6);
+      setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 6);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    checkScroll();
+    const el = containerRef.current;
+    if (!el) return;
+    el.addEventListener('scroll', checkScroll, { passive: true });
+    window.addEventListener('resize', checkScroll);
+    return () => {
+      el.removeEventListener('scroll', checkScroll);
+      window.removeEventListener('resize', checkScroll);
+    };
+  }, [checkScroll, tabs]);
+
+  const handleScroll = (direction: 'left' | 'right') => {
+    if (containerRef.current) {
+      const offset = direction === 'left' ? -260 : 260;
+      containerRef.current.scrollBy({ left: offset, behavior: 'smooth' });
+    }
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    if (e.deltaY !== 0 && containerRef.current) {
+      containerRef.current.scrollLeft += e.deltaY;
+    }
+  };
+
+  // Auto-scroll active tab into center on mobile
+  React.useEffect(() => {
+    if (activeTabRef.current) {
+      activeTabRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center',
+      });
+    }
+  }, [fullPath]);
 
   return (
-    <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-1 border-t border-border/30 pt-3 w-full">
-      {tabs.map((tab, idx) => {
-        const isActive = isNavTabActive(pathname, tab.href, allHrefs);
-        return (
-          <Link
-            key={idx}
-            href={tab.href}
-            className={cn(
-              "px-4 py-2 text-xs font-bold rounded-lg border transition-all duration-200 whitespace-nowrap shadow-sm hover:scale-[1.01]",
-              isActive
-                ? "bg-primary text-primary-foreground border-primary font-black scale-[1.02]"
-                : "bg-background text-muted-foreground border-border hover:bg-muted/50 hover:text-foreground"
-            )}
-          >
-            {tab.label}
-          </Link>
-        );
-      })}
+    <div className="relative w-full max-w-full group pt-2 sm:pt-3 border-t border-border/30">
+      {/* Scroll Left Button (Desktop) */}
+      {canScrollLeft && (
+        <button
+          type="button"
+          onClick={() => handleScroll('left')}
+          className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-20 w-7 h-7 items-center justify-center rounded-full bg-card/95 border border-border shadow-md text-foreground hover:bg-muted transition-all cursor-pointer"
+          aria-label="Прокрутить вкладки влево"
+        >
+          <ChevronLeft className="w-4 h-4 shrink-0" />
+        </button>
+      )}
+
+      {/* Tabs list container */}
+      <div
+        ref={containerRef}
+        onWheel={handleWheel}
+        className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-1 px-1 sm:px-0 w-full max-w-full scroll-smooth flex-nowrap"
+      >
+        {tabs.map((tab, idx) => {
+          const isActive = isNavTabActive(fullPath, tab.href, allHrefs);
+          return (
+            <Link
+              key={idx}
+              ref={isActive ? activeTabRef : undefined}
+              href={tab.href}
+              className={cn(
+                "px-3.5 sm:px-4 min-h-[42px] sm:min-h-0 h-10 sm:h-9 flex items-center justify-center text-xs font-bold rounded-xl border transition-all duration-150 whitespace-nowrap shadow-xs active:scale-95 shrink-0",
+                isActive
+                  ? "bg-primary text-primary-foreground border-primary font-bold shadow-xs"
+                  : "bg-background text-muted-foreground border-border hover:bg-muted/50 hover:text-foreground"
+              )}
+            >
+              {tab.label}
+            </Link>
+          );
+        })}
+      </div>
+
+      {/* Scroll Right Button (Desktop) */}
+      {canScrollRight && (
+        <button
+          type="button"
+          onClick={() => handleScroll('right')}
+          className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-20 w-7 h-7 items-center justify-center rounded-full bg-card/95 border border-border shadow-md text-foreground hover:bg-muted transition-all cursor-pointer"
+          aria-label="Прокрутить вкладки вправо"
+        >
+          <ChevronRight className="w-4 h-4 shrink-0" />
+        </button>
+      )}
     </div>
   );
 }
+
+// Wrap in Suspense: useSearchParams() requires a Suspense boundary in Next.js App Router
+export function AdminTabs({ tabs }: { tabs: TabItem[] }) {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-1 border-t border-border/30 pt-3 w-full max-w-full flex-nowrap">
+        {tabs.map((tab, idx) => (
+          <div key={idx} className="px-4 py-2 min-h-[40px] sm:min-h-0 h-10 sm:h-9 text-xs font-bold rounded-xl border border-border bg-background text-muted-foreground whitespace-nowrap animate-pulse w-24 shrink-0" />
+        ))}
+      </div>
+    }>
+      <AdminTabsInner tabs={tabs} />
+    </Suspense>
+  );
+}
+

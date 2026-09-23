@@ -114,4 +114,65 @@ describe('👥 Staff Hub & Audit Analytics Server Actions', () => {
     expect(updatedUser?.role).toBe('MANAGER');
     expect(updatedUser?.supportLimitCents).toBe(750000); // 7500 RUB * 100 cents
   });
+
+  it('4. Updates allowedTenants to multiple tenants simultaneously (OmniSMM multi-tenant)', async () => {
+    const updateRes = await updateStaffMemberAction({
+      userId: testSupportId,
+      role: 'SUPPORT',
+      supportLimitRubles: 5000,
+      allowedTenants: ['smmplan', 'flux'],
+    });
+
+    expect(updateRes.success).toBe(true);
+
+    const updatedUser = await db.user.findUnique({ where: { id: testSupportId } });
+    expect(updatedUser?.allowedTenants).toEqual(['smmplan', 'flux']);
+  });
+
+  it('5. Rejects empty allowedTenants array to prevent orphaned staff access', async () => {
+    const updateRes = await updateStaffMemberAction({
+      userId: testSupportId,
+      role: 'SUPPORT',
+      supportLimitRubles: 5000,
+      allowedTenants: [],
+    });
+
+    expect(updateRes.success).toBe(false);
+    if (!updateRes.success) {
+      expect(updateRes.error).toContain('Сотрудник должен иметь доступ хотя бы к одной витрине');
+    }
+  });
+
+  it('6. Enforces Grant Ceiling: non-owner staff cannot grant tenants outside their own allowedTenants', async () => {
+    // Create manager with only 'smmplan' access
+    const manager = await db.user.create({
+      data: {
+        email: `manager_${Date.now()}@smmplan.pro`,
+        role: 'ADMIN',
+        balance: BigInt(0),
+        tenantId: 'smmplan',
+        allowedTenants: ['smmplan'],
+      },
+    });
+
+    vi.mocked(verifySession).mockResolvedValue({
+      userId: manager.id,
+      email: manager.email,
+      role: 'ADMIN',
+      tenantId: 'smmplan',
+    } as any);
+
+    // Manager attempts to grant 'flux' to support user
+    const updateRes = await updateStaffMemberAction({
+      userId: testSupportId,
+      role: 'SUPPORT',
+      supportLimitRubles: 5000,
+      allowedTenants: ['smmplan', 'flux'],
+    });
+
+    expect(updateRes.success).toBe(false);
+    if (!updateRes.success) {
+      expect(updateRes.error).toContain('Grant Ceiling');
+    }
+  });
 });

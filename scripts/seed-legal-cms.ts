@@ -264,26 +264,41 @@ async function main() {
     },
   ];
 
-  for (const item of items) {
-    await db.contentItem.upsert({
-      where: { slug: item.slug },
-      update: {
-        title: item.title,
-        contentHtml: item.contentHtml,
-        isPublished: item.isPublished,
-        seoTitle: item.seoTitle,
-        seoDescription: item.seoDescription,
-      },
-      create: {
-        slug: item.slug,
-        title: item.title,
-        contentHtml: item.contentHtml,
-        isPublished: item.isPublished,
-        seoTitle: item.seoTitle,
-        seoDescription: item.seoDescription,
-      },
-    });
-    console.log(`Seeded legal page: ${item.slug}`);
+  const tenants = ['smmplan', 'flux'] as const;
+  for (const tenantId of tenants) {
+    const siteName = tenantId === 'flux' ? 'SMMflux' : 'SMMplan';
+    for (const item of items) {
+      const tenantContentHtml = item.contentHtml
+        .replace(/\{\{SITE_NAME\}\}/g, siteName)
+        .replace(/SMMplan/g, siteName);
+      const tenantMetaTitle = item.seoTitle.replace(/SMMplan/g, siteName);
+
+      await db.contentItem.upsert({
+        where: {
+          tenantId_slug: {
+            tenantId,
+            slug: item.slug,
+          },
+        },
+        update: {
+          title: item.title,
+          contentHtml: tenantContentHtml,
+          isPublished: item.isPublished,
+          metaTitle: tenantMetaTitle,
+          metaDescription: item.seoDescription,
+        },
+        create: {
+          tenantId,
+          slug: item.slug,
+          title: item.title,
+          contentHtml: tenantContentHtml,
+          isPublished: item.isPublished,
+          metaTitle: tenantMetaTitle,
+          metaDescription: item.seoDescription,
+        },
+      });
+      console.log(`Seeded legal page [${tenantId}]: ${item.slug}`);
+    }
   }
 
   console.log('All legal CMS pages seeded successfully!');

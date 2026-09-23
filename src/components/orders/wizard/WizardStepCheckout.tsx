@@ -168,7 +168,7 @@ export function WizardStepCheckout(props: WizardStepCheckoutProps) {
 
       <div className="p-4 rounded-2xl bg-primary/5 border border-primary/15 flex items-start gap-3 text-xs text-muted-foreground leading-relaxed">
         <ShieldCheck className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-        <div>{hasRefill ? <><span className="font-bold text-foreground">🛡️ Гарантия Refill активна:</span> защита от списаний с автоматической докруткой. Запуск без паролей.</> : <><span className="font-bold text-foreground">100% Безопасный запуск:</span> соблюдаем лимиты соцсетей без ввода паролей. При сбое возврат средств на баланс.</>}</div>
+        <div>{hasRefill ? <><span className="font-bold text-foreground">🛡️ Гарантия качества активна:</span> защита от списаний с гарантией выполнения. Запуск без паролей.</> : <><span className="font-bold text-foreground">100% Безопасный запуск:</span> соблюдаем лимиты соцсетей без ввода паролей. При сбое возврат средств на баланс.</>}</div>
       </div>
 
       <div className="pt-4 border-t border-border/50 flex flex-col md:flex-row md:items-center justify-between gap-4">

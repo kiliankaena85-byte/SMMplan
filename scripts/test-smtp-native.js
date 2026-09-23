@@ -1,4 +1,4 @@
-﻿// Mock server-only for standalone script execution
+// Mock server-only for standalone script execution
 const Module = require('module');
 const originalRequire = Module.prototype.require;
 Module.prototype.require = function(id) {
@@ -7,8 +7,9 @@ Module.prototype.require = function(id) {
 };
 
 require('dotenv').config();
+const dbUrl = (process.env.DATABASE_URL || '').replace('db:5432', '127.0.0.1:5435');
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ datasources: { db: { url: dbUrl } } });
 const nodemailer = require('nodemailer');
 
 async function main() {
@@ -41,6 +42,7 @@ async function main() {
     port,
     secure: port === 465,
     auth: { user, pass },
+    localAddress: process.env.SMTP_LOCAL_ADDRESS || undefined,
     family: 4,
     connectionTimeout: 10000,
     greetingTimeout: 10000,

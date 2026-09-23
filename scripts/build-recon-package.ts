@@ -84,7 +84,7 @@ const testFiles = srcFiles
 let markdown = `# 🔍 AUDIT_PACKAGE_2_RECON.md
 ## Пакет разведки архитектуры платформы Flux / SMMplan
 
-**Проект:** Multi-Tenant SMM Platform (Flux / SMMplan / Lovable)  
+**Проект:** Multi-Tenant SMM Platform (OmniSMM 1.0: SMMplan / SMMflux)  
 **Дата:** 28 июля 2026 г.  
 **Инженер:** Senior Frontend & System Engineer (Antigravity AI)  
 **Назначение:** Полная сводка структуры проекта для внешнего аудитора перед волнами 1–6.

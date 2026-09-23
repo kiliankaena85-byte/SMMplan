@@ -59,7 +59,7 @@ export function QuarantineList({ entries }: QuarantineListProps) {
     <div className="border border-warning/30 bg-warning/10 rounded-2xl overflow-hidden shadow-xs animate-in slide-in-from-top duration-300">
       <div className="px-6 py-4 flex items-center gap-4 border-b border-warning/20 bg-warning/15">
         <div className="p-2 bg-warning/20 text-warning rounded-xl border border-warning/30">
-          <AlertTriangle className="w-5 h-5" />
+          <AlertTriangle className="w-5 h-5 shrink-0" />
         </div>
         <div>
           <span className="font-bold text-foreground text-sm uppercase tracking-wider">

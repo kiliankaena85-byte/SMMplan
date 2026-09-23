@@ -543,7 +543,7 @@ export function TransactionsClient({ initialEntries, userEmail }: TransactionsCl
               aria-label="Переключить в режим бухгалтера"
             >
               {isAccountantMode ? (
-                <ToggleRight className="w-6 h-6 text-primary fill-current" />
+                <ToggleRight className="w-6 h-6 text-primary fill-current shrink-0" />
               ) : (
                 <ToggleLeft className="w-6 h-6 text-muted-foreground" />
               )}
@@ -608,7 +608,7 @@ export function TransactionsClient({ initialEntries, userEmail }: TransactionsCl
                         {/* Decoded Reason & Order Link */}
                         <td className="py-2.5 px-3.5 text-xs font-semibold text-foreground leading-normal max-w-[240px]">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="truncate max-w-[170px]" title={item.reason}>{item.reason}</span>
+                            <span className="truncate max-w-[170px] min-w-0" title={item.reason}>{item.reason}</span>
                             {orderId && (
                               <Link
                                 href={`/dashboard/orders/${orderId}`}

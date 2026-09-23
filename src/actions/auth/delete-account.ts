@@ -40,7 +40,6 @@ export async function deleteAccountAction(prevState: unknown, formData: FormData
 
   try {
     const userId = session.userId;
-    // tenant-isolation-ignore: manual IDOR check
     const user = await db.user.findUnique({
       where: { id: userId },
       select: { passwordHash: true, email: true }
@@ -77,6 +76,17 @@ export async function deleteAccountAction(prevState: unknown, formData: FormData
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 365, // 1 год
     });
+
+    // Invalidate distributed Redis sessions across all user devices
+    try {
+      const { redis } = await import('@/lib/redis');
+      if (redis) {
+        await redis.del(`session:${userId}`);
+        await redis.del(`user:sessions:${userId}`);
+      }
+    } catch (redisErr) {
+      log.error('Failed to invalidate Redis sessions', { error: redisErr });
+    }
 
     log.info('Account successfully soft-deleted', { userId, email: user.email });
     return { success: true, error: null };

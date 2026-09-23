@@ -1,6 +1,6 @@
 import { Download } from 'lucide-react';
 import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
-import { CATALOG_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
+import { PROVIDERS_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 
 export default function ImportLoading() {
   return (
@@ -15,7 +15,7 @@ export default function ImportLoading() {
         icon={Download}
         title="Импорт Услуг"
         description="Загрузка мастера синхронизации и сопоставления каталога..."
-        tabs={CATALOG_TABS}
+        tabs={PROVIDERS_TABS}
         onboardingKey="providers"
         onboarding={ONBOARDING_CONFIGS.providers}
       />

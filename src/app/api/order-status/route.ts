@@ -7,6 +7,7 @@ import { SettingsManager } from '@/lib/settings';
 import { RateLimitService } from '@/services/core/rate-limit.service';
 import { getClientIp } from '@/utils/ip';
 import { verifyGuestOrderToken } from '@/lib/order-token';
+import { resolveTenantFromHostEdge, normalizeTenantId } from '@/lib/tenant-resolver-edge';
 
 /**
  * GET /api/order-status?orderId=xxx
@@ -51,7 +52,6 @@ export async function GET(req: NextRequest) {
     }
 
     if (orderId) {
-      // tenant-isolation-ignore: isolated by session.userId or secure capability token
       let order = await db.order.findUnique({
         where: session ? { id: orderId, userId: session.userId } : { id: orderId },
         include: {
@@ -69,6 +69,12 @@ export async function GET(req: NextRequest) {
       }
 
       if (!order) {
+        return NextResponse.json({ error: 'Not found' }, { status: 404 });
+      }
+
+      const host = req.headers.get('host') || '';
+      const requestTenant = normalizeTenantId(req.headers.get('x-tenant-id')) || resolveTenantFromHostEdge(host);
+      if (order.tenantId && order.tenantId !== requestTenant) {
         return NextResponse.json({ error: 'Not found' }, { status: 404 });
       }
 
@@ -130,7 +136,6 @@ export async function GET(req: NextRequest) {
             'order'
           );
 
-          // tenant-isolation-ignore: isolated by session.userId or secure capability token
           const updatedOrder = await db.order.findUnique({
             where: session ? { id: orderId, userId: session.userId } : { id: orderId },
             include: {
@@ -152,7 +157,6 @@ export async function GET(req: NextRequest) {
       });
 
     } else if (paymentId) {
-      // tenant-isolation-ignore: isolated by session.userId or secure capability token
       let payment = await db.payment.findUnique({
         where: session ? { id: paymentId, userId: session.userId } : { id: paymentId },
       });
@@ -162,6 +166,12 @@ export async function GET(req: NextRequest) {
       }
 
       if (!payment) {
+        return NextResponse.json({ error: 'Not found' }, { status: 404 });
+      }
+
+      const host = req.headers.get('host') || '';
+      const requestTenant = normalizeTenantId(req.headers.get('x-tenant-id')) || resolveTenantFromHostEdge(host);
+      if (payment.tenantId && payment.tenantId !== requestTenant) {
         return NextResponse.json({ error: 'Not found' }, { status: 404 });
       }
 
@@ -222,7 +232,6 @@ export async function GET(req: NextRequest) {
             'order'
           );
 
-          // tenant-isolation-ignore: isolated by session.userId or secure capability token
           const updatedPayment = await db.payment.findUnique({
             where: session ? { id: paymentId, userId: session.userId } : { id: paymentId },
           });

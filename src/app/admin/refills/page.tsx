@@ -1,7 +1,7 @@
 import { db } from '@/lib/db';
 import { RefreshCw } from 'lucide-react';
 import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
-import { OPERATIONS_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
+import { ORDERS_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 import { RefillsTable, RefillItemDTO } from './client-table';
 import { enforceSectionAccess } from '@/lib/server/rbac';
 import { SettingsProvider } from '@/lib/settings';
@@ -91,7 +91,7 @@ export default async function AdminRefillsPage() {
         icon={RefreshCw}
         title="Гарантийные Докрутки (Refills)"
         description={`Всего: ${totalCount} • Ожидают: ${pendingCount} • В работе: ${inProgressCount} • Выполнены: ${completedCount} • Отклонены: ${rejectedCount} • Ошибки: ${errorCount}`}
-        tabs={OPERATIONS_TABS}
+        tabs={ORDERS_TABS}
         onboardingKey="refills"
         onboarding={ONBOARDING_CONFIGS.refills}
       />

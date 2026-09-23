@@ -29,7 +29,7 @@ export function TrustBar() {
               className="flex items-center gap-2.5 bg-content2 border border-border/50 rounded-2xl p-2.5 sm:p-3 w-full h-full shadow-sm hover:border-primary/20 transition-all duration-300"
             >
               <div className={`p-2 rounded-xl bg-content1 shadow-sm border border-border/50 shrink-0 ${s.color}`}>
-                <Icon className="w-4 h-4 drop-shadow-sm" />
+                <Icon className="w-4 h-4 drop-shadow-sm shrink-0" />
               </div>
               <div className="flex flex-col min-w-0">
                 <div className="text-xs sm:text-sm font-bold tracking-tight text-foreground tabular-nums leading-snug whitespace-nowrap">{s.value}</div>
@@ -59,7 +59,7 @@ export function TrustBar() {
                 className="flex items-center gap-4 bg-content2 border border-border/50 rounded-full px-6 py-3 shrink-0"
               >
                 <div className={`p-2 rounded-full bg-content1 shadow-sm border border-border/50 ${s.color}`}>
-                  <Icon className="w-5 h-5 drop-shadow-sm" />
+                  <Icon className="w-5 h-5 drop-shadow-sm shrink-0" />
                 </div>
                 <div className="flex flex-col">
                   <div className="text-xl font-bold tracking-tight text-foreground tabular-nums">{s.value}</div>

@@ -19,8 +19,6 @@ export function ProviderBalanceCell({ providerId, initialData }: ProviderBalance
   const fetchBalance = useCallback(async (forceRefresh = false) => {
     if (forceRefresh) {
       setIsRefreshing(true);
-    } else if (!data) {
-      setLoading(true);
     }
 
     try {
@@ -48,12 +46,22 @@ export function ProviderBalanceCell({ providerId, initialData }: ProviderBalance
       setLoading(false);
       setIsRefreshing(false);
     }
-  }, [providerId, data]);
+  }, [providerId]);
 
   useEffect(() => {
     if (!initialData) {
       fetchBalance(false);
     }
+
+    const onProvidersChanged = () => fetchBalance(true);
+    const onFocus = () => fetchBalance(false);
+
+    window.addEventListener('providers:changed', onProvidersChanged);
+    window.addEventListener('focus', onFocus);
+    return () => {
+      window.removeEventListener('providers:changed', onProvidersChanged);
+      window.removeEventListener('focus', onFocus);
+    };
   }, [fetchBalance, initialData]);
 
   if (loading) {

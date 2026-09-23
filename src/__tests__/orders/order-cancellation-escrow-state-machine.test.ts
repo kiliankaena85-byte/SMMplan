@@ -35,7 +35,7 @@ describe('ADR-2026-19: 2PC Async Order Cancellation and Escrow Protection Suite'
     const provider = await db.provider.create({
       data: {
         name: `Vexboost_Mock_${Date.now()}`,
-        apiUrl: 'https://api.vexboost.mock/v2',
+        apiUrl: 'https://api.vexboost.ru/v2',
         apiKey: 'test_secret_key',
         balanceCurrency: 'RUB',
         isActive: true,
@@ -93,7 +93,7 @@ describe('ADR-2026-19: 2PC Async Order Cancellation and Escrow Protection Suite'
 
   describe('1. UniversalProvider.cancelOrder API', () => {
     it('sends action: "cancel" with order id and parses successful response', async () => {
-      const p = new UniversalProvider('https://api.vexboost.mock/v2', 'test_key');
+      const p = new UniversalProvider('https://api.vexboost.ru/v2', 'test_key');
       const fetchSpy = vi.spyOn(UniversalNetworkRouter, 'fetch').mockResolvedValueOnce(
         new Response(JSON.stringify([{ order: 298641822, cancel: 1 }]), {
           status: 200,
@@ -108,7 +108,7 @@ describe('ADR-2026-19: 2PC Async Order Cancellation and Escrow Protection Suite'
     });
 
     it('handles provider refusal or error gracefully', async () => {
-      const p = new UniversalProvider('https://api.vexboost.mock/v2', 'test_key');
+      const p = new UniversalProvider('https://api.vexboost.ru/v2', 'test_key');
       const fetchSpy = vi.spyOn(UniversalNetworkRouter, 'fetch').mockResolvedValueOnce(
         new Response(JSON.stringify([{ order: 298641822, cancel: { error: 'Order cannot be canceled' } }]), {
           status: 200,

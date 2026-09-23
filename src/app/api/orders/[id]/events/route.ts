@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import { verifySession } from '@/lib/session';
 import { memoryOrderEmitter, OrderStatusPayload } from '@/lib/orders/realtime-status';
+import { resolveTenantFromHostEdge, normalizeTenantId } from '@/lib/tenant-resolver-edge';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,10 +20,9 @@ export async function GET(
     });
   }
 
-  // tenant-isolation-ignore: manual IDOR check via userId
   const order = await db.order.findUnique({
     where: { id: orderId },
-    select: { id: true, userId: true, status: true, updatedAt: true },
+    select: { id: true, userId: true, status: true, updatedAt: true, tenantId: true },
   });
 
   if (!order) {
@@ -32,13 +32,25 @@ export async function GET(
     });
   }
 
-  // Authorization check: User must own the order or be Staff/Admin
-  const isOwner = order.userId === session.userId;
+  // Authorization check: User must own the order or be Staff of the same tenant (or OWNER)
+  const isOrderOwner = order.userId === session.userId;
+  const isSuperOwner = session.role === 'OWNER';
   const isStaff = ['ADMIN', 'OWNER', 'SUPPORT', 'OPERATOR'].includes((session.role as string) || '');
+  const isSameTenantStaff = isStaff && (isSuperOwner || order.tenantId === ((session as any).tenantId || 'smmplan'));
 
-  if (!isOwner && !isStaff) {
+  if (!isOrderOwner && !isSameTenantStaff) {
     return new Response(JSON.stringify({ error: 'Forbidden' }), {
       status: 403,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Cross-tenant domain isolation: deny event stream if request domain does not match order tenant
+  const host = req.headers.get('host') || '';
+  const requestTenant = normalizeTenantId(req.headers.get('x-tenant-id')) || resolveTenantFromHostEdge(host);
+  if (order.tenantId && order.tenantId !== requestTenant && !isSuperOwner) {
+    return new Response(JSON.stringify({ error: 'Order not found' }), {
+      status: 404,
       headers: { 'Content-Type': 'application/json' },
     });
   }

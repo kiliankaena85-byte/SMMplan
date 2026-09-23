@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useTransition } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { TENANTS, TenantId } from '@/config/tenants';
 import { Globe, ChevronDown, Check, ExternalLink, Sparkles, Loader2 } from 'lucide-react';
@@ -27,7 +28,12 @@ export function TenantSwitcher({
   const searchParams = useSearchParams();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [mounted, setMounted] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
+
 
   // Filter tenants list according to staff RBAC boundary
   const visibleTenants = React.useMemo(() => {
@@ -67,19 +73,36 @@ export function TenantSwitcher({
     } catch {}
   }, [searchParams, currentTenant, visibleTenants]);
 
+  useEffect(() => { setMounted(true); }, []);
+
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+    if (!isOpen) return;
+    function handleClickOutside(event: MouseEvent | TouchEvent) {
+      const target = event.target as Node;
+      if (
+        triggerRef.current &&
+        !triggerRef.current.contains(target) &&
+        menuRef.current &&
+        !menuRef.current.contains(target)
+      ) {
         setIsOpen(false);
       }
     }
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setIsOpen(false);
+      }
     }
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    window.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+      window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen]);
+
 
   const activeTenant = visibleTenants.find((t) => t.id === selectedTenantId) || visibleTenants[0] || TENANTS[0];
 
@@ -146,11 +169,25 @@ export function TenantSwitcher({
     <div className={`relative inline-block text-left ${className}`} ref={dropdownRef}>
       <button
         type="button"
+        ref={triggerRef}
         disabled={!canSwitch}
-        onClick={() => canSwitch && setIsOpen(!isOpen)}
+        onClick={() => {
+          if (!canSwitch) return;
+          if (!isOpen && triggerRef.current) {
+            const rect = triggerRef.current.getBoundingClientRect();
+            setDropdownStyle({
+              position: 'fixed',
+              top: rect.bottom + 6,
+              left: rect.left,
+              width: Math.max(288, rect.width),
+              maxWidth: 'calc(100vw - 24px)',
+            });
+          }
+          setIsOpen(!isOpen);
+        }}
         aria-expanded={isOpen}
         aria-haspopup="true"
-        className={`flex items-center gap-2 px-3.5 py-2 min-h-[44px] bg-card/90 hover:bg-card border border-border/80 text-foreground font-semibold rounded-xl transition-all duration-200 shadow-sm text-xs sm:text-sm select-none ${
+        className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3.5 py-1 sm:py-2 min-h-[38px] sm:min-h-[44px] bg-card/90 hover:bg-card border border-border/80 text-foreground font-semibold rounded-xl transition-all duration-200 shadow-sm text-xs sm:text-sm select-none min-w-0 shrink ${
           canSwitch ? 'hover:border-primary/50 active:scale-95 cursor-pointer' : 'cursor-default opacity-90'
         }`}
       >
@@ -158,7 +195,7 @@ export function TenantSwitcher({
           {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Globe className="w-3.5 h-3.5" />}
         </div>
         
-        <span className="font-black text-foreground tracking-tight">
+        <span className="font-black text-foreground tracking-tight max-w-[70px] sm:max-w-[110px] md:max-w-none truncate min-w-0">
           {activeTenant.domain}
         </span>
 
@@ -167,12 +204,17 @@ export function TenantSwitcher({
         </span>
 
         {canSwitch && (
-          <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-180 text-primary' : ''}`} />
+          <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-180 text-primary' : ''}`} />
         )}
       </button>
 
-      {isOpen && canSwitch && (
-        <div className="absolute left-0 mt-2 w-72 rounded-2xl bg-card/95 border border-border/80 shadow-2xl z-[100] py-2 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-xl">
+      {isOpen && canSwitch && mounted && createPortal(
+        <div
+          ref={menuRef}
+          style={dropdownStyle}
+          className="rounded-2xl bg-card/95 border border-border/80 shadow-2xl z-[200] py-2 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-xl"
+        >
+
           <div className="px-3.5 py-2 border-b border-border/50 flex items-center justify-between">
             <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
               Список сайтов
@@ -190,6 +232,7 @@ export function TenantSwitcher({
               return (
                 <div
                   key={t.id}
+
                   onClick={() => handleSelect(t.id)}
                   className={`flex items-center justify-between p-2.5 rounded-xl cursor-pointer transition-all duration-150 group ${
                     isSelected
@@ -203,11 +246,11 @@ export function TenantSwitcher({
                         ? 'bg-primary text-primary-foreground shadow-sm'
                         : 'bg-muted text-muted-foreground group-hover:bg-background group-hover:text-foreground'
                     }`}>
-                      {t.id === 'flux' ? <Sparkles className="w-4 h-4" /> : <Globe className="w-4 h-4" />}
+                      {t.id === 'flux' ? <Sparkles className="w-4 h-4 shrink-0" /> : <Globe className="w-4 h-4" />}
                     </div>
                     
                     <div className="flex flex-col min-w-0">
-                      <span className="text-xs font-extrabold truncate">
+                      <span className="text-xs font-extrabold truncate min-w-0">
                         {t.domain}
                       </span>
                       <span className="text-[10px] text-muted-foreground font-medium">
@@ -219,7 +262,7 @@ export function TenantSwitcher({
                   <div className="flex items-center gap-1 shrink-0">
                     {isSelected && (
                       <div className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center">
-                        <Check className="w-3 h-3 stroke-[3]" />
+                        <Check className="w-3 h-3 stroke-[3] shrink-0" />
                       </div>
                     )}
                     
@@ -238,7 +281,8 @@ export function TenantSwitcher({
               );
             })}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

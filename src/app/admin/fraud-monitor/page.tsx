@@ -6,6 +6,6 @@ export const metadata = {
 };
 
 export default async function AntiFraudMonitorPage() {
-  await enforceSectionAccess('settings');
+  await enforceSectionAccess('finance');
   return <AntiFraudMonitorClient />;
 }

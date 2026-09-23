@@ -32,15 +32,12 @@ const HF_TOKEN = process.env.HUGGINGFACE_API_KEY || process.env.HF_TOKEN || '';
 
 // Бесплатные модели OpenRouter из доступного пула пользователя
 const OPENROUTER_FREE_MODELS = [
+  'inclusionai/ling-3.0-flash-fin:free',
+  'cohere/north-mini-code:free',
   'nex-agi/nex-n2.5-pro:free',
-  'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
-  'nvidia/nemotron-3-super-120b-a12b:free',
+  'inclusionai/ling-3.0-flash-sante:free',
   'nex-agi/nex-n2.5-mini:free',
-  'google/gemma-4-31b-it:free',
-  'google/gemma-4-26b-a4b-it:free',
-  'nvidia/nemotron-3-ultra-550b-a55b:free',
-  'poolside/laguna-s-2.1:free',
-  'thinkingmachines/inkling-small:free',
+  'nvidia/nemotron-3.5-content-safety:free',
   'dots-studio/dots-3-note-preview:free',
   'inclusionai/ling-3.0-flash-vl:free',
 ];

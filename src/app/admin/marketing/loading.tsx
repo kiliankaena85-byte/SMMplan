@@ -27,7 +27,7 @@ export default function MarketingLoading() {
       {/* Promocodes Card Skeleton */}
       <div className="bg-card border border-border/70 rounded-lg shadow-xs overflow-hidden">
         <div className="border-b border-border/70 bg-muted/20 p-4 flex items-center justify-between">
-          <Skeleton className="h-4 w-40 rounded-md" />
+          <Skeleton className="h-4 w-40 rounded-md shrink-0" />
           <Skeleton className="h-8 w-36 rounded-lg" />
         </div>
         
@@ -49,7 +49,7 @@ export default function MarketingLoading() {
             </div>
             {[...Array(6)].map((_, i) => (
               <div key={i} className="p-3 border-b border-border/30 flex items-center justify-between">
-                <Skeleton className="h-4 w-32 rounded-md" />
+                <Skeleton className="h-4 w-32 rounded-md shrink-0" />
                 <Skeleton className="h-4 w-20 rounded-md" />
                 <Skeleton className="h-4 w-28 rounded-md" />
                 <Skeleton className="h-4 w-20 rounded-md" />

@@ -143,7 +143,7 @@ export function TelegramTemplatesTab({ initialTemplates, onTemplatesChange, tena
       <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-muted/20 border border-border/60">
         <div>
           <h3 className="text-sm font-extrabold text-foreground tracking-tight flex items-center gap-2">
-            <MessageSquare className="w-4 h-4 text-primary" />
+            <MessageSquare className="w-4 h-4 text-primary shrink-0" />
             Шаблоны сообщений и системных уведомлений
           </h3>
           <p className="text-xs text-muted-foreground">
@@ -186,7 +186,7 @@ export function TelegramTemplatesTab({ initialTemplates, onTemplatesChange, tena
               <div className="flex items-start justify-between gap-3 pb-2 border-b border-border/40">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                    <Icon className="w-4 h-4" />
+                    <Icon className="w-4 h-4 shrink-0" />
                   </div>
                   <div>
                     <h4 className="text-xs font-bold text-foreground">{item.title}</h4>

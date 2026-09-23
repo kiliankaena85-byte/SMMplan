@@ -1,0 +1,95 @@
+{
+  "timestamp": "2026-09-21T12:41:15.852Z",
+  "totalDurationMs": 2600,
+  "overallPassed": true,
+  "optiCheckScore": 98,
+  "regressionRisk": "LOW",
+  "layers": [
+    {
+      "layer": 1,
+      "name": "AST Guardrails & Clean Architecture",
+      "passed": true,
+      "durationMs": 2512,
+      "metrics": {
+        "totalAstViolations": 116,
+        "astBlockers": 0,
+        "astMajors": 18,
+        "astWarnings": 98,
+        "cyclesCount": 0,
+        "archBlockersCount": 0,
+        "archPassed": true
+      },
+      "warnings": [
+        "AST Guardrails: 18 MAJOR violations found"
+      ],
+      "blockers": []
+    },
+    {
+      "layer": 2,
+      "name": "Memory, Event Loop & V8 Heap Saturation",
+      "passed": true,
+      "durationMs": 9,
+      "metrics": {
+        "heapUsedMb": 80,
+        "heapTotalMb": 190,
+        "rssMb": 248,
+        "maxOldSpaceBudgetMb": 768,
+        "heapUtilizationPercent": 10,
+        "eventLoopLagMs": 9.17
+      },
+      "warnings": [],
+      "blockers": []
+    },
+    {
+      "layer": 3,
+      "name": "Database Latency & NFR Performance Budget",
+      "passed": true,
+      "durationMs": 32,
+      "metrics": {
+        "pingLatencyMs": 18.92,
+        "queryLatencyMs": 5.06,
+        "serviceSampleCount": 20,
+        "queryBudgetTargetMs": 30
+      },
+      "warnings": [],
+      "blockers": []
+    },
+    {
+      "layer": 4,
+      "name": "AEARH Financial Reconciliation & Concurrency Locks",
+      "passed": true,
+      "durationMs": 42,
+      "metrics": {
+        "reconciliationPassed": true,
+        "totalChecks": 13,
+        "criticalFailuresCount": 0,
+        "warningsCount": 0
+      },
+      "warnings": [],
+      "blockers": []
+    },
+    {
+      "layer": 5,
+      "name": "Deterministic Economic & AI Optimization Harnesses",
+      "passed": true,
+      "durationMs": 4,
+      "metrics": {
+        "elasticityPassed": true,
+        "arbitragePassed": true,
+        "churnPassed": true,
+        "cashflowPassed": true,
+        "treasuryPassed": true,
+        "allHarnessesGreen": true
+      },
+      "warnings": [],
+      "blockers": []
+    }
+  ],
+  "summary": {
+    "totalLayers": 5,
+    "passedLayers": 5,
+    "failedLayers": 0,
+    "blockersCount": 0,
+    "warningsCount": 1
+  }
+}

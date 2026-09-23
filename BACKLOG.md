@@ -57,11 +57,16 @@
 | **TECH-002** | Убрать eslint-disable без TODO | Tech Debt | P2 | M (3-5ч) | ⏳ IN_BACKLOG |
 | **TECH-003** | Убрать console.log из production | Tech Debt | P2 | M (3-5ч) | 🟡 IN_PROGRESS |
 | **TECH-004** | CryptoBot — решение по 54-ФЗ | Tech Debt | P1 | M (3-5ч) | ⏳ IN_BACKLOG |
-| **TECH-005** | Переименовать Lovable в UI | Tech Debt | P2 | S (1-2ч) | 🟡 IN_PROGRESS (95% готово) |
+| **TECH-005** | Переименовать Lovable в UI | Tech Debt | P2 | S (1-2ч) | ✅ **DONE** (Все компоненты Lovable* переименованы в Flux*, UI очищен) |
 | **TECH-006** | Content filter (запрещенные слова) | Tech Debt | P1 | M (3-5ч) | ⏳ IN_BACKLOG |
 | **SEC-001** | Redis Auth & TLS Hardening (REDIS_PASSWORD, rediss://) | Security | **P0 (Prod Gate)** | S (1-2ч) | ✅ **DONE** (validateRedisUrl + Fail-Closed) |
 | **SEC-002** | CSP Strict-Dynamic Migration (Устранение unsafe-inline/eval) | Security | **P0 (Prod Gate)** | M (3-5ч) | ✅ **DONE** (buildCspHeader + Nonce + 0 unsafe) |
 | **SEC-003** | Production Direct SMTP Setup & Verification (Без TUN/прокси) | Security | **P0 (Prod Gate)** | S (1-2ч) | ✅ **DONE** (verifyDirectSmtpConnection + SMTPS 465) |
+| **STRAT-001** | Smart Upsell Bundles в UnifiedLinkEngine | Strategy | P1 | M (3-5ч) | ⏳ IN_BACKLOG |
+| **STRAT-002** | Виджет экспресс-аудита каналов (/audit) для SEO | Strategy | P1 | L (1-2д) | ⏳ IN_BACKLOG |
+| **STRAT-003** | B2B Reseller Portal & API (CustomerGroup) | Strategy | P2 | L (1-2д) | ⏳ IN_BACKLOG |
+| **STRAT-004** | Real-time Provider Balance Check в SmartRouting | Strategy | P1 | S (1-2ч) | ⏳ IN_BACKLOG |
+| **STRAT-005** | Шардирование воркера sync.processor.ts (>10k orders) | Strategy | P2 | M (3-5ч) | ⏳ IN_BACKLOG |
 
 ---
 
@@ -100,3 +105,40 @@
    - **Что сделано:**
      - Реализован `verifyDirectSmtpConnection` для прямого TLS-пробинга SMTPS порта 465 (Yandex / Mail.ru).
      - Доказана прямая доставка и сетевая доступность без прокси (Yandex: 95ms, Mail.ru: 69ms).
+
+---
+
+### 🚀 СТРАТЕГИЧЕСКИЕ ИНИЦИАТИВЫ РОСТА И МОНЕТИЗАЦИИ (STRATEGY & GROWTH BACKLOG):
+
+1. **[STRAT-001] Smart Upsell Bundles при детекции ссылки (Статус: IN_BACKLOG)**
+   - **Контекст:** В `src/services/link-engine/unified-link-engine.ts` и `target-type-mapper.ts` уже есть точное распознавание типов сущностей (`POST`, `CHANNEL`, `VIDEO`, `REEL`).
+   - **Что сделать:**
+     - При вводе ссылки на пост в `SmmplanOrderWizard.tsx` формировать рекомендацию умного комбо-пакета («Вывод в ТОП: 1 500 просмотров + 100 реакций + 25 репостов»).
+     - Скидка клиенту 10-15%, валовая маржинальность сервиса $\ge 80\%$.
+     - Прогнозируемый рост среднего чека (AOV) на 30–45%.
+
+2. **[STRAT-002] Публичный экспресс-аудит каналов и постов `/audit` (Статус: IN_BACKLOG)**
+   - **Контекст:** `IntelligenceLinkAnalyzer` может работать без обязательной авторизации пользователя для проверки открытости профиля, формата контента и доступности.
+   - **Что сделать:**
+     - Создать открытую SEO-посадочную страницу `/audit` с полем ввода ссылки.
+     - Бесплатный анализ параметров канала/поста с кнопкой быстрого чекаута рекомендованных тарифов.
+     - Снижение CAC (стоимости привлечения) на 40–50% за счет органического вирусного трафика.
+
+3. **[STRAT-003] B2B Reseller Portal & API Tier (Статус: IN_BACKLOG)**
+   - **Контекст:** В `prisma/schema.prisma` уже присутствуют `ApiConfig` (`apiKeyHash`, `customLimitCents`, `webhookUrl`) и `CustomerGroup`.
+   - **Что сделать:**
+     - Создать в кабинете `/dashboard/api` интерфейс выпуска API ключей и документации Reseller API v2.
+     - Настроить дисконтные сетки в `CustomerGroup` для оптовых реселлеров и агентств.
+     - Обеспечить стабильный оборотный поток без маркетинговых затрат.
+
+4. **[STRAT-004] Real-time Provider Balance Check в SmartRoutingService (Статус: IN_BACKLOG)**
+   - **Контекст:** В `src/workers/processors/order.processor.ts` при сбое основного поставщика `SmartRoutingService` переключает заказ на резервный маршрут, но не проверяет остаток на аккаунте целевого поставщика.
+   - **Что сделать:**
+     - Сохранять кэшированный баланс провайдера в Redis с TTL 60 сек.
+     - Перед переключением маршрута проверять достаточность баланса; при нулевом балансе пропускать маршрут к следующему вендору.
+
+5. **[STRAT-005] Шардирование воркера статусов `sync.processor.ts` (Статус: IN_BACKLOG)**
+   - **Контекст:** При росте количества одновременных заказов свыше 10 000 лимит `take: 1000` в `sync.processor.ts` может создавать задержку смены статусов.
+   - **Что сделать:**
+     - Реализовать распределение очередей BullMQ по провайдерам (`sync-provider-{id}`) для параллельной обработки.
+

@@ -6,12 +6,13 @@ import { sendOrderPaidMail } from '@/lib/smtp';
 import { logPromoCodeUsageIfNeeded } from '@/services/marketing-utils';
 import { PromoAutomationService } from '../users/promo-automation.service';
 import { SecurityAlertService } from '@/services/security/security-alert.service';
+import { ORDER_COOLING_OFF_MS } from '@/config/order-constants';
 
 function safeRevalidatePath(path: string, type?: 'layout' | 'page') {
   try {
     revalidatePath(path, type);
   } catch (err) {
-    const msg = err instanceof Error ? (err instanceof Error ? err.message : String(err)) : String(err);
+    const msg = err instanceof Error ? err.message : String(err);
     console.warn(`[Cache] revalidatePath failed for ${path}:`, msg);
   }
 }
@@ -44,11 +45,9 @@ export class PaymentService {
       if (process.env.NODE_ENV === 'production' && gatewayType === 'yookassa' && !isDevSandbox && !isMockPayment) {
         let paymentTenantId = 'smmplan';
         if (internalPaymentId) {
-          // tenant-isolation-ignore: manual IDOR check
           const p = await db.payment.findUnique({ where: { id: internalPaymentId }, select: { tenantId: true } });
           if (p?.tenantId) paymentTenantId = p.tenantId;
         } else if (gatewayId) {
-          // tenant-isolation-ignore: manual IDOR check
           const p = await db.payment.findUnique({ where: { gatewayId }, select: { tenantId: true } });
           if (p?.tenantId) paymentTenantId = p.tenantId;
         }
@@ -96,11 +95,9 @@ export class PaymentService {
         // Find payment by internal ID (preferred) or gateway ID
         let payment = null;
         if (internalPaymentId) {
-          // tenant-isolation-ignore: manual IDOR check
           payment = await tx.payment.findUnique({ where: { id: internalPaymentId } });
         }
         if (!payment) {
-          // tenant-isolation-ignore: manual IDOR check
           payment = await tx.payment.findUnique({ where: { gatewayId } });
         }
 
@@ -108,9 +105,7 @@ export class PaymentService {
 
         // 1. Process or Create Payment atomically via Upsert to prevent orphaned double-creation
         const currentPayment = payment
-          // tenant-isolation-ignore: manual IDOR check
           ? await tx.payment.findUnique({ where: { id: payment.id } })
-          // tenant-isolation-ignore: manual IDOR check
           : await tx.payment.findUnique({ where: { gatewayId } });
 
         if (currentPayment && currentPayment.status === 'SUCCEEDED') {
@@ -160,11 +155,10 @@ export class PaymentService {
           }
 
           const updated = await tx.payment.updateMany({
-            where: { id: currentPayment.id, tenantId: currentPayment.tenantId, status: 'PENDING' },
+            where: { id: currentPayment.id, tenantId: currentPayment.tenantId, status: { in: ['PENDING', 'FRAUD_HOLD'] } },
             data: { status: 'SUCCEEDED', gatewayId, receiptId: receiptId || undefined }
           });
           if (updated.count === 0) {
-            // tenant-isolation-ignore: manual IDOR check
             const fresh = await tx.payment.findUnique({
               where: { id: currentPayment.id },
               select: { status: true }
@@ -197,12 +191,11 @@ export class PaymentService {
         // (gateway-credit-${paymentId}); charge is per-order (gateway-charge-${orderId}).
         if (isOrderPayment && linkedOrderId) {
           // Activate linked order
-          // tenant-isolation-ignore: manual IDOR check
           const order = await tx.order.findUnique({ 
             where: { id: linkedOrderId },
             include: { user: { select: { email: true } }, service: { select: { name: true } } }
           });
-          if (order && order.status === 'AWAITING_PAYMENT') {
+          if (order && (order.status === 'AWAITING_PAYMENT' || order.status === 'PENDING_CHECK')) {
             // [FIN-P0 Guard] Ensure credited amount is strictly >= order.charge to prevent underpaid activation
             if (creditAmount < order.charge) {
               console.error(`[SECURITY] Underpaid order activation blocked: order #${order.numericId} requires ${order.charge} kopecks, but payment credited only ${creditAmount} kopecks.`);
@@ -220,7 +213,6 @@ export class PaymentService {
               throw new Error(`UNDERPAID_ORDER: Credited amount (${creditAmount}) is less than required order charge (${order.charge})`);
             }
 
-            // tenant-isolation-ignore: manual IDOR check
             await tx.order.update({
               where: { id: linkedOrderId },
               data: { status: 'PENDING' }
@@ -252,7 +244,7 @@ export class PaymentService {
         const basketOrders = await tx.order.findMany({ 
           where: { 
             paymentId: processedPaymentId, 
-            status: 'AWAITING_PAYMENT',
+            status: { in: ['AWAITING_PAYMENT', 'PENDING_CHECK'] },
             ...(basketTenantId ? { tenantId: basketTenantId } : {})
           },
           include: { user: { select: { email: true } }, service: { select: { name: true } } }
@@ -261,7 +253,7 @@ export class PaymentService {
            await tx.order.updateMany({
               where: { 
                 paymentId: processedPaymentId, 
-                status: 'AWAITING_PAYMENT',
+                status: { in: ['AWAITING_PAYMENT', 'PENDING_CHECK'] },
                 ...(basketTenantId ? { tenantId: basketTenantId } : {})
               },
               data: { status: 'PENDING' }
@@ -325,7 +317,7 @@ export class PaymentService {
       if (activatedOrders.length > 0) {
         const { ordersQueue } = await import('@/lib/queue-manager');
         for (const activated of activatedOrders) {
-          await ordersQueue.add('order-dispatch', { orderId: activated.id }, { jobId: `dispatch-${activated.id}`, delay: 3 * 60 * 1000 }); // 3 min cooling-off
+          await ordersQueue.add('order-dispatch', { orderId: activated.id }, { jobId: `dispatch-${activated.id}`, delay: ORDER_COOLING_OFF_MS }); // 90s cooling-off
           
           if (activated.userEmail && activated.serviceName) {
             void sendOrderPaidMail(
@@ -340,7 +332,6 @@ export class PaymentService {
 
       // Notify user directly in Telegram if user has linked Telegram ID
       try {
-        // tenant-isolation-ignore: manual IDOR check
         const userWithTg = await db.user.findUnique({
           where: { id: userId },
           select: { telegramId: true, balance: true }
@@ -389,7 +380,6 @@ export class PaymentService {
   async cancelPayment(gatewayId: string): Promise<boolean> {
     try {
       return await runSerializableTransaction(async (tx) => {
-        // tenant-isolation-ignore: manual IDOR check
         const payment = await tx.payment.findUnique({ where: { gatewayId } });
         if (!payment || payment.status !== 'PENDING') return false;
 
@@ -473,14 +463,12 @@ export class PaymentService {
 
         // Activate linked order
         if (payment.orderId) {
-          // tenant-isolation-ignore: manual IDOR check
           const order = await tx.order.findUnique({
             where: { id: payment.orderId },
             include: { user: { select: { email: true } }, service: { select: { name: true } } }
           });
 
           if (order && order.status === 'AWAITING_PAYMENT') {
-            // tenant-isolation-ignore: manual IDOR check
             await tx.order.update({
               where: { id: payment.orderId },
               data: { status: 'PENDING' }
@@ -563,7 +551,7 @@ export class PaymentService {
       if (activatedOrders.length > 0) {
         const { ordersQueue } = await import('@/lib/queue-manager');
         for (const activated of activatedOrders) {
-          await ordersQueue.add('order-dispatch', { orderId: activated.id }, { jobId: `dispatch-${activated.id}`, delay: 3 * 60 * 1000 }); // 3 min cooling-off
+          await ordersQueue.add('order-dispatch', { orderId: activated.id }, { jobId: `dispatch-${activated.id}`, delay: ORDER_COOLING_OFF_MS }); // 90s cooling-off
           
           if (activated.userEmail && activated.serviceName) {
             void sendOrderPaidMail(

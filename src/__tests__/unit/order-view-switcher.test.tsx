@@ -127,6 +127,7 @@ describe('OrderViewModeSwitcher & CustomerOrdersWorkspace', () => {
 
     // Verifies localStorage was updated with the chosen mode
     expect(setItemSpy).toHaveBeenCalledWith('smmplan_orders_view_mode', 'cards');
+    expect(localStorage.getItem('smmplan_orders_view_mode')).toBe('cards');
   });
 
   it('CustomerOrdersWorkspace restores preference from localStorage on mount', async () => {

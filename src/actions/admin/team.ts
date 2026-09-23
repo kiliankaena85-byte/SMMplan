@@ -1,12 +1,18 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { auditAdmin, auditAdminAwaitable } from '@/lib/admin-audit';
+import { auditAdminAwaitable } from '@/lib/admin-audit';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { requireStaffPermission } from '@/lib/server/rbac';
 import { createRoleSchema } from '@/validators/admin.validators';
 import { getClientIp } from '@/utils/ip';
+import {
+  createRoleAction,
+  updateSingleRolePermissionAction,
+  deleteRoleAction,
+} from '@/actions/admin/roles';
+import { RBAC_SECTIONS } from '@/lib/rbac-sections';
 
 const limitSchema = z.object({
   userId: z.string().min(1),
@@ -35,7 +41,6 @@ export async function updateSupportLimit(formData: FormData) {
       return { success: false as const, error: 'Запрещено изменять собственный лимит доверия' };
     }
 
-    // tenant-isolation-ignore: manual IDOR check
     const target = await db.user.findUnique({ where: { id: userId } });
     if (!target) return { success: false as const, error: 'Пользователь не найден' };
 
@@ -47,7 +52,6 @@ export async function updateSupportLimit(formData: FormData) {
       return { success: false as const, error: 'Только Владелец может изменять параметры Администратора' };
     }
 
-    // tenant-isolation-ignore: manual IDOR check
     await db.user.update({
       where: { id: userId },
       data: { supportLimitCents: limitCents },
@@ -72,64 +76,33 @@ export async function updateSupportLimit(formData: FormData) {
 
 // ── Create Custom Staff Role ──
 export async function createStaffRoleAction(formData: FormData) {
-  return requireStaffPermission('settings', 'edit', async (admin) => {
-    // SECURITY: Only OWNER can manage roles definitions
-    if (admin.role !== 'OWNER') {
-      return { success: false as const, error: 'Только Владелец может создавать кастомные роли' };
-    }
+  const payload = Object.fromEntries(formData.entries());
+  const parsed = createRoleSchema.safeParse(payload);
+  if (!parsed.success) {
+    return { success: false as const, error: parsed.error.errors[0]?.message || 'Некорректные параметры' };
+  }
 
-    const payload = Object.fromEntries(formData.entries());
-    const parsed = createRoleSchema.safeParse(payload);
-    if (!parsed.success) {
-      return { success: false as const, error: parsed.error.errors[0]?.message || 'Некорректные параметры' };
-    }
+  const { name, description } = parsed.data;
 
-    const { name, description } = parsed.data;
+  // Canonical matrix: initialize all canonical sections with fail-safe defaults
+  const permissions = RBAC_SECTIONS.map((sec) => ({
+    section: sec.id,
+    canView: false,
+    canEdit: false,
+  }));
 
-    // Check unique name
-    const existing = await db.staffRole.findUnique({ where: { name } });
-    if (existing) {
-      return { success: false as const, error: 'Роль с таким названием уже существует' };
-    }
-
-    const ipAddress = await getClientIp('unknown');
-
-    // Create Role + Default empty Permissions (Fail-Safe Defaults)
-    const newRole = await db.$transaction(async (tx) => {
-      const role = await tx.staffRole.create({
-        data: {
-          name,
-          description: description || '',
-          isSystem: false,
-        }
-      });
-
-      const sections = ['orders', 'finance', 'catalog', 'settings'];
-      await tx.staffPermission.createMany({
-        data: sections.map(sec => ({
-          roleId: role.id,
-          section: sec,
-          canView: false,
-          canEdit: false,
-        }))
-      });
-
-      return role;
-    });
-
-    await auditAdminAwaitable({
-      adminId: admin.id,
-      adminEmail: admin.email,
-      action: 'CREATE_STAFF_ROLE',
-      target: newRole.id,
-      targetType: 'ROLE',
-      newValue: { name: newRole.name, description: newRole.description },
-      ipAddress
-    });
-
-    revalidatePath('/admin/settings');
-    return { success: true as const };
+  const res = await createRoleAction({
+    name,
+    description: description || '',
+    permissions,
+    allowedTenants: ['smmplan'],
   });
+
+  if (!res.success) {
+    return { success: false as const, error: res.error };
+  }
+
+  return { success: true as const, role: res.role };
 }
 
 // ── Toggle Granular Section Permissions ──
@@ -141,64 +114,31 @@ const updatePermissionsSchema = z.object({
 });
 
 export async function updateStaffRolePermissionsAction(formData: FormData) {
-  return requireStaffPermission('settings', 'edit', async (admin) => {
-    // SECURITY: Only OWNER can edit permissions
-    if (admin.role !== 'OWNER') {
-      return { success: false as const, error: 'Только Владелец может изменять права ролей' };
-    }
+  const rawPayload = {
+    roleId: formData.get('roleId'),
+    section: formData.get('section'),
+    canView: formData.get('canView') === 'true' || formData.get('canView') === 'on',
+    canEdit: formData.get('canEdit') === 'true' || formData.get('canEdit') === 'on',
+  };
+  const parsed = updatePermissionsSchema.safeParse(rawPayload);
+  if (!parsed.success) {
+    return { success: false as const, error: parsed.error.errors[0]?.message || 'Некорректные параметры' };
+  }
 
-    const rawPayload = {
-      roleId: formData.get('roleId'),
-      section: formData.get('section'),
-      canView: formData.get('canView') === 'true' || formData.get('canView') === 'on',
-      canEdit: formData.get('canEdit') === 'true' || formData.get('canEdit') === 'on',
-    };
-    const parsed = updatePermissionsSchema.safeParse(rawPayload);
-    if (!parsed.success) {
-      return { success: false as const, error: parsed.error.errors[0]?.message || 'Некорректные параметры' };
-    }
+  const { roleId, section, canView, canEdit } = parsed.data;
 
-    const { roleId, section, canView: canViewVal, canEdit: canEditVal } = parsed.data;
-
-    const role = await db.staffRole.findUnique({ where: { id: roleId } });
-    if (!role) {
-      return { success: false as const, error: 'Роль не найдена' };
-    }
-
-    const ipAddress = await getClientIp('unknown');
-
-    const existingPermission = await db.staffPermission.findUnique({
-      where: { roleId_section: { roleId, section } }
-    });
-
-    await db.staffPermission.upsert({
-      where: { roleId_section: { roleId, section } },
-      update: {
-        canView: canViewVal,
-        canEdit: canEditVal
-      },
-      create: {
-        roleId,
-        section,
-        canView: canViewVal,
-        canEdit: canEditVal
-      }
-    });
-
-    await auditAdminAwaitable({
-      adminId: admin.id,
-      adminEmail: admin.email,
-      action: 'UPDATE_STAFF_ROLE_PERMISSIONS',
-      target: roleId,
-      targetType: 'ROLE',
-      oldValue: existingPermission ? { canView: existingPermission.canView, canEdit: existingPermission.canEdit } : {},
-      newValue: { section, canView: canViewVal, canEdit: canEditVal },
-      ipAddress
-    });
-
-    revalidatePath('/admin/settings');
-    return { success: true as const };
+  const res = await updateSingleRolePermissionAction({
+    roleId,
+    section,
+    canView,
+    canEdit,
   });
+
+  if (!res.success) {
+    return { success: false as const, error: res.error };
+  }
+
+  return { success: true as const };
 }
 
 // ── Delete Custom Staff Role ──
@@ -207,41 +147,16 @@ const deleteRoleSchema = z.object({
 });
 
 export async function deleteStaffRoleAction(formData: FormData) {
-  return requireStaffPermission('settings', 'edit', async (admin) => {
-    // SECURITY: Only OWNER can delete roles
-    if (admin.role !== 'OWNER') {
-      return { success: false as const, error: 'Только Владелец может удалять роли' };
-    }
+  const parsed = deleteRoleSchema.safeParse({ roleId: formData.get('roleId') });
+  if (!parsed.success) return { success: false as const, error: parsed.error.errors[0]?.message || 'Некорректные параметры' };
+  const { roleId } = parsed.data;
 
-    const parsed = deleteRoleSchema.safeParse({ roleId: formData.get('roleId') });
-    if (!parsed.success) return { success: false as const, error: parsed.error.errors[0]?.message || 'Некорректные параметры' };
-    const { roleId } = parsed.data;
+  const res = await deleteRoleAction({ id: roleId });
+  if (!res.success) {
+    return { success: false as const, error: res.error };
+  }
 
-    const role = await db.staffRole.findUnique({ where: { id: roleId } });
-    if (!role) return { success: false as const, error: 'Роль не найдена' };
-
-    if (role.isSystem) {
-      return { success: false as const, error: 'Нельзя удалять системные роли' };
-    }
-
-    const ipAddress = await getClientIp('unknown');
-
-    await db.staffRole.delete({ where: { id: roleId } });
-
-    await auditAdminAwaitable({
-      adminId: admin.id,
-      adminEmail: admin.email,
-      action: 'DELETE_STAFF_ROLE',
-      target: roleId,
-      targetType: 'ROLE',
-      oldValue: { name: role.name },
-      newValue: {},
-      ipAddress
-    });
-
-    revalidatePath('/admin/settings');
-    return { success: true as const };
-  });
+  return { success: true as const };
 }
 
 // ── Remove Staff Member (Demote to USER) ──
@@ -263,7 +178,6 @@ export async function removeStaffMemberAction(formData: FormData) {
       return { success: false as const, error: 'Нельзя разжаловать самого себя' };
     }
 
-    // tenant-isolation-ignore: manual IDOR check
     const target = await db.user.findUnique({
       where: { id: userId },
       select: { id: true, email: true, role: true, staffRoleId: true },
@@ -285,7 +199,6 @@ export async function removeStaffMemberAction(formData: FormData) {
 
     const ipAddress = await getClientIp('unknown');
 
-    // tenant-isolation-ignore: manual IDOR check
     await db.user.update({
       where: { id: userId },
       data: {

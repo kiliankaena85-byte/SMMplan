@@ -242,7 +242,7 @@ class StormDetectorService {
     };
 
     try {
-      await redis.set(cacheKey, JSON.stringify(report), 'EX', 60);
+      await redis.set(cacheKey, JSON.stringify(report), 'EX', 300);
     } catch {
       // Redis write failure is non-fatal
     }

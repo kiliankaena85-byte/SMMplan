@@ -132,7 +132,7 @@ export function StaffPayrollTab() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-card border border-border/60 rounded-xl p-4 shadow-sm flex items-center gap-3.5">
           <div className="w-11 h-11 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center flex-shrink-0">
-            <DollarSign className="w-5 h-5" />
+            <DollarSign className="w-5 h-5 shrink-0" />
           </div>
           <div>
             <div className="text-2xl font-black text-foreground">{formatRubles(totalPayout)}</div>
@@ -156,7 +156,7 @@ export function StaffPayrollTab() {
 
         <div className="bg-card border border-border/60 rounded-xl p-4 shadow-sm flex items-center gap-3.5">
           <div className="w-11 h-11 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center flex-shrink-0">
-            <Award className="w-5 h-5" />
+            <Award className="w-5 h-5 shrink-0" />
           </div>
           <div>
             <div className="text-2xl font-black text-foreground">{totalTickets}</div>
@@ -175,7 +175,7 @@ export function StaffPayrollTab() {
               onClick={handlePrevMonth}
               className="p-1.5 rounded-md hover:bg-background text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-4 h-4 shrink-0" />
             </button>
             <span className="font-bold text-xs sm:text-sm text-foreground px-3 min-w-[130px] text-center">
               {MONTH_NAMES[currentMonth - 1]} {currentYear}
@@ -196,7 +196,7 @@ export function StaffPayrollTab() {
             className="px-3.5 py-2 text-xs font-bold rounded-lg border border-border/80 bg-background hover:bg-muted text-foreground transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
             title="Экспорт расчетной ведомости (только для Администратора/Владельца)"
           >
-            <FileSpreadsheet className="w-4 h-4 text-emerald-500" />
+            <FileSpreadsheet className="w-4 h-4 text-emerald-500 shrink-0" />
             Экспорт ведомости (CSV)
           </button>
         )}
@@ -206,7 +206,7 @@ export function StaffPayrollTab() {
       <div className="bg-card border border-border/60 rounded-xl shadow-sm overflow-hidden">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20 text-muted-foreground space-y-3">
-            <RefreshCw className="w-6 h-6 animate-spin text-primary" />
+            <RefreshCw className="w-6 h-6 animate-spin text-primary shrink-0" />
             <span className="text-xs font-medium">Расчет зарплатной ведомости...</span>
           </div>
         ) : payrollRows.length === 0 ? (

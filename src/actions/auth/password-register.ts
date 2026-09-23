@@ -1,6 +1,5 @@
 'use server';
 
-import { z } from 'zod';
 import { db } from '@/lib/db';
 import { hashPassword } from '@/lib/auth/password';
 import { RateLimitService } from '@/services/core/rate-limit.service';
@@ -11,7 +10,6 @@ import { sendMagicLink } from '@/lib/smtp';
 import { getClientIp } from '@/utils/ip';
 import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 
-import { passwordPolicySchema } from '@/validators/password-policy';
 import { runSerializableTransaction } from '@/lib/transactions';
 
 const log = logger.child({ component: 'PasswordRegister' });
@@ -63,6 +61,10 @@ export async function registerWithPasswordAction(prevState: unknown, formData: F
       // audit-ignore: expected fallback when invoked outside Next.js request context (e.g. unit tests or background scripts)
     }
 
+    if (!rawTenantId && formData.has('tenantId')) {
+      rawTenantId = formData.get('tenantId') as string;
+    }
+
     const tenantId = normalizeTenantId(rawTenantId) || "smmplan";
     const passwordHash = await hashPassword(password);
 
@@ -90,7 +92,6 @@ export async function registerWithPasswordAction(prevState: unknown, formData: F
       // Handle referral code with Anti-Fraud Validation (Self-referral & cycle ban)
       let referredById = null;
       if (refCode) {
-        // tenant-isolation-ignore: manual IDOR check
         const referrer = await tx.user.findUnique({ where: { referralCode: refCode } });
         if (referrer) {
           const { ReferralValidatorService } = await import('@/services/referral/referral-validator.service');
@@ -125,6 +126,7 @@ export async function registerWithPasswordAction(prevState: unknown, formData: F
           isActive: true,
           isEmailVerified: isTestEnv,
           tenantId,
+          allowedTenants: [tenantId],
           tosAcceptedAt: new Date(),
           tosAcceptedIp: clientIp,
         }
@@ -166,7 +168,6 @@ export async function registerWithPasswordAction(prevState: unknown, formData: F
         process.env.NODE_ENV !== 'production' ||
         process.env.DEV_MOCK_SMTP === 'true';
       if (isTestEnv) {
-        // tenant-isolation-ignore: manual IDOR check
         await db.user.update({
           where: { id: user.id },
           data: { isEmailVerified: true },
@@ -187,4 +188,13 @@ export async function registerWithPasswordAction(prevState: unknown, formData: F
     log.error('Password registration action failed', { error: errorMessage, email: cleanEmail });
     return { error: "Ошибка сервера при регистрации. Попробуйте позже.", success: false };
   }
+}
+
+export async function passwordRegisterAction(email: string, password: string, tenantId = 'smmplan', captchaToken = 'test-token') {
+  const fd = new FormData();
+  fd.set('email', email);
+  fd.set('password', password);
+  fd.set('captchaToken', captchaToken);
+  fd.set('tenantId', tenantId);
+  return registerWithPasswordAction(null, fd);
 }

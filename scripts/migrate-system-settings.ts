@@ -18,20 +18,20 @@ async function main() {
         contactSupportEmail: 'support@smmplan.pro',
       }
     });
-    // Create default lovable settings
+    // Create default flux settings
     await prisma.systemSettings.upsert({
-      where: { id: 'lovable' },
+      where: { id: 'flux' },
       update: {},
       create: {
-        id: 'lovable',
-        siteName: 'Lovable Boost',
-        contactSupportEmail: 'support@lovable.pro',
+        id: 'flux',
+        siteName: 'SMMflux',
+        contactSupportEmail: 'support@smmflux.ru',
       }
     });
     return;
   }
 
-  console.log('Found global settings, migrating to smmplan and lovable...');
+  console.log('Found global settings, migrating to smmplan and flux...');
   const { id, ...settingsData } = globalSettings;
 
   // Upsert smmplan
@@ -41,27 +41,27 @@ async function main() {
     create: { id: 'smmplan', ...settingsData }
   });
 
-  // Upsert lovable (override siteName and contact fields for brand isolation)
+  // Upsert flux (override siteName and contact fields for brand isolation)
   await prisma.systemSettings.upsert({
-    where: { id: 'lovable' },
+    where: { id: 'flux' },
     update: {
       ...settingsData,
-      siteName: 'Lovable Boost',
-      contactSupportEmail: 'support@lovable.pro',
-      contactPrivacyEmail: 'privacy@lovable.pro',
-      contactTelegramBot: 'lovable_support_bot',
-      contactTelegramChannel: 'lovable_support',
-      legalCompanyName: 'Lovable Boost',
+      siteName: 'SMMflux',
+      contactSupportEmail: 'support@smmflux.ru',
+      contactPrivacyEmail: 'privacy@smmflux.ru',
+      contactTelegramBot: 'smmflux_support_bot',
+      contactTelegramChannel: 'smmflux_support',
+      legalCompanyName: 'ИП Соколов Артём Андреевич',
     },
     create: {
-      id: 'lovable',
+      id: 'flux',
       ...settingsData,
-      siteName: 'Lovable Boost',
-      contactSupportEmail: 'support@lovable.pro',
-      contactPrivacyEmail: 'privacy@lovable.pro',
-      contactTelegramBot: 'lovable_support_bot',
-      contactTelegramChannel: 'lovable_support',
-      legalCompanyName: 'Lovable Boost',
+      siteName: 'SMMflux',
+      contactSupportEmail: 'support@smmflux.ru',
+      contactPrivacyEmail: 'privacy@smmflux.ru',
+      contactTelegramBot: 'smmflux_support_bot',
+      contactTelegramChannel: 'smmflux_support',
+      legalCompanyName: 'ИП Соколов Артём Андреевич',
     }
   });
 

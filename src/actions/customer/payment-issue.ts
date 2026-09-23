@@ -34,7 +34,6 @@ export async function reportPaymentIssueAction(paymentId: string): Promise<Repor
       // Guest context or non-session caller
     }
 
-    // tenant-isolation-ignore: manual IDOR check
     const payment = await db.payment.findUnique({
       where: { id: paymentId },
       include: {

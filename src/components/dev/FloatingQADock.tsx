@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { BugReportModal } from "./BugReportModal";
+import { normalizeTenantId } from "@/lib/tenant-resolver-edge";
 import { qaDirectLoginAction, QARole } from "@/actions/qa-auth";
 
 export function FloatingQADock() {
@@ -66,9 +67,8 @@ export function FloatingQADock() {
     // Определение текущего тенанта
     const match = document.cookie.match(/x_tenant=([^;]+)/);
     const bodyTenant = document.body.getAttribute("data-tenant");
-    if (match && match[1] === "flux") {
-      setCurrentTenant("flux");
-    } else if (bodyTenant === "flux" || bodyTenant === "lovable") {
+    const activeTenant = normalizeTenantId(match?.[1]) || normalizeTenantId(bodyTenant);
+    if (activeTenant === "flux") {
       setCurrentTenant("flux");
     } else {
       setCurrentTenant("smmplan");

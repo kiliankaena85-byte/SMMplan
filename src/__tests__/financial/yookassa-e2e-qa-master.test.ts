@@ -31,7 +31,7 @@ vi.mock('@/lib/session', async (importOriginal: any) => {
   };
 });
 
-describe('🏆 YooKassa Enterprise QA Test Suite (Dual-Custody, 54-FZ & FinTech Security)', () => {
+describe.sequential('🏆 YooKassa Enterprise QA Test Suite (Dual-Custody, 54-FZ & FinTech Security)', () => {
   let ownerUser: any;
   let financierUser: any;
   let supportStaff: any;
@@ -116,9 +116,12 @@ describe('🏆 YooKassa Enterprise QA Test Suite (Dual-Custody, 54-FZ & FinTech 
     await db.staffRole.deleteMany({ where: { name: { startsWith: 'Supervisor_' } } }).catch(() => {});
     const userIds = [ownerUser?.id, financierUser?.id, supportStaff?.id, clientUser?.id].filter(Boolean);
     if (userIds.length > 0) {
+      await db.supportFinancialAction.deleteMany({ where: { OR: [{ staffUserId: { in: userIds } }, { targetUserId: { in: userIds } }] } }).catch(() => {});
       await db.manualBalanceAdjustment.deleteMany({ where: { OR: [{ userId: { in: userIds } }, { requestedBy: { in: userIds } }, { approvedBy: { in: userIds } }, { rejectedBy: { in: userIds } }] } }).catch(() => {});
       await db.payment.deleteMany({ where: { userId: { in: userIds } } }).catch(() => {});
-      await db.ledgerEntry.deleteMany({ where: { OR: [{ userId: { in: userIds } }, { adminId: { in: userIds } }] } }).catch(() => {});
+      for (const uid of userIds) {
+        await db.$executeRawUnsafe(`DELETE FROM "LedgerEntry" WHERE "userId" = $1 OR "adminId" = $1`, uid).catch(() => {});
+      }
       await db.adminAuditLog.deleteMany({ where: { adminId: { in: userIds } } }).catch(() => {});
       await db.user.deleteMany({ where: { id: { in: userIds } } }).catch(() => {});
     }

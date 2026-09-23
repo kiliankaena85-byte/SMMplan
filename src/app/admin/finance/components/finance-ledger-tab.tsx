@@ -241,7 +241,7 @@ export function FinanceLedgerTab({ initial, period: initPeriod, tenantId }: Fina
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider text-[10px]">Тип:</span>
               <Select defaultValue={type} onValueChange={applyType}>
-                <SelectTrigger className="w-[180px] h-9 text-xs" size="sm">
+                <SelectTrigger className="w-[180px] max-w-full h-9 text-xs" size="sm">
                   <SelectValue placeholder="Тип операции">
                     {(value: string) => LEDGER_TYPE_OPTIONS.find(t => t.value === value)?.label ?? value}
                   </SelectValue>
@@ -257,7 +257,7 @@ export function FinanceLedgerTab({ initial, period: initPeriod, tenantId }: Fina
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider text-[10px]">Период:</span>
               <Select defaultValue={period} onValueChange={applyPeriod}>
-                <SelectTrigger className="w-[130px] h-9 text-xs" size="sm">
+                <SelectTrigger className="w-[130px] max-w-full h-9 text-xs" size="sm">
                   <SelectValue placeholder="Период">
                     {(value: string) => PERIOD_OPTIONS.find(p => p.value === value)?.label ?? value}
                   </SelectValue>
@@ -273,7 +273,7 @@ export function FinanceLedgerTab({ initial, period: initPeriod, tenantId }: Fina
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider text-[10px]">Статус:</span>
               <Select defaultValue={status} onValueChange={applyStatus}>
-                <SelectTrigger className="w-[140px] h-9 text-xs" size="sm">
+                <SelectTrigger className="w-[140px] max-w-full h-9 text-xs" size="sm">
                   <SelectValue placeholder="Статус">
                     {(value: string) => LEDGER_STATUS_OPTIONS.find(s => s.value === value)?.label ?? value}
                   </SelectValue>

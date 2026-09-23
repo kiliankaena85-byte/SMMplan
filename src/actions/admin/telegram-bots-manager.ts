@@ -245,6 +245,12 @@ export async function updateTelegramBotAction(
         return { success: false, error: 'Бот не найден.' };
       }
 
+      const isOwner = admin.role === 'OWNER';
+      const staffTenant = admin.tenantId || 'smmplan';
+      if (!isOwner && current.tenantId !== staffTenant) {
+        return { success: false, error: 'Доступ запрещен: бот принадлежит другому тенанту.' };
+      }
+
       let tokenEncrypted: string | undefined = undefined;
       let username = current.username;
 
@@ -304,8 +310,19 @@ export async function toggleTelegramBotStatusAction(
   botId: string,
   isActive: boolean
 ): Promise<{ success: boolean; error?: string }> {
-  return requireStaffPermission('settings', 'edit', async () => {
+  return requireStaffPermission('settings', 'edit', async (admin) => {
     try {
+      const current = await db.telegramBotInstance.findUnique({ where: { id: botId } });
+      if (!current) {
+        return { success: false, error: 'Бот не найден.' };
+      }
+
+      const isOwner = admin.role === 'OWNER';
+      const staffTenant = admin.tenantId || 'smmplan';
+      if (!isOwner && current.tenantId !== staffTenant) {
+        return { success: false, error: 'Доступ запрещен: бот принадлежит другому тенанту.' };
+      }
+
       const updated = await db.telegramBotInstance.update({
         where: { id: botId },
         data: { isActive }
@@ -334,6 +351,17 @@ export async function deleteTelegramBotAction(
 ): Promise<{ success: boolean; error?: string }> {
   return requireStaffPermission('settings', 'edit', async (admin) => {
     try {
+      const current = await db.telegramBotInstance.findUnique({ where: { id: botId } });
+      if (!current) {
+        return { success: false, error: 'Бот не найден.' };
+      }
+
+      const isOwner = admin.role === 'OWNER';
+      const staffTenant = admin.tenantId || 'smmplan';
+      if (!isOwner && current.tenantId !== staffTenant) {
+        return { success: false, error: 'Доступ запрещен: бот принадлежит другому тенанту.' };
+      }
+
       await multiBotManager.stopBot(botId);
       await db.telegramBotInstance.delete({ where: { id: botId } });
 

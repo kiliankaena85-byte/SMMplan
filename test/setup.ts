@@ -1,6 +1,29 @@
 import { beforeAll, beforeEach, afterEach, afterAll, vi } from 'vitest';
 import { db } from '@/lib/db';
 
+// Node.js 22 / jsdom localStorage polyfill
+if (typeof globalThis !== 'undefined') {
+  const memoryStorage = new Map<string, string>();
+  const storageMock: Storage = {
+    getItem: (key: string) => memoryStorage.get(key) ?? null,
+    setItem: (key: string, value: string) => { memoryStorage.set(key, String(value)); },
+    removeItem: (key: string) => { memoryStorage.delete(key); },
+    clear: () => { memoryStorage.clear(); },
+    key: (index: number) => Array.from(memoryStorage.keys())[index] ?? null,
+    get length() { return memoryStorage.size; },
+  };
+  if (typeof Storage !== 'undefined') {
+    Object.setPrototypeOf(storageMock, Storage.prototype);
+  }
+  if (!globalThis.localStorage || typeof globalThis.localStorage.clear !== 'function') {
+    Object.defineProperty(globalThis, 'localStorage', {
+      value: storageMock,
+      writable: true,
+      configurable: true,
+    });
+  }
+}
+
 // Mock nodemailer and resend globally to prevent actual email dispatch during tests
 vi.mock('nodemailer', () => {
   return {
@@ -96,6 +119,16 @@ vi.mock('ioredis', () => {
       this.store.set(key, current);
       return current;
     });
+    decr = vi.fn().mockImplementation(async (key: string) => {
+      const current = (this.store.get(key) || 0) - 1;
+      this.store.set(key, current);
+      return current;
+    });
+    decrby = vi.fn().mockImplementation(async (key: string, decrement: number) => {
+      const current = (this.store.get(key) || 0) - decrement;
+      this.store.set(key, current);
+      return current;
+    });
     setex = vi.fn().mockImplementation(async (key: string, seconds: number, value: any) => {
       this.store.set(key, value);
       return 'OK';
@@ -119,6 +152,33 @@ vi.mock('ioredis', () => {
     });
     multi = vi.fn().mockReturnValue({
       exec: vi.fn().mockResolvedValue([]),
+    });
+    hset = vi.fn().mockImplementation(async (key: string, fieldOrObj: any, val?: any) => {
+      let current = this.store.get(key);
+      if (!current || typeof current !== 'object' || Array.isArray(current)) current = {};
+      if (typeof fieldOrObj === 'object' && fieldOrObj !== null) {
+        Object.assign(current, fieldOrObj);
+      } else if (typeof fieldOrObj === 'string') {
+        current[fieldOrObj] = String(val);
+      }
+      this.store.set(key, current);
+      return 1;
+    });
+    hget = vi.fn().mockImplementation(async (key: string, field: string) => {
+      const current = this.store.get(key);
+      return (current && typeof current === 'object') ? current[field] ?? null : null;
+    });
+    hgetall = vi.fn().mockImplementation(async (key: string) => {
+      const current = this.store.get(key);
+      return (current && typeof current === 'object') ? { ...current } : {};
+    });
+    hdel = vi.fn().mockImplementation(async (key: string, field: string) => {
+      const current = this.store.get(key);
+      if (current && typeof current === 'object' && field in current) {
+        delete current[field];
+        return 1;
+      }
+      return 0;
     });
     publish = vi.fn().mockResolvedValue(1);
     subscribe = vi.fn().mockResolvedValue(undefined);
@@ -246,6 +306,27 @@ vi.mock('@/lib/admin-audit', async (importOriginal) => {
   };
 });
 
+// Mock Next.js Cache invalidation methods to prevent 'static generation store missing' errors natively
+vi.mock('next/cache', () => ({
+  revalidatePath: vi.fn(),
+  revalidateTag: vi.fn(),
+  unstable_cache: (fn: any) => fn
+}));
+
+// Mock next/headers to avoid 'headers called outside request scope' errors in server actions
+vi.mock('next/headers', () => ({
+  headers: vi.fn().mockResolvedValue({
+    get: vi.fn().mockImplementation((key: string) => {
+      if (key === 'user-agent') return 'vitest';
+      if (key === 'x-forwarded-for') return '127.0.0.1';
+      return null;
+    }),
+  }),
+  cookies: vi.fn().mockResolvedValue({
+    get: vi.fn().mockReturnValue(null),
+  }),
+}));
+
 beforeAll(async () => {
   // OMNI-AUDIT: Block accidental truncation of the development database
   const dbUrl = process.env.DATABASE_URL || '';
@@ -266,58 +347,39 @@ beforeAll(async () => {
   // Use the default Docker port for Redis
   process.env.REDIS_URL = 'redis://127.0.0.1:6379';
 
-  // Patch block_ledger_mutation trigger function to use IS NOT DISTINCT FROM for nullable fields
-  try {
-    await db.$executeRawUnsafe(`
-      CREATE OR REPLACE FUNCTION block_ledger_mutation()
-      RETURNS TRIGGER AS $$
-      BEGIN
-        IF (TG_OP = 'UPDATE' AND OLD.status = 'QUARANTINE') THEN
-          -- Strict security check: only the "status" field may change
-          IF (NEW.id = OLD.id AND
-              NEW."userId" = OLD."userId" AND
-              NEW."adminId" IS NOT DISTINCT FROM OLD."adminId" AND
-              NEW.amount = OLD.amount AND
-              NEW.reason = OLD.reason AND
-              NEW."idempotencyKey" IS NOT DISTINCT FROM OLD."idempotencyKey" AND
-              NEW."transactionType" = OLD."transactionType" AND
-              NEW."createdAt" = OLD."createdAt") THEN
-            RETURN NEW;
-          ELSE
-            RAISE EXCEPTION 'Financial Ledger is immutable. When status is QUARANTINE, only status updates are permitted.';
+  // Patch block_ledger_mutation trigger function to use IS NOT DISTINCT FROM for nullable fields (Node environment only)
+  if (typeof window === 'undefined') {
+    try {
+      await db.$executeRawUnsafe(`
+        CREATE OR REPLACE FUNCTION block_ledger_mutation()
+        RETURNS TRIGGER AS $$
+        BEGIN
+          IF (TG_OP = 'UPDATE' AND OLD.status = 'QUARANTINE') THEN
+            -- Strict security check: only the "status" field may change
+            IF (NEW.id = OLD.id AND
+                NEW."userId" = OLD."userId" AND
+                NEW."adminId" IS NOT DISTINCT FROM OLD."adminId" AND
+                NEW.amount = OLD.amount AND
+                NEW.reason = OLD.reason AND
+                NEW."idempotencyKey" IS NOT DISTINCT FROM OLD."idempotencyKey" AND
+                NEW."transactionType" = OLD."transactionType" AND
+                NEW."createdAt" = OLD."createdAt") THEN
+              RETURN NEW;
+            ELSE
+              RAISE EXCEPTION 'Financial Ledger is immutable. When status is QUARANTINE, only status updates are permitted.';
+            END IF;
           END IF;
-        END IF;
-        RAISE EXCEPTION 'Financial Ledger is immutable. UPDATE and DELETE actions are strictly forbidden.';
-      END;
-      $$ LANGUAGE plpgsql;
-    `);
-  } catch (err) {
-    console.error('[setup.ts] Failed to patch block_ledger_mutation function:', err);
+          RAISE EXCEPTION 'Financial Ledger is immutable. UPDATE and DELETE actions are strictly forbidden.';
+        END;
+        $$ LANGUAGE plpgsql;
+      `);
+    } catch (err) {
+      console.error('[setup.ts] Failed to patch block_ledger_mutation function:', err);
+    }
   }
   
   // Mock external fetch to avoid real network requests to YooKassa/CryptoBot
   vi.stubGlobal('fetch', vi.fn());
-
-  // Mock Next.js Cache invalidation methods to prevent 'static generation store missing' errors natively
-  vi.mock('next/cache', () => ({
-    revalidatePath: vi.fn(),
-    revalidateTag: vi.fn(),
-    unstable_cache: (fn: any) => fn
-  }));
-
-  // Mock next/headers to avoid 'headers called outside request scope' errors in server actions
-  vi.mock('next/headers', () => ({
-    headers: vi.fn().mockResolvedValue({
-      get: vi.fn().mockImplementation((key: string) => {
-        if (key === 'user-agent') return 'vitest';
-        if (key === 'x-forwarded-for') return '127.0.0.1';
-        return null;
-      }),
-    }),
-    cookies: vi.fn().mockResolvedValue({
-      get: vi.fn().mockReturnValue(null),
-    }),
-  }));
 });
 
 async function sleep(ms: number) {
@@ -336,31 +398,46 @@ async function resetTestDb() {
     try {
       await db.$executeRawUnsafe(`TRUNCATE TABLE "LedgerEntry", "SupportLimitUsage", "SupportHourlyUsage", "SupportFinancialAction", "ManualBalanceAdjustment", "EmployeeResponsibilityConsent", "BalanceAdjustmentPolicy", "Order", "Payment", "TicketMessage", "Ticket", "Commission", "SmartTask", "SmartCampaign", "ServiceSmartConfig", "ServiceRoute", "Service", "Category", "Provider", "Article", "RateLimit", "AuditLog", "LoginLog", "Invoice", "User", "Network", "UrlPattern", "CustomerGroup", "ServiceDraft", "ServiceCustomerAccess", "ServiceLinkCheck", "ServiceEditHistory" CASCADE;`);
 
-      for (const tId of ["smmplan", "lovable", "global"]) {
+      // Ensure phantom/deprecated tenants like 'lovable' or 'smmboost' are purged from test DB
+      await db.systemSettings.deleteMany({
+        where: { id: { in: ['lovable', 'smmboost'] } }
+      });
+      await db.tenant.deleteMany({
+        where: { id: { in: ['lovable', 'smmboost'] } }
+      });
+
+      const tenantSeeds = [
+        { id: 'smmplan', name: 'SMMplan', slug: 'smmplan', domain: 'smmplan.local', siteName: 'SMMplan' },
+        { id: 'flux', name: 'SMMflux', slug: 'flux', domain: 'smmflux.local', siteName: 'SMMflux' },
+        { id: 'smmflux', name: 'SMMflux', slug: 'smmflux', domain: 'smmflux.ru', siteName: 'SMMflux' },
+        { id: 'global', name: 'OmniSMM Global', slug: 'global', domain: 'global.local', siteName: 'OmniSMM' },
+      ];
+
+      for (const t of tenantSeeds) {
         await db.tenant.upsert({
-          where: { id: tId },
-          update: { name: tId, slug: tId, domain: `${tId}.local` },
-          create: { id: tId, name: tId, slug: tId, domain: `${tId}.local`, vaultSalt: "test-salt" }
+          where: { id: t.id },
+          update: { name: t.name, slug: t.slug, domain: t.domain },
+          create: { id: t.id, name: t.name, slug: t.slug, domain: t.domain, vaultSalt: "test-salt" }
         });
 
         await db.systemSettings.upsert({
-          where: { id: tId },
+          where: { id: t.id },
           update: {
             taxRate: 6.0,
             opexMonthly: 0,
             maintenanceMode: false,
             isTestMode: false,
-            siteName: tId === 'lovable' ? 'SMMflux' : 'SMMplan',
+            siteName: t.siteName,
             siteDescription: "",
             exchangeRateUSD: 95.0
           },
           create: {
-            id: tId,
+            id: t.id,
             taxRate: 6.0,
             opexMonthly: 0,
             maintenanceMode: false,
             isTestMode: false,
-            siteName: tId === 'lovable' ? 'SMMflux' : 'SMMplan',
+            siteName: t.siteName,
             siteDescription: "",
             exchangeRateUSD: 95.0
           }
@@ -385,7 +462,7 @@ async function resetTestDb() {
 
 beforeEach(async () => {
   mockRedisStore.clear();
-  let shouldReset = true;
+  let shouldReset = typeof window === 'undefined';
   try {
     const testPath = expect.getState().testPath;
     if (testPath) {
@@ -457,6 +534,9 @@ beforeEach(async () => {
         'telegram-bot-security-invariants',
         'auth-verify-rate-limit',
         'wallet-ops-safety-cap',
+        'exact-math',
+        'financial-invariants',
+        'admin-financial-invariants',
         'logout-security-and-blacklist',
         'b2b-vault-encryption',
         'server-only-and-url-bounds',
@@ -468,15 +548,29 @@ beforeEach(async () => {
         'watchdog-daemon',
         'tickets-layout-viewport',
         'plan-slide-order-client',
+        'zero-throw-fuzzer',
         'plan-fullscreen-checkout',
         'quarantine-api-diff',
         'multitenant-legal-fiscal-isolation',
         'multitenant-staff-isolation',
+        'admin-settings-tenant-isolation',
+        'admin-settings-integrity',
+        'settings-security',
         'transactional-bulkhead-dlq',
         'wave3-fintech-fiscal',
         'immutable-ledger-reconciliation',
         'storefront-keys-action',
         'storefront',
+        'architecture',
+        'arch-',
+        'provider-form',
+        'smart-analyzer',
+        'badge-and-warranty',
+        'checkout-promo',
+        'admin-ai-manual',
+        'gemini-key-pool',
+        'r1-advanced',
+        'promo-case',
         'multi-channel-alert-cascade',
         'smart-alert-deduplication',
         'multitenant-alerts',
@@ -491,9 +585,14 @@ beforeEach(async () => {
         'api-v2-link-validation',
         'telegram-boost-link-recognition',
         'checkout.test.ts',
+        'checkout-decomposition',
         'ai-harnesses',
         'stage1-economic',
         'harness',
+        '.antigravity',
+        'reconciliation',
+        'leftshift',
+        'scanners',
         'ast-transaction-escape'
       ];
       if (skipPatterns.some(pattern => testPath.toLowerCase().includes(pattern.toLowerCase()))) {

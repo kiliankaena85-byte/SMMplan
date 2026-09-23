@@ -80,6 +80,7 @@ export function MobileCheckoutPromo({
         <input
           id="mobile-promo-input"
           type="text"
+          maxLength={64}
           value={promoCode}
           onChange={(e) => {
             setPromoCode(e.target.value.toUpperCase().replace(/\s+/g, ''));

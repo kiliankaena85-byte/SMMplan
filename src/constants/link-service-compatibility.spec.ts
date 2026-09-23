@@ -23,111 +23,111 @@ describe('Link-Service Compatibility Truth Table (100% Cell Coverage)', () => {
       expect(normalizeLinkType('unknown_xyz')).toBe(LinkType.CUSTOM);
     });
 
-    it('normalizes legacy and colloquial service target types to ServiceTargetType enum', () => {
-      expect(normalizeServiceTargetType('CHANNEL')).toBe(ServiceTargetType.CHANNEL);
-      expect(normalizeServiceTargetType('SUBSCRIBERS')).toBe(ServiceTargetType.CHANNEL);
-      expect(normalizeServiceTargetType('PROFILE')).toBe(ServiceTargetType.PROFILE);
-      expect(normalizeServiceTargetType('LIKES')).toBe(ServiceTargetType.POST_INTERACTION);
-      expect(normalizeServiceTargetType('POST')).toBe(ServiceTargetType.POST_INTERACTION);
-      expect(normalizeServiceTargetType('VIDEO')).toBe(ServiceTargetType.VIDEO_INTERACTION);
-      expect(normalizeServiceTargetType('AUTO_VIEWS')).toBe(ServiceTargetType.CHANNEL_POSTS);
-      expect(normalizeServiceTargetType('AUTO_POSTS')).toBe(ServiceTargetType.CHANNEL_POSTS);
-      expect(normalizeServiceTargetType('POLL_VOTES')).toBe(ServiceTargetType.POLL_VOTES);
-      expect(normalizeServiceTargetType('COMMENTS')).toBe(ServiceTargetType.COMMENTS);
+    it('normalizes legacy and colloquial service target types to LinkType enum', () => {
+      expect(normalizeLinkType('CHANNEL')).toBe(LinkType.CHANNEL);
+      expect(normalizeLinkType('SUBSCRIBERS')).toBe(LinkType.CHANNEL);
+      expect(normalizeLinkType('PROFILE')).toBe(LinkType.PROFILE);
+      expect(normalizeLinkType('LIKES')).toBe(LinkType.POST_INTERACTION);
+      expect(normalizeLinkType('POST')).toBe(LinkType.POST_INTERACTION);
+      expect(normalizeLinkType('VIDEO')).toBe(LinkType.VIDEO_INTERACTION);
+      expect(normalizeLinkType('AUTO_VIEWS')).toBe(LinkType.CHANNEL_POSTS);
+      expect(normalizeLinkType('AUTO_POSTS')).toBe(LinkType.CHANNEL_POSTS);
+      expect(normalizeLinkType('POLL_VOTES')).toBe(LinkType.POLL_VOTES);
+      expect(normalizeLinkType('COMMENTS')).toBe(LinkType.COMMENTS);
     });
   });
 
   describe('Strict Compatibility Matrix', () => {
     it('CHANNEL link compatibility', () => {
       // ✅ Permitted
-      expect(isLinkServiceCompatible(LinkType.CHANNEL, ServiceTargetType.CHANNEL)).toBe(true);
-      expect(isLinkServiceCompatible(LinkType.CHANNEL, ServiceTargetType.CHANNEL_POSTS)).toBe(true);
-      expect(isLinkServiceCompatible(LinkType.CHANNEL, ServiceTargetType.PROFILE)).toBe(true);
-      expect(isLinkServiceCompatible(LinkType.CHANNEL, ServiceTargetType.CUSTOM)).toBe(true);
+      expect(isLinkServiceCompatible(LinkType.CHANNEL, LinkType.CHANNEL)).toBe(true);
+      expect(isLinkServiceCompatible(LinkType.CHANNEL, LinkType.CHANNEL_POSTS)).toBe(true);
+      expect(isLinkServiceCompatible(LinkType.CHANNEL, LinkType.PROFILE)).toBe(true);
+      expect(isLinkServiceCompatible(LinkType.CHANNEL, LinkType.CUSTOM)).toBe(true);
 
       // ❌ Blocked
-      expect(isLinkServiceCompatible(LinkType.CHANNEL, ServiceTargetType.POST_INTERACTION)).toBe(false);
-      expect(isLinkServiceCompatible(LinkType.CHANNEL, ServiceTargetType.VIDEO_INTERACTION)).toBe(false);
-      expect(isLinkServiceCompatible(LinkType.CHANNEL, ServiceTargetType.STORY_INTERACTION)).toBe(false);
-      expect(isLinkServiceCompatible(LinkType.CHANNEL, ServiceTargetType.COMMENTS)).toBe(false);
+      expect(isLinkServiceCompatible(LinkType.CHANNEL, LinkType.POST_INTERACTION)).toBe(false);
+      expect(isLinkServiceCompatible(LinkType.CHANNEL, LinkType.VIDEO_INTERACTION)).toBe(false);
+      expect(isLinkServiceCompatible(LinkType.CHANNEL, LinkType.STORY_INTERACTION)).toBe(false);
+      expect(isLinkServiceCompatible(LinkType.CHANNEL, LinkType.COMMENTS)).toBe(false);
     });
 
     it('PROFILE link compatibility (Critical Likes Bug Prevention)', () => {
       // ✅ Permitted
-      expect(isLinkServiceCompatible(LinkType.PROFILE, ServiceTargetType.PROFILE)).toBe(true);
-      expect(isLinkServiceCompatible(LinkType.PROFILE, ServiceTargetType.CHANNEL)).toBe(true);
-      expect(isLinkServiceCompatible(LinkType.PROFILE, ServiceTargetType.CHANNEL_POSTS)).toBe(true);
-      expect(isLinkServiceCompatible(LinkType.PROFILE, ServiceTargetType.CUSTOM)).toBe(true);
+      expect(isLinkServiceCompatible(LinkType.PROFILE, LinkType.PROFILE)).toBe(true);
+      expect(isLinkServiceCompatible(LinkType.PROFILE, LinkType.CHANNEL)).toBe(true);
+      expect(isLinkServiceCompatible(LinkType.PROFILE, LinkType.CHANNEL_POSTS)).toBe(true);
+      expect(isLinkServiceCompatible(LinkType.PROFILE, LinkType.CUSTOM)).toBe(true);
 
       // ❌ Blocked: Likes on profile link is strictly forbidden!
-      expect(isLinkServiceCompatible(LinkType.PROFILE, ServiceTargetType.POST_INTERACTION)).toBe(false);
-      expect(isLinkServiceCompatible(LinkType.PROFILE, ServiceTargetType.VIDEO_INTERACTION)).toBe(false);
-      expect(isLinkServiceCompatible(LinkType.PROFILE, ServiceTargetType.STORY_INTERACTION)).toBe(false);
-      expect(isLinkServiceCompatible(LinkType.PROFILE, ServiceTargetType.COMMENTS)).toBe(false);
+      expect(isLinkServiceCompatible(LinkType.PROFILE, LinkType.POST_INTERACTION)).toBe(false);
+      expect(isLinkServiceCompatible(LinkType.PROFILE, LinkType.VIDEO_INTERACTION)).toBe(false);
+      expect(isLinkServiceCompatible(LinkType.PROFILE, LinkType.STORY_INTERACTION)).toBe(false);
+      expect(isLinkServiceCompatible(LinkType.PROFILE, LinkType.COMMENTS)).toBe(false);
     });
 
     it('POST link compatibility', () => {
       // ✅ Permitted
-      expect(isLinkServiceCompatible(LinkType.POST, ServiceTargetType.POST_INTERACTION)).toBe(true);
-      expect(isLinkServiceCompatible(LinkType.POST, ServiceTargetType.VIDEO_INTERACTION)).toBe(true);
-      expect(isLinkServiceCompatible(LinkType.POST, ServiceTargetType.COMMENTS)).toBe(true);
-      expect(isLinkServiceCompatible(LinkType.POST, ServiceTargetType.POLL_VOTES)).toBe(true);
-      expect(isLinkServiceCompatible(LinkType.POST, ServiceTargetType.CUSTOM)).toBe(true);
+      expect(isLinkServiceCompatible(LinkType.POST, LinkType.POST_INTERACTION)).toBe(true);
+      expect(isLinkServiceCompatible(LinkType.POST, LinkType.VIDEO_INTERACTION)).toBe(true);
+      expect(isLinkServiceCompatible(LinkType.POST, LinkType.COMMENTS)).toBe(true);
+      expect(isLinkServiceCompatible(LinkType.POST, LinkType.POLL_VOTES)).toBe(true);
+      expect(isLinkServiceCompatible(LinkType.POST, LinkType.CUSTOM)).toBe(true);
 
       // ❌ Blocked: Subscribers or Auto-Views on single post link
-      expect(isLinkServiceCompatible(LinkType.POST, ServiceTargetType.CHANNEL)).toBe(false);
-      expect(isLinkServiceCompatible(LinkType.POST, ServiceTargetType.PROFILE)).toBe(false);
-      expect(isLinkServiceCompatible(LinkType.POST, ServiceTargetType.CHANNEL_POSTS)).toBe(false);
-      expect(isLinkServiceCompatible(LinkType.POST, ServiceTargetType.STORY_INTERACTION)).toBe(false);
-      expect(isLinkServiceCompatible(LinkType.POST, ServiceTargetType.BOT_STARTS)).toBe(false);
+      expect(isLinkServiceCompatible(LinkType.POST, LinkType.CHANNEL)).toBe(false);
+      expect(isLinkServiceCompatible(LinkType.POST, LinkType.PROFILE)).toBe(false);
+      expect(isLinkServiceCompatible(LinkType.POST, LinkType.CHANNEL_POSTS)).toBe(false);
+      expect(isLinkServiceCompatible(LinkType.POST, LinkType.STORY_INTERACTION)).toBe(false);
+      expect(isLinkServiceCompatible(LinkType.POST, LinkType.BOT_STARTS)).toBe(false);
     });
 
     it('VIDEO link compatibility', () => {
-      expect(isLinkServiceCompatible(LinkType.VIDEO, ServiceTargetType.VIDEO_INTERACTION)).toBe(true);
-      expect(isLinkServiceCompatible(LinkType.VIDEO, ServiceTargetType.POST_INTERACTION)).toBe(true);
-      expect(isLinkServiceCompatible(LinkType.VIDEO, ServiceTargetType.COMMENTS)).toBe(true);
-      expect(isLinkServiceCompatible(LinkType.VIDEO, ServiceTargetType.CHANNEL)).toBe(false);
-      expect(isLinkServiceCompatible(LinkType.VIDEO, ServiceTargetType.PROFILE)).toBe(false);
+      expect(isLinkServiceCompatible(LinkType.VIDEO, LinkType.VIDEO_INTERACTION)).toBe(true);
+      expect(isLinkServiceCompatible(LinkType.VIDEO, LinkType.POST_INTERACTION)).toBe(true);
+      expect(isLinkServiceCompatible(LinkType.VIDEO, LinkType.COMMENTS)).toBe(true);
+      expect(isLinkServiceCompatible(LinkType.VIDEO, LinkType.CHANNEL)).toBe(false);
+      expect(isLinkServiceCompatible(LinkType.VIDEO, LinkType.PROFILE)).toBe(false);
     });
 
     it('STORY link compatibility', () => {
-      expect(isLinkServiceCompatible(LinkType.STORY, ServiceTargetType.STORY_INTERACTION)).toBe(true);
-      expect(isLinkServiceCompatible(LinkType.STORY, ServiceTargetType.POST_INTERACTION)).toBe(false);
-      expect(isLinkServiceCompatible(LinkType.STORY, ServiceTargetType.CHANNEL)).toBe(false);
-      expect(isLinkServiceCompatible(LinkType.STORY, ServiceTargetType.VIDEO_INTERACTION)).toBe(false);
+      expect(isLinkServiceCompatible(LinkType.STORY, LinkType.STORY_INTERACTION)).toBe(true);
+      expect(isLinkServiceCompatible(LinkType.STORY, LinkType.POST_INTERACTION)).toBe(false);
+      expect(isLinkServiceCompatible(LinkType.STORY, LinkType.CHANNEL)).toBe(false);
+      expect(isLinkServiceCompatible(LinkType.STORY, LinkType.VIDEO_INTERACTION)).toBe(false);
     });
 
     it('POLL link compatibility', () => {
-      expect(isLinkServiceCompatible(LinkType.POLL, ServiceTargetType.POLL_VOTES)).toBe(true);
-      expect(isLinkServiceCompatible(LinkType.POLL, ServiceTargetType.POST_INTERACTION)).toBe(true);
-      expect(isLinkServiceCompatible(LinkType.POLL, ServiceTargetType.CHANNEL)).toBe(false);
+      expect(isLinkServiceCompatible(LinkType.POLL, LinkType.POLL_VOTES)).toBe(true);
+      expect(isLinkServiceCompatible(LinkType.POLL, LinkType.POST_INTERACTION)).toBe(true);
+      expect(isLinkServiceCompatible(LinkType.POLL, LinkType.CHANNEL)).toBe(false);
     });
 
     it('BOT link compatibility', () => {
-      expect(isLinkServiceCompatible(LinkType.BOT, ServiceTargetType.BOT_STARTS)).toBe(true);
-      expect(isLinkServiceCompatible(LinkType.BOT, ServiceTargetType.CHANNEL)).toBe(true);
-      expect(isLinkServiceCompatible(LinkType.BOT, ServiceTargetType.POST_INTERACTION)).toBe(false);
+      expect(isLinkServiceCompatible(LinkType.BOT, LinkType.BOT_STARTS)).toBe(true);
+      expect(isLinkServiceCompatible(LinkType.BOT, LinkType.CHANNEL)).toBe(true);
+      expect(isLinkServiceCompatible(LinkType.BOT, LinkType.POST_INTERACTION)).toBe(false);
     });
   });
 
   describe('Educational Error Messaging', () => {
     it('returns informative explanation when profile link is provided for likes', () => {
-      const err = getCompatibilityError(LinkType.PROFILE, ServiceTargetType.POST_INTERACTION, 'Лайки на пост');
+      const err = getCompatibilityError(LinkType.PROFILE, LinkType.POST_INTERACTION, 'Лайки на пост');
       expect(err).toContain('прямую ссылку на конкретный пост или фото, а не на страницу профиля');
     });
 
     it('returns informative explanation when channel link is provided for post likes', () => {
-      const err = getCompatibilityError(LinkType.CHANNEL, ServiceTargetType.POST_INTERACTION, 'Лайки');
+      const err = getCompatibilityError(LinkType.CHANNEL, LinkType.POST_INTERACTION, 'Лайки');
       expect(err).toContain('отдельный пост в канале');
     });
 
     it('returns informative explanation when post link is provided for subscribers', () => {
-      const err = getCompatibilityError(LinkType.POST, ServiceTargetType.CHANNEL, 'Подписчики');
+      const err = getCompatibilityError(LinkType.POST, LinkType.CHANNEL, 'Подписчики');
       expect(err).toContain('ссылку на сам канал');
     });
 
     it('returns informative explanation when post link is provided for channel auto-views', () => {
-      const err = getCompatibilityError(LinkType.POST, ServiceTargetType.CHANNEL_POSTS, 'Автопросмотры');
+      const err = getCompatibilityError(LinkType.POST, LinkType.CHANNEL_POSTS, 'Автопросмотры');
       expect(err).toContain('требуется ссылка на канал целиком');
     });
   });

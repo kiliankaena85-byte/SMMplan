@@ -1,0 +1,87 @@
+{
+  "timestamp": "2026-09-21T22:27:51.549Z",
+  "operator": "art@artmspektr.ru",
+  "routes": [
+    {
+      "name": "Dashboard Overview",
+      "path": "/admin/dashboard",
+      "statusCode": 200,
+      "ttfbMs": 308.0510000000001,
+      "totalMs": 335.9013333333333,
+      "bodyBytes": 45536,
+      "status": "WARN"
+    },
+    {
+      "name": "Orders Registry",
+      "path": "/admin/orders",
+      "statusCode": 200,
+      "ttfbMs": 377.62980000000016,
+      "totalMs": 437.0360333333333,
+      "bodyBytes": 45536,
+      "status": "WARN"
+    },
+    {
+      "name": "Catalog & Services",
+      "path": "/admin/catalog",
+      "statusCode": 200,
+      "ttfbMs": 123.81460000000015,
+      "totalMs": 148.86836666666673,
+      "bodyBytes": 45536,
+      "status": "PASS"
+    },
+    {
+      "name": "Clients Registry",
+      "path": "/admin/clients",
+      "statusCode": 200,
+      "ttfbMs": 137.84670000000006,
+      "totalMs": 155.66426666666666,
+      "bodyBytes": 45536,
+      "status": "PASS"
+    },
+    {
+      "name": "Transactions & Ledger",
+      "path": "/admin/transactions",
+      "statusCode": 200,
+      "ttfbMs": 314.8057000000002,
+      "totalMs": 327.51723333333393,
+      "bodyBytes": 45536,
+      "status": "WARN"
+    },
+    {
+      "name": "Tickets Workspace",
+      "path": "/admin/tickets",
+      "statusCode": 200,
+      "ttfbMs": 141.63456666666661,
+      "totalMs": 427.51349999999974,
+      "bodyBytes": 45536,
+      "status": "PASS"
+    },
+    {
+      "name": "Analytics & Profitability",
+      "path": "/admin/analytics",
+      "statusCode": 200,
+      "ttfbMs": 141.0554666666667,
+      "totalMs": 170.59270000000015,
+      "bodyBytes": 45536,
+      "status": "PASS"
+    },
+    {
+      "name": "Providers Management",
+      "path": "/admin/providers",
+      "statusCode": 200,
+      "ttfbMs": 83.20070000000003,
+      "totalMs": 106.24103333333308,
+      "bodyBytes": 45536,
+      "status": "PASS"
+    },
+    {
+      "name": "Settings Management",
+      "path": "/admin/settings",
+      "statusCode": 200,
+      "ttfbMs": 100.30300000000018,
+      "totalMs": 336.2455666666662,
+      "bodyBytes": 45536,
+      "status": "PASS"
+    }
+  ]
+}

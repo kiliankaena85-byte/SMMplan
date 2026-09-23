@@ -1,31 +1,25 @@
 import React from 'react';
 import Link from 'next/link';
-import { Flame, ArrowRight, TrendingUp } from 'lucide-react';
+import { Flame, ArrowRight } from 'lucide-react';
 import { formatKopecks } from '@/utils/format-kopecks';
-
-interface TopServiceItem {
-  id: string;
-  name: string;
-  networkName: string;
-  categoryName: string;
-  ordersCount: number;
-  revenueKopecks: bigint;
-  profitKopecks: bigint;
-  marginPct: number;
-}
+import { adminOrderService } from '@/services/admin/order.service';
 
 interface Props {
-  services: TopServiceItem[];
+  filterStart?: Date;
+  filterEnd?: Date;
+  tenantFilter?: string;
+  limit?: number;
 }
 
-export function TopServicesWidget({ services }: Props) {
+export async function TopServicesWidget({ filterStart, filterEnd, tenantFilter, limit = 6 }: Props) {
+  const services = await adminOrderService.getTopServices(limit, filterStart, filterEnd, tenantFilter);
   return (
     <div className="bg-card text-card-foreground rounded-lg p-5 border border-border/70 shadow-sm flex flex-col justify-between space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border/50 pb-3">
         <div className="flex items-center gap-2">
           <div className="p-1.5 rounded-md bg-rose-500/10 text-rose-600 dark:text-rose-400">
-            <Flame className="w-4 h-4" />
+            <Flame className="w-4 h-4 shrink-0" />
           </div>
           <div>
             <h4 className="font-bold text-xs uppercase tracking-wider text-foreground">
@@ -41,7 +35,7 @@ export function TopServicesWidget({ services }: Props) {
           className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-1"
         >
           <span>Каталог</span>
-          <ArrowRight className="w-3 h-3" />
+          <ArrowRight className="w-3 h-3 shrink-0" />
         </Link>
       </div>
 
@@ -63,7 +57,7 @@ export function TopServicesWidget({ services }: Props) {
                   {idx + 1}
                 </span>
                 <div className="min-w-0">
-                  <div className="font-semibold text-foreground truncate max-w-[200px] sm:max-w-[260px]" title={s.name}>
+                  <div className="font-semibold text-foreground truncate max-w-[200px] sm:max-w-[260px] min-w-0" title={s.name}>
                     {s.name}
                   </div>
                   <div className="text-[10px] text-muted-foreground flex items-center gap-1.5 mt-0.5">

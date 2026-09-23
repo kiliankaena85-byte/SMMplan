@@ -64,7 +64,7 @@ export function SettingsClusterTabs({ activeTab }: SettingsClusterTabsProps) {
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-1">
-                  <span className="text-xs uppercase tracking-wider truncate">
+                  <span className="text-xs uppercase tracking-wider truncate min-w-0">
                     {cluster.label}
                   </span>
                   <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full border ${

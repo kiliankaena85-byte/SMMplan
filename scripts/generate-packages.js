@@ -3,7 +3,7 @@ const fs = require('fs');
 function buildFullWavePackage(waveName, waveNum, filesList, outputFile) {
   let md = '# 📦 ' + outputFile + '\n';
   md += '## ' + waveName + '\n\n';
-  md += '**Проект:** Multi-Tenant SMM Platform (Flux / SMMplan / Lovable)  \n';
+  md += '**Проект:** OmniSMM 1.0 (SMMplan / SMMflux)  \n';
   md += '**Дата:** 2026-07-28  \n';
   md += '**Инженер:** Senior Frontend & System Engineer (Antigravity AI)  \n';
   md += '**Волна:** W' + waveNum + ' — ' + waveName + '  \n';
@@ -64,12 +64,11 @@ buildFullWavePackage('Движок заказов, каталог, воркер�
 ], 'AUDIT_PACKAGE_2_W2_2026-07-28.md');
 
 buildFullWavePackage('Лендинг и маркетинг', 3, [
-  'src/app/ab-lovable/page.tsx',
-  'src/components/ab-test/LovableFAQ.tsx',
-  'src/components/ab-test/LovableOrderClient.tsx',
-  'src/components/ab-test/LovableReviews.tsx',
-  'src/components/ab-test/LovableTrustBar.tsx',
-  'src/components/ab-test/LovableWhyUs.tsx',
+  'src/components/ab-test/FluxFAQ.tsx',
+  'src/components/ab-test/FluxOrderClient.tsx',
+  'src/components/ab-test/FluxReviews.tsx',
+  'src/components/ab-test/FluxTrustBar.tsx',
+  'src/components/ab-test/FluxWhyUs.tsx',
   'src/components/landing/FAQ.tsx',
   'src/components/landing/Header.tsx',
   'src/components/landing/MegaFooter.tsx',
@@ -80,9 +79,9 @@ buildFullWavePackage('Лендинг и маркетинг', 3, [
 ], 'AUDIT_PACKAGE_3_W3_2026-07-28.md');
 
 buildFullWavePackage('Дашборд пользователя', 4, [
-  'src/components/dashboard/lovable/LovableDashboardHome.tsx',
-  'src/components/dashboard/lovable/LovableDashboardShell.tsx',
-  'src/components/dashboard/lovable/LovableOrdersView.tsx',
+  'src/components/dashboard/flux/FluxDashboardHome.tsx',
+  'src/components/dashboard/flux/FluxDashboardShell.tsx',
+  'src/components/dashboard/flux/FluxOrdersView.tsx',
   'src/components/dashboard/order-wizard/WizardCategoryStep.tsx',
   'src/components/dashboard/order-wizard/WizardNetworkStep.tsx',
   'src/components/dashboard/order-wizard/WizardServiceStep.tsx',
@@ -132,11 +131,7 @@ buildFullWavePackage('Панель администратора', 6, [
   'src/services/admin/balance-policy.service.ts',
   'src/components/admin/balance/BalanceAdjustmentDrawer.tsx',
   'src/components/admin/balance/BalanceAdjustmentRequestForm.tsx',
-  'src/components/admin/bulk-actions/BulkActionsPanel.tsx',
-  'src/components/admin/lovable-catalog-bento.tsx',
-  'src/components/admin/lovable-catalog-grid.tsx',
-  'src/components/admin/shells/lovable-shell.tsx',
-  'src/components/admin/shells/types.ts'
+  'src/components/admin/catalog-table-v2.tsx'
 ], 'AUDIT_PACKAGE_6_W6_2026-07-28.md');
 
 buildFullWavePackage('Биллинг, шлюзы, кошелек', 7, [

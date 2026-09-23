@@ -3,10 +3,12 @@
 import { db } from "@/lib/db";
 import { verifySession } from "@/lib/session";
 import { headers } from "next/headers";
-import { getBaseUrlAsync } from "@/utils/get-base-url";
+import { absoluteCanonical } from "@/lib/seo-helpers";
 import { getClientIp } from "@/utils/ip";
 import { RateLimitService } from "@/services/core/rate-limit.service";
 import { ExactMath } from "@/lib/financial/exact-math";
+import { resolveTenantUser } from "@/lib/tenant-user-resolver";
+import { resolveTenantFromRequest, normalizeTenantId } from "@/lib/tenant-resolver-edge";
 
 export interface TopUpActionResult {
   success: boolean;
@@ -40,19 +42,21 @@ export async function createTopUpPaymentAction(
       return { success: false, error: "Минимальная сумма пополнения — 10 ₽" };
     }
 
-    // Fetch user
-    // tenant-isolation-ignore: manual IDOR check
-    const dbUser = await db.user.findUnique({ where: { id: session.userId } });
-    if (!dbUser) {
+    const reqHeaders = await headers();
+    const currentTenant = normalizeTenantId(resolveTenantFromRequest(reqHeaders)) || 'smmplan';
+
+    // Fetch user for current tenant context (prevents funding wrong tenant account)
+    const tenantUser = await resolveTenantUser(session.userId, currentTenant, true);
+    if (!tenantUser) {
       return { success: false, error: "Пользователь не найден." };
     }
-    if (dbUser.isDeleted === true || dbUser.isActive === false) {
+    if (tenantUser.isDeleted === true || tenantUser.isActive === false) {
       return { success: false, error: "Ваш аккаунт заблокирован или удален" };
     }
 
     // Anti-fraud: gateways with chargeback risk require Telegram verification over 15,000 RUB
     if ((gateway === 'yookassa' || gateway === 'sbp' || gateway === 'robokassa') && amountCents > 1_500_000) {
-      if (!dbUser.telegramId) {
+      if (!tenantUser.telegramId) {
         return {
           success: false,
           error: "Для пополнения баланса свыше 15 000 ₽ картой или СБП, пожалуйста, привяжите ваш Telegram-аккаунт в настройках профиля."
@@ -64,13 +68,13 @@ export async function createTopUpPaymentAction(
     const twoMinutesAgo = new Date(Date.now() - 60 * 1000);
     const existingPayment = await db.payment.findFirst({
       where: {
-        userId: session.userId,
+        userId: tenantUser.id,
         amount: amountCents,
         gateway,
         status: 'PENDING',
         createdAt: { gte: twoMinutesAgo },
         checkoutUrl: { not: null },
-        ...(dbUser.tenantId ? { tenantId: dbUser.tenantId } : {})
+        tenantId: currentTenant,
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -80,16 +84,15 @@ export async function createTopUpPaymentAction(
       return { success: true, paymentUrl: existingPayment.checkoutUrl };
     }
 
-    const reqHeaders = await headers();
     const consentIp = await getClientIp();
     const consentUserAgent = reqHeaders.get("user-agent") || "Unknown";
 
-    const termsDoc = await db.contentItem.findUnique({
-      where: { slug: 'terms' },
+    const targetTenantId = currentTenant;
+    const termsDoc = await db.contentItem.findFirst({
+      where: { slug: 'terms', tenantId: targetTenantId },
       select: { updatedAt: true }
     });
     const { SettingsProvider } = await import('@/lib/settings');
-    const targetTenantId = dbUser.tenantId || 'smmplan';
     const legalSettings = await SettingsProvider.getContactAndLegalSettings(targetTenantId);
     const legalInn = legalSettings.COMPANY_INN || 'default_inn';
     const consentVersion = termsDoc 
@@ -98,7 +101,7 @@ export async function createTopUpPaymentAction(
 
     const payment = await db.payment.create({
       data: {
-        userId: session.userId,
+        userId: tenantUser.id,
         tenantId: targetTenantId,
         amount: amountCents,
         currency: "RUB",
@@ -112,7 +115,8 @@ export async function createTopUpPaymentAction(
 
     const { PaymentGatewayFactory } = await import('@/services/financial/payment-gateway.service');
     const gatewaySvc = PaymentGatewayFactory.getGateway(gateway);
-    const successUrl = `${await getBaseUrlAsync()}/dashboard/add-funds?success=1`;
+    const incomingHost = reqHeaders.get("x-forwarded-host") || reqHeaders.get("host");
+    const successUrl = absoluteCanonical(targetTenantId, '/dashboard/add-funds?success=1', incomingHost);
     const description = gateway === 'yookassa'
       ? `Оплата услуг IT-агентства (Digital Consulting, Счёт: ${payment.id})`
       : `Пополнение баланса (Счёт: ${payment.id})`;
@@ -122,10 +126,10 @@ export async function createTopUpPaymentAction(
     try {
       const gatewayResult = await gatewaySvc.createPayment({
         paymentId: payment.id,
-        userId: session.userId,
+        userId: tenantUser.id,
         tenantId: targetTenantId,
         amountRub,
-        email: dbUser.email,
+        email: tenantUser.email,
         successUrl,
         description,
         isTestMode: isTestMode,
@@ -133,7 +137,6 @@ export async function createTopUpPaymentAction(
       });
 
       if (gatewayResult.remoteGatewayId || gatewayResult.paymentUrl) {
-        // tenant-isolation-ignore: manual IDOR check
         await db.payment.update({
           where: { id: payment.id },
           data: {
@@ -148,7 +151,6 @@ export async function createTopUpPaymentAction(
         paymentUrl: gatewayResult.paymentUrl || `/payment-redirect?id=${payment.id}`
       };
     } catch (err: unknown) {
-      // tenant-isolation-ignore: manual IDOR check
       await db.payment.update({
         where: { id: payment.id },
         data: { status: 'CANCELED' }

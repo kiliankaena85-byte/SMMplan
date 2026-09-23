@@ -7,6 +7,7 @@ import { auditAdmin } from '@/lib/admin-audit';
 import { getClientIp } from '@/utils/ip';
 import { redis } from '@/lib/redis';
 import { z } from 'zod';
+import type { SmartCampaignStatus } from '@prisma/client';
 
 export async function getSmartCampaigns(page: number = 1, limit: number = 20) {
   return requireStaffPermission('orders', 'view', async () => {
@@ -58,16 +59,32 @@ export async function updateCampaignStatus(campaignId: string, status: 'RUNNING'
     });
 
     if (!campaign) {
-      throw new Error('Кампания не найдена');
+      return { success: false, error: 'Кампания не найдена' };
     }
 
     if (campaign.status === 'COMPLETED' || campaign.status === 'ERROR') {
-      throw new Error('Нельзя изменить статус завершенной или ошибочной кампании');
+      return { success: false, error: 'Нельзя изменить статус завершенной или ошибочной кампании' };
     }
 
-    const updated = await db.smartCampaign.update({
+    // Atomic state transition guard (TOCTOU prevention)
+    const expectedPreviousStatuses: SmartCampaignStatus[] = status === 'RUNNING'
+      ? ['PAUSED', 'PLANNED']
+      : ['RUNNING'];
+
+    const updateResult = await db.smartCampaign.updateMany({
+      where: {
+        id: campaignId,
+        status: { in: expectedPreviousStatuses },
+      },
+      data: { status: status as SmartCampaignStatus },
+    });
+
+    if (updateResult.count === 0) {
+      return { success: false, error: 'Статус кампании уже был изменен или кампания завершена' };
+    }
+
+    const updated = await db.smartCampaign.findUnique({
       where: { id: campaignId },
-      data: { status },
     });
 
     const ipAddress = await getClientIp();
@@ -134,7 +151,6 @@ export async function updateServiceConfig(
     }
     const validatedData = parsed.data;
 
-    // tenant-isolation-ignore: manual IDOR check
     const service = await db.service.findUnique({
       where: { id: serviceId },
     });
@@ -150,25 +166,25 @@ export async function updateServiceConfig(
     const updatedConfig = await db.serviceSmartConfig.upsert({
       where: { serviceId },
       update: {
-        isEnabled: data.isEnabled,
-        isTestMode: data.isTestMode,
-        minChunk: data.minChunk,
-        maxChunk: data.maxChunk,
-        markup: data.markup,
-        useInviteBuffer: data.useInviteBuffer ?? false,
-        autoCompensate: data.autoCompensate ?? true,
-        checkIntervalMins: data.checkIntervalMins ?? 120,
+        isEnabled: validatedData.isEnabled,
+        isTestMode: validatedData.isTestMode,
+        minChunk: validatedData.minChunk,
+        maxChunk: validatedData.maxChunk,
+        markup: validatedData.markup,
+        useInviteBuffer: validatedData.useInviteBuffer ?? false,
+        autoCompensate: validatedData.autoCompensate ?? true,
+        checkIntervalMins: validatedData.checkIntervalMins ?? 120,
       },
       create: {
         serviceId,
-        isEnabled: data.isEnabled,
-        isTestMode: data.isTestMode,
-        minChunk: data.minChunk,
-        maxChunk: data.maxChunk,
-        markup: data.markup,
-        useInviteBuffer: data.useInviteBuffer ?? false,
-        autoCompensate: data.autoCompensate ?? true,
-        checkIntervalMins: data.checkIntervalMins ?? 120,
+        isEnabled: validatedData.isEnabled,
+        isTestMode: validatedData.isTestMode,
+        minChunk: validatedData.minChunk,
+        maxChunk: validatedData.maxChunk,
+        markup: validatedData.markup,
+        useInviteBuffer: validatedData.useInviteBuffer ?? false,
+        autoCompensate: validatedData.autoCompensate ?? true,
+        checkIntervalMins: validatedData.checkIntervalMins ?? 120,
       },
     });
 

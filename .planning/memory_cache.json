@@ -336,6 +336,69 @@
         "exactmath",
         "hardening"
       ]
+    },
+    {
+      "title": "Wave 9 CDD-TDD Support Chat Decomposition",
+      "context": "ChatInput.tsx (880 lines, CRAP 32,220) and ChatMessageList.tsx (894 lines, CRAP 22,350) were monolithic hotspots in customer support",
+      "decision": "Decomposed ChatInput into 6 submodules and ChatMessageList into 5 submodules. Preserved viewport overflow invariants and full backwards compatibility.",
+      "rationale": "Total CRAP load reduced by 56,524 points (down to 1,525,322). Both files eliminated from project top-5 worst modules. 0 layer violations across 1264 modules.",
+      "tags": [
+        "refactoring",
+        "support-chat",
+        "cdd-tdd",
+        "clean-architecture"
+      ]
+    },
+    {
+      "title": "Wave 10 CDD-TDD Checkout Engine useOrderEngine Decomposition",
+      "context": "useOrderEngine.ts was #4 highest risk module (551 lines, CRAP 25,122, CC 158) coordinating drip feed, catalog sync and URL analysis",
+      "decision": "Decomposed useOrderEngine into 3 dedicated sub-hooks: useOrderDripState, useOrderCatalogSync, and useOrderUrlAnalyzer. Preserved 100% backward compatibility of OrderEngine type contract.",
+      "rationale": "CRAP score reduced by 94.7% from 25,122 to 1,332. Total CRAP load fell to 1,510,270. 0 layer violations across 1267 modules.",
+      "tags": [
+        "refactoring",
+        "checkout-engine",
+        "useOrderEngine",
+        "cdd-tdd"
+      ]
+    },
+    {
+      "title": "Wave 11 CDD-TDD Admin Settings Decomposition",
+      "context": "general-settings.tsx (1,001 lines, CC 158, CRAP 25,122) and settings-update.action.ts (414 lines, CC 155, CRAP 24,180) were monolithic hotspots in Admin Settings.",
+      "decision": "Decomposed general-settings.tsx into 4 focused submodules in src/app/admin/settings/components/general/ and settings-update.action.ts into 4 helpers in src/actions/admin/settings/helpers/. Preserved 100% backwards compatibility and form data contracts.",
+      "rationale": "Total CRAP load reduced by 53,306 points (down to 1,456,964). Both files eliminated from project top-5 worst modules. 0 layer violations across 1,278 modules. 100% tests pass.",
+      "tags": [
+        "refactoring",
+        "admin-settings",
+        "cdd-tdd",
+        "clean-architecture"
+      ]
+    },
+    {
+      "title": "Wave 12 CDD-TDD Team Management Decomposition",
+      "context": "team-management.tsx (1,223 lines, CC 143, CRAP 20,592) was the #4 worst technical debt hotspot in the project.",
+      "decision": "Decomposed team-management.tsx into 7 focused submodules in src/app/admin/settings/team/ (4 modals, 3 sections, ui-helpers). Preserved hoisted dialogs, RBAC matrix, and 100% server action contracts.",
+      "rationale": "Total CRAP load reduced by 15,324 points (down to 1,441,640). File eliminated from top-5 worst modules. 0 layer violations across 1,288 modules. 100% tests pass.",
+      "tags": [
+        "refactoring",
+        "team-management",
+        "rbac",
+        "cdd-tdd",
+        "clean-architecture"
+      ]
+    },
+    {
+      "title": "ADR-2026-20: Interactive Admin AI Manual & Copilot Widget",
+      "context": "Interactive guide and operational consultant for admin panel grounded in real code",
+      "decision": "Implemented ADR-2026-20 and SPEC-2026-09-19 using Gemini 3.8 Flash, Docker vector memory Qdrant on 6333/8100, rotating API keys and context-aware widget",
+      "rationale": "Grounded RAG prevents hallucinations, key rotation and proxy ensures uptime, contextual runbooks streamline operations",
+      "tags": [
+        "admin",
+        "ai-copilot",
+        "gemini-3.8-flash",
+        "docker-vector-memory",
+        "rag",
+        "interactive-manual"
+      ]
     }
   ]
 }

@@ -70,6 +70,13 @@ export async function POST(req: NextRequest) {
 
     const orderInput = parseResult.data;
 
+    if (orderInput.promoCode) {
+      return NextResponse.json({
+        success: false,
+        error: 'Promo codes are not supported for Storefront API orders',
+      }, { status: 400, headers });
+    }
+
     // Скоупинг заказа к тенанту
     return await runWithTenant(ctx.tenantSlug, async () => {
       // Делегируем логику оформления (вкл. ExactMath и Drip-Feed floor) в существующий checkoutAction
@@ -77,8 +84,7 @@ export async function POST(req: NextRequest) {
         serviceId: orderInput.serviceId,
         link: orderInput.link,
         quantity: orderInput.quantity,
-        email: orderInput.email || `storefront+${ctx.tenantId}@smmplan.pro`,
-        promoCodeStr: orderInput.promoCode,
+        email: orderInput.email || (ctx.keyId ? `api+${ctx.keyId}@smmplan.pro` : `storefront+${ctx.tenantId}@smmplan.pro`),
         runs: orderInput.runs,
         interval: orderInput.interval,
         idempotencyKey: orderInput.idempotencyKey,
@@ -95,8 +101,8 @@ export async function POST(req: NextRequest) {
       const orderData = result.data as any;
 
       // Маппинг ответа (Zero Vendor Leaks)
-      const service = await db.service.findFirst({
-        where: { id: orderInput.serviceId, tenantId: ctx.tenantId },
+      const service = await db.service.findUnique({
+        where: { id: orderInput.serviceId },
         select: { name: true }
       });
 

@@ -2,6 +2,7 @@ export interface ExternalServiceMetrics {
   platform?: string | null;
   category?: string | null;
   targetCategory?: string | null;
+  targetType?: string | null;
   confidence?: number;
   priceAnomaly?: boolean;
   pricePerUnit?: number;

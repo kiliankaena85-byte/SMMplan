@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client';
+import { unstable_cache } from 'next/cache';
 import { db } from '@/lib/db';
 import { paginatedQuery, type PaginatedResult } from '@/lib/pagination';
 import { auditAdmin } from '@/lib/admin-audit';
@@ -267,7 +268,6 @@ class AdminUserService {
     if (user.id === admin.id) throw new Error('Cannot ban yourself');
 
     await db.$transaction([
-      // tenant-isolation-ignore: manual IDOR check
       db.user.update({
         where: { id: userId },
         data: { role: 'BANNED' },
@@ -307,7 +307,6 @@ class AdminUserService {
       }
     }
 
-    // tenant-isolation-ignore: manual IDOR check
     await db.user.update({
       where: { id: userId },
       data: { role: restoredRole },
@@ -328,42 +327,50 @@ class AdminUserService {
    * Get aggregate user stats for the header.
    */
   async getUserStats(startDate?: Date, endDate?: Date, tenantId?: string) {
-    const where: Prisma.UserWhereInput = { isDeleted: false };
-    if (startDate && endDate) {
-      where.createdAt = { gte: startDate, lte: endDate };
-    }
-    if (tenantId && tenantId !== 'all') {
-      where.tenantId = tenantId;
-    }
-    const [total, active, banned] = await Promise.all([
-      db.user.count({ where }),
-      db.user.count({
-        where: {
-          ...where,
-          role: 'USER',
-          staffRoleId: null,
-          isDeleted: false,
-        },
-      }),
-      db.user.count({ where: { ...where, role: 'BANNED' } }),
-    ]);
+    const cleanTenant = tenantId || 'all';
+    return unstable_cache(
+      async () => {
+        const where: Prisma.UserWhereInput = { isDeleted: false };
+        if (startDate && endDate) {
+          where.createdAt = { gte: startDate, lte: endDate };
+        }
+        if (tenantId && tenantId !== 'all') {
+          where.tenantId = tenantId;
+        }
+        const [total, active, banned] = await Promise.all([
+          db.user.count({ where }),
+          db.user.count({
+            where: {
+              ...where,
+              role: 'USER',
+              staffRoleId: null,
+              isDeleted: false,
+            },
+          }),
+          db.user.count({ where: { ...where, role: 'BANNED' } }),
+        ]);
 
-    const totalBalance = await db.user.aggregate({
-      _sum: { balance: true },
-      where: {
-        ...where,
-        role: 'USER',
-        staffRoleId: null,
-        isDeleted: false,
+        const totalBalance = await db.user.aggregate({
+          _sum: { balance: true },
+          where: {
+            ...where,
+            role: 'USER',
+            staffRoleId: null,
+            isDeleted: false,
+          },
+        });
+
+        return {
+          total,
+          active,
+          banned,
+          // Convert BigInt to Number for cache serialization
+          totalLiability: Number(totalBalance._sum.balance || 0),
+        };
       },
-    });
-
-    return {
-      total,
-      active,
-      banned,
-      totalLiability: totalBalance._sum.balance || 0,
-    };
+      ['admin_user_stats', startDate?.toISOString() || 'all', endDate?.toISOString() || 'all', cleanTenant],
+      { revalidate: 60, tags: ['user_stats', `user_stats_${cleanTenant}`] }
+    )();
   }
 
   /**
@@ -371,25 +378,39 @@ class AdminUserService {
    */
   async getTopSpenders(limit = 6, tenantId?: string) {
     const isSingleTenant = tenantId && tenantId !== 'all';
-    const where: Prisma.UserWhereInput = { role: { not: 'BANNED' }, isDeleted: false };
-    if (isSingleTenant) {
-      where.tenantId = tenantId;
-    }
-    return db.user.findMany({
-      where,
-      orderBy: { totalSpent: 'desc' },
-      take: limit,
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        balance: true,
-        totalSpent: true,
-        tenantId: true,
-        createdAt: true,
-        _count: { select: { orders: true } },
-      }
-    });
+    const cleanTenant = tenantId || 'all';
+    return unstable_cache(
+      async () => {
+        const where: Prisma.UserWhereInput = { role: { not: 'BANNED' }, isDeleted: false };
+        if (isSingleTenant) {
+          where.tenantId = tenantId;
+        }
+        const users = await db.user.findMany({
+          where,
+          orderBy: { totalSpent: 'desc' },
+          take: limit,
+          select: {
+            id: true,
+            email: true,
+            role: true,
+            balance: true,
+            totalSpent: true,
+            tenantId: true,
+            createdAt: true,
+            _count: { select: { orders: true } },
+          }
+        });
+        
+        return users.map(u => ({
+          ...u,
+          // Convert BigInts for serialization
+          balance: Number(u.balance),
+          totalSpent: Number(u.totalSpent)
+        }));
+      },
+      ['admin_top_spenders', String(limit), cleanTenant],
+      { revalidate: 60, tags: ['top_spenders', `top_spenders_${cleanTenant}`] }
+    )();
   }
 }
 

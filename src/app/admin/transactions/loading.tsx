@@ -2,19 +2,19 @@
 
 import { Skeleton } from "@heroui/react";
 import { AdminTabbedHeader } from "@/components/admin/tabbed-header";
-import { FINANCE_TABS, ONBOARDING_CONFIGS } from "@/components/admin/navigation-data";
+import { TRANSACTIONS_TABS, ONBOARDING_CONFIGS } from "@/components/admin/navigation-data";
 import { ArrowLeftRight } from "lucide-react";
 
 export default function TransactionsLoading() {
   return (
-    <div className="space-y-6 w-full max-w-7xl mx-auto pb-12 animate-in fade-in duration-500 ease-out" role="status" aria-busy="true" aria-live="polite">
+    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 min-h-full pb-10" role="status" aria-busy="true" aria-live="polite">
       <span className="sr-only">Загрузка реестра транзакций платформы...</span>
       
       <AdminTabbedHeader
         icon={ArrowLeftRight}
         title="Транзакции платформы (Ledger)"
         description="Сквозной реестр финансовых операций, пополнений, оплат заказов и возвратов по всем клиентам"
-        tabs={FINANCE_TABS}
+        tabs={TRANSACTIONS_TABS}
         onboardingKey="finance"
         onboarding={ONBOARDING_CONFIGS.finance}
       />
@@ -28,7 +28,7 @@ export default function TransactionsLoading() {
               <Skeleton className="w-7 h-7 rounded-lg" />
             </div>
             <Skeleton className="h-6 w-28 rounded-md" />
-            <Skeleton className="h-3 w-32 rounded-md" />
+            <Skeleton className="h-3 w-32 rounded-md shrink-0" />
           </div>
         ))}
       </div>
@@ -37,7 +37,7 @@ export default function TransactionsLoading() {
       <div className="bg-card/90 backdrop-blur-sm border border-border/70 rounded-lg p-3 shadow-xs space-y-2.5">
         {/* Row 1: Search, Period, Status, Refresh/Export */}
         <div className="flex items-center gap-2 flex-wrap lg:flex-nowrap">
-          <Skeleton className="h-8 flex-1 min-w-[200px] rounded-lg" />
+          <Skeleton className="h-8 flex-1 min-w-[200px] max-w-full rounded-lg" />
           <Skeleton className="h-8 w-60 rounded-lg shrink-0" />
           <Skeleton className="h-8 w-28 rounded-lg shrink-0" />
           <Skeleton className="h-8 w-20 rounded-lg shrink-0" />
@@ -55,7 +55,7 @@ export default function TransactionsLoading() {
       {/* Main Table Skeleton */}
       <div className="bg-card border border-border/70 rounded-lg overflow-hidden shadow-xs">
         <div className="p-3 sm:px-4 border-b border-border/60 bg-muted/15 flex items-center justify-between gap-3">
-          <Skeleton className="h-4 w-36 rounded-md" />
+          <Skeleton className="h-4 w-36 rounded-md shrink-0" />
           <Skeleton className="h-7 w-48 rounded-lg" />
         </div>
 
@@ -88,7 +88,7 @@ export default function TransactionsLoading() {
         </div>
 
         <div className="p-3 sm:px-4 border-t border-border/70 bg-muted/10 flex items-center justify-between gap-3">
-          <Skeleton className="h-4 w-44 rounded-md" />
+          <Skeleton className="h-4 w-44 rounded-md shrink-0" />
           <Skeleton className="h-8 w-56 rounded-lg" />
         </div>
       </div>

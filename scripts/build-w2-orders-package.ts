@@ -17,9 +17,9 @@ const requestedItems = [
   { requested: 'src/workers/processors/order.processor.ts', actual: 'src/workers/processors/order.processor.ts' },
   { requested: 'src/workers/processors/refill.processor.ts', actual: 'src/workers/processors/refill.processor.ts' },
   { requested: 'src/workers/processors/dripfeed.processor.ts', actual: 'src/workers/processors/dripfeed.processor.ts' },
-  { requested: 'src/components/dashboard/LovableNewOrderWorkspace.tsx', actual: 'src/components/dashboard/LovableNewOrderWorkspace.tsx' },
-  { requested: 'src/components/dashboard/LovableOrdersList.tsx', actual: 'src/components/dashboard/LovableOrdersList.tsx' },
-  { requested: 'src/components/dashboard/LovableOrdersKanban.tsx', actual: 'src/components/dashboard/LovableOrdersKanban.tsx' },
+  { requested: 'src/components/dashboard/flux/FluxDashboardOrderWizard.tsx', actual: 'src/components/dashboard/flux/FluxDashboardOrderWizard.tsx' },
+  { requested: 'src/components/dashboard/FluxOrdersList.tsx', actual: 'src/components/dashboard/FluxOrdersList.tsx' },
+  { requested: 'src/components/dashboard/FluxOrdersKanban.tsx', actual: 'src/components/dashboard/FluxOrdersKanban.tsx' },
 ];
 
 const supplementItems = [
@@ -34,7 +34,7 @@ const supplementItems = [
 let markdown = `# 📦 AUDIT_PACKAGE_2_W2_ORDERS.md
 ## Аудиторский пакет ВОЛНЫ 2: Движок Заказов, Каталог и Воркеры (Execution Engine)
 
-**Проект:** Multi-Tenant SMM Platform (Flux / SMMplan / Lovable)  
+**Проект:** Multi-Tenant SMM Platform (OmniSMM 1.0: SMMplan / SMMflux)  
 **Дата:** 28 июля 2026 г.  
 **Инженер:** Senior Order Engine & Backend Architecture Specialist (Antigravity AI)  
 **Предмет:** Полный исходный код движка заказов, обработки Drip-Feed, Refill и провайдеров без сокращений.

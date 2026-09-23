@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { cancelOrderCoolingOffAction } from '@/actions/order/cancel';
+import { ORDER_COOLING_OFF_MS } from '@/config/order-constants';
 import { Loader2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
@@ -23,14 +24,14 @@ export function CancelOrderButton({ orderId, createdAt, status }: CancelOrderBut
   useEffect(() => {
     if (status !== 'PENDING' && status !== 'AWAITING_PAYMENT') return;
 
-    // 3 minutes (180 seconds) from createdAt for PENDING, or no deadline for AWAITING_PAYMENT
+      // Cooling-off deadline (90s) from createdAt for PENDING, or no deadline for AWAITING_PAYMENT
     const tick = () => {
       if (status === 'AWAITING_PAYMENT') {
         setTimeLeft(9999); // No time limit to cancel unpaid orders
         return;
       }
       
-      const deadline = new Date(createdAt).getTime() + 3 * 60 * 1000;
+      const deadline = new Date(createdAt).getTime() + ORDER_COOLING_OFF_MS;
       const now = Date.now();
       const remaining = Math.max(0, Math.floor((deadline - now) / 1000));
       setTimeLeft(remaining);

@@ -6,6 +6,7 @@ import { WalletOps } from './wallet-ops';
 import { MutexManager } from '@/lib/redis-lock';
 import crypto from 'crypto';
 import { UniversalNetworkRouter } from '@/lib/network/network-router';
+import { ORDER_COOLING_OFF_MS } from '@/config/order-constants';
 
 export const VAT_THRESHOLD_KOPECKS = BigInt(20_000_000) * BigInt(100); // 20,000,000 RUB in kopecks (2,000,000,000 cents)
 
@@ -33,6 +34,11 @@ const vatThresholdCache: Map<string, { result: boolean; expiresAt: number }> = n
 export function invalidateVatThresholdCache(tenantId?: string): void {
   if (tenantId) {
     vatThresholdCache.delete(tenantId);
+    for (const key of vatThresholdCache.keys()) {
+      if (key === tenantId || key.startsWith(`${tenantId}:`)) {
+        vatThresholdCache.delete(key);
+      }
+    }
   } else {
     vatThresholdCache.clear();
   }
@@ -73,13 +79,15 @@ export function toSafePaymentContextLog(ctx: TenantPaymentContext): Record<strin
 export async function checkVatThreshold(tenantId: string = 'smmplan'): Promise<boolean> {
   const cleanTenant = tenantId || 'smmplan';
   const now = Date.now();
-  const cached = vatThresholdCache.get(cleanTenant);
+  const currentYear = new Date().getFullYear();
+  const cacheKey = `${cleanTenant}:${currentYear}`;
+  const cached = vatThresholdCache.get(cacheKey);
   if (cached && cached.expiresAt > now) {
     return cached.result;
   }
 
-  const currentYear = new Date().getFullYear();
   const startOfYear = new Date(currentYear, 0, 1);
+  const endOfYear = new Date(currentYear + 1, 0, 1);
 
   // 1. Gross revenue
   const grossResult = await db.payment.aggregate({
@@ -92,12 +100,12 @@ export async function checkVatThreshold(tenantId: string = 'smmplan'): Promise<b
   });
   const grossKopecks = BigInt(grossResult._sum?.amount || 0);
 
-  // 2. Deduct refunds from net taxable turnover
+  // 2. Deduct refunds and cancellations from net taxable turnover (54-FZ / 145 NK RF)
   const refundResult = await db.ledgerEntry.aggregate({
     _sum: { amount: true },
     where: {
       tenantId: cleanTenant,
-      transactionType: 'REFUND',
+      transactionType: { in: ['REFUND', 'ORDER_CANCEL'] },
       createdAt: { gte: startOfYear }
     }
   }).catch(() => ({ _sum: { amount: BigInt(0) } }));
@@ -106,7 +114,9 @@ export async function checkVatThreshold(tenantId: string = 'smmplan'): Promise<b
   const netAnnualRevenueKopecks = grossKopecks > refundKopecks ? (grossKopecks - refundKopecks) : BigInt(0);
 
   const isExceeded = netAnnualRevenueKopecks >= VAT_THRESHOLD_KOPECKS;
-  vatThresholdCache.set(cleanTenant, { result: isExceeded, expiresAt: now + 3600 * 1000 });
+  // Expire within 1 hour or when the calendar year ends, whichever comes first
+  const expiresAt = Math.min(now + 3600 * 1000, endOfYear.getTime());
+  vatThresholdCache.set(cacheKey, { result: isExceeded, expiresAt });
   return isExceeded;
 }
 
@@ -586,7 +596,6 @@ class BalanceGateway extends BasePaymentGateway {
         tenantId: params.tenantId,
       });
 
-      // tenant-isolation-ignore: manual IDOR check
       await tx.payment.update({
           where: { id: params.paymentId },
           data: { status: 'SUCCEEDED', gatewayId: remoteId }
@@ -595,12 +604,10 @@ class BalanceGateway extends BasePaymentGateway {
         // Update any specific order if passed
         const ids = [];
         if (params.orderId) {
-          // tenant-isolation-ignore: manual IDOR check
           const order = await tx.order.findUnique({
             where: { id: params.orderId }
           });
           if (order) {
-            // tenant-isolation-ignore: manual IDOR check
             await tx.order.update({
               where: { id: params.orderId },
               data: { status: 'PENDING' }
@@ -677,7 +684,7 @@ class BalanceGateway extends BasePaymentGateway {
     }, { isolationLevel: 'Serializable', timeout: 15000 });
 
     for (const id of updatedOrderIds) {
-      await ordersQueue.add('order-dispatch', { orderId: id }, { jobId: `dispatch-${id}`, delay: 3 * 60 * 1000 });
+      await ordersQueue.add('order-dispatch', { orderId: id }, { jobId: `dispatch-${id}`, delay: ORDER_COOLING_OFF_MS });
     }
 
     return {
@@ -766,7 +773,6 @@ class RobokassaGateway extends BasePaymentGateway {
     }
     try {
       const paymentId = gatewayId.replace(/^robo_/i, '');
-      // tenant-isolation-ignore: manual IDOR check
       const payment = await db.payment.findUnique({
         where: { id: paymentId }
       });
@@ -788,11 +794,11 @@ class MockGateway extends BasePaymentGateway {
 }
 
 export class PaymentGatewayFactory {
-  static getGateway(gatewayName: string, options?: { isMockPayment?: boolean }): BasePaymentGateway {
+  static getGateway(gatewayName: string, _options?: { isMockPayment?: boolean }): BasePaymentGateway {
     const normalizedName = gatewayName.toLowerCase();
     
-    // In SANDBOX or HYBRID modes, route all external gateways to MockGateway to prevent network leakage
-    if (options?.isMockPayment && normalizedName !== 'balance') {
+    // MockGateway is strictly for explicit 'mock' gateway
+    if (normalizedName === 'mock') {
       return new MockGateway();
     }
 
@@ -813,8 +819,6 @@ export class PaymentGatewayFactory {
         return new CryptoBotGateway();
       case 'balance':
         return new BalanceGateway();
-      case 'mock':
-        return new MockGateway();
       default:
         // Fallback to YooKassa if unknown card/payment method passed
         return new YooKassaGateway();

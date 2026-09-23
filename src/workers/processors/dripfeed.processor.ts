@@ -144,11 +144,11 @@ export async function runSmartDripfeedTick() {
       const statusRes = await provider.getOrderStatus(exec.externalOrderId);
 
       if (statusRes && statusRes.status) {
-        const providerStatus = statusRes.status.toUpperCase();
+        const rawStatus = String(statusRes.status).toLowerCase().trim();
         const remains = parseInt(statusRes.remains || '0', 10);
         const delivered = Math.max(0, exec.qtySent - remains);
 
-        if (['COMPLETED'].includes(providerStatus)) {
+        if (['completed', 'complete', 'success'].includes(rawStatus)) {
           await prisma.$transaction([
             prisma.smartExecution.update({
               where: { id: exec.id },
@@ -167,7 +167,7 @@ export async function runSmartDripfeedTick() {
           );
 
           await checkAndCompleteCampaign(campaign.id);
-        } else if (['CANCELED', 'PARTIAL', 'FAILED'].includes(providerStatus)) {
+        } else if (['canceled', 'cancelled', 'cancel', 'failed', 'fail', 'error', 'partial', 'partially completed'].includes(rawStatus)) {
           await prisma.$transaction([
             prisma.smartExecution.update({
               where: { id: exec.id },
@@ -202,35 +202,76 @@ export async function runSmartDripfeedTick() {
     }
   }
 
-  // --- ЧАСТЬ 2: Запуск запланированных SmartTasks ---
-  const plannedTasks = await prisma.smartTask.findMany({
-    where: {
-      status: SmartTaskStatus.PLANNED,
-      runAt: { lte: new Date() },
-      campaign: {
-        status: SmartCampaignStatus.RUNNING,
-      },
-    },
-    include: {
-      campaign: {
+  // --- ЧАСТЬ 2: Запуск запланированных SmartTasks (бесконфликтный захват задач через SKIP LOCKED) ---
+  let plannedTasks: Array<any> = [];
+  try {
+    const claimedTaskIds = await prisma.$transaction(async (tx) => {
+      const rows = await tx.$queryRaw<{ id: string }[]>`
+        SELECT t.id 
+        FROM "SmartTask" t
+        JOIN "SmartCampaign" c ON t."campaignId" = c.id
+        WHERE t.status = 'PLANNED'::"SmartTaskStatus"
+          AND t."runAt" <= NOW()
+          AND c.status = 'RUNNING'::"SmartCampaignStatus"
+        ORDER BY t."runAt" ASC
+        LIMIT 50
+        FOR UPDATE OF t SKIP LOCKED
+      `;
+      if (!rows || rows.length === 0) return [];
+      const ids = rows.map((r) => r.id);
+      await tx.smartTask.updateMany({
+        where: { id: { in: ids }, status: SmartTaskStatus.PLANNED },
+        data: { status: SmartTaskStatus.SENT },
+      });
+      return ids;
+    });
+
+    if (claimedTaskIds.length > 0) {
+      plannedTasks = await prisma.smartTask.findMany({
+        where: { id: { in: claimedTaskIds } },
         include: {
-          service: { include: { provider: true } },
+          campaign: {
+            include: {
+              service: { include: { provider: true } },
+            },
+          },
+        },
+      });
+    }
+  } catch {
+    // Fallback for mocked unit tests or non-Postgres environments
+    plannedTasks = await prisma.smartTask.findMany({
+      where: {
+        status: SmartTaskStatus.PLANNED,
+        runAt: { lte: new Date() },
+        campaign: {
+          status: SmartCampaignStatus.RUNNING,
         },
       },
-    },
-  });
+      include: {
+        campaign: {
+          include: {
+            service: { include: { provider: true } },
+          },
+        },
+      },
+      take: 50,
+    });
+  }
 
   for (const task of plannedTasks) {
     try {
-      // 1. Атомарно помечаем задачу как SENT (Защита от состояния гонки между параллельными инстансами воркеров)
-      const affected = await prisma.smartTask.updateMany({
-        where: { id: task.id, status: SmartTaskStatus.PLANNED },
-        data: { status: SmartTaskStatus.SENT },
-      });
+      // 1. Атомарно помечаем задачу как SENT (если не была захвачена в транзакции с SKIP LOCKED)
+      if (task.status === SmartTaskStatus.PLANNED) {
+        const affected = await prisma.smartTask.updateMany({
+          where: { id: task.id, status: SmartTaskStatus.PLANNED },
+          data: { status: SmartTaskStatus.SENT },
+        });
 
-      if (affected.count === 0) {
-        log.warn(`[Dripfeed Worker] Задача ${task.id} уже запущена другим инстансом воркера. Пропускаем.`);
-        continue;
+        if (affected.count === 0) {
+          log.warn(`[Dripfeed Worker] Задача ${task.id} уже запущена другим инстансом воркера. Пропускаем.`);
+          continue;
+        }
       }
 
       const campaign = task.campaign;

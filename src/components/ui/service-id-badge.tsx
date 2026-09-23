@@ -21,17 +21,22 @@ export function ServiceIdBadge({
   className = '',
   size = 'sm',
 }: ServiceIdBadgeProps) {
-  if (numericId === undefined || numericId === null) {
+  const hasNumeric = numericId !== undefined && numericId !== null;
+  const hasProvider = providerId !== undefined && providerId !== null && String(providerId).trim() !== '';
+
+  if (!hasNumeric && !hasProvider) {
     return null;
   }
+
+  const idToCopy = hasNumeric ? String(numericId) : String(providerId);
 
   const copyId = async () => {
     try {
       if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(String(numericId));
+        await navigator.clipboard.writeText(idToCopy);
       } else if (typeof document !== 'undefined') {
         const textarea = document.createElement('textarea');
-        textarea.value = String(numericId);
+        textarea.value = idToCopy;
         textarea.style.position = 'fixed';
         textarea.style.opacity = '0';
         document.body.appendChild(textarea);
@@ -39,7 +44,7 @@ export function ServiceIdBadge({
         document.execCommand('copy');
         document.body.removeChild(textarea);
       }
-      toast.success(`ID услуги #${numericId} скопирован`);
+      toast.success(`ID услуги #${idToCopy} скопирован`);
     } catch {
       toast.error('Не удалось скопировать ID');
     }
@@ -60,8 +65,8 @@ export function ServiceIdBadge({
 
   const innerContent = (
     <>
-      <span>#{numericId}</span>
-      {showProviderId && providerId && (
+      <span>#{hasNumeric ? numericId : providerId}</span>
+      {hasNumeric && showProviderId && providerId && (
         <span className="opacity-70 text-[9px] font-normal">
           • ext: {providerId}
         </span>

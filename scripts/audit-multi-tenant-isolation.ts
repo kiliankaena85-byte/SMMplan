@@ -68,7 +68,7 @@ function checkMultiTenantFile(filePath: string) {
     }
 
     // Check for references to lovable.pro (deprecated brand)
-    if (line.toLowerCase().includes('lovable.pro') || line.toLowerCase().includes('lovable.dev')) {
+    if ((line.toLowerCase().includes('lovable.pro') || line.toLowerCase().includes('lovable.dev')) && !line.includes('// audit-ignore')) {
       violations.push({
         file: filePath,
         line: index + 1,

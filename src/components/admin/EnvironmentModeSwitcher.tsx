@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { createPortal } from 'react-dom';
 import { 
   getEnvironmentModeAction, 
   setEnvironmentModeAction 
@@ -47,8 +48,8 @@ const MODES: ModeConfig[] = [
     badgeClass: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30',
     icon: Zap,
     paymentDesc: 'Тестовая оплата (0 ₽)',
-    providerDesc: 'РЕАЛЬНЫЙ VexBoost',
-    note: 'Идеально для тестов: бесплатный заказ на сайте отправляется реальному поставщику.'
+    providerDesc: 'Тест провайдера',
+    note: 'Идеально для тестов: бесплатный заказ на сайте отправляется на тест провайдера.'
   },
   {
     id: 'ACQUIRING_TEST',
@@ -67,19 +68,21 @@ const MODES: ModeConfig[] = [
     badgeClass: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30',
     icon: Rocket,
     paymentDesc: 'Боевая ЮKassa / СБП',
-    providerDesc: 'РЕАЛЬНЫЙ VexBoost',
+    providerDesc: 'Реальный SMM-поставщик',
     note: 'Штатный боевой режим: реальные платежи клиентов и реальное исполнение.'
   }
 ];
 
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export function EnvironmentModeSwitcher({
-  initialMode = 'SANDBOX',
+export function EnvironmentModeSwitcher({ 
+  initialMode = 'SANDBOX', 
   readOnly = false,
-}: {
-  initialMode?: EnvironmentMode;
+  className = ''
+}: { 
+  initialMode?: EnvironmentMode; 
   readOnly?: boolean;
+  className?: string;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -89,7 +92,15 @@ export function EnvironmentModeSwitcher({
   const [isOpen, setIsOpen] = React.useState(false);
   const [isPending, startTransition] = React.useTransition();
   const [confirmModalMode, setConfirmModalMode] = React.useState<EnvironmentMode | null>(null);
+  const [mounted, setMounted] = React.useState(false);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
+  const triggerRef = React.useRef<HTMLButtonElement>(null);
+  const menuRef = React.useRef<HTMLDivElement>(null);
+  const [dropdownStyle, setDropdownStyle] = React.useState<React.CSSProperties>({});
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   React.useEffect(() => {
     getEnvironmentModeAction(tenantId).then((res) => {
@@ -99,16 +110,34 @@ export function EnvironmentModeSwitcher({
     });
   }, [tenantId]);
 
-  // Close on outside click
+  // Close on outside click (or Escape) — dropdown is portalled to document.body
   React.useEffect(() => {
-    const handleOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+    if (!isOpen) return;
+    const handleOutside = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as Node;
+      if (
+        triggerRef.current &&
+        !triggerRef.current.contains(target) &&
+        menuRef.current &&
+        !menuRef.current.contains(target)
+      ) {
+        setIsOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
         setIsOpen(false);
       }
     };
     document.addEventListener('mousedown', handleOutside);
-    return () => document.removeEventListener('mousedown', handleOutside);
-  }, []);
+    document.addEventListener('touchstart', handleOutside);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleOutside);
+      document.removeEventListener('touchstart', handleOutside);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
 
   const activeConfig = MODES.find((m) => m.id === currentMode) || MODES[0];
   const ActiveIcon = activeConfig.icon;
@@ -143,33 +172,53 @@ export function EnvironmentModeSwitcher({
   };
 
   return (
-    <div className="relative inline-block text-left" ref={dropdownRef}>
+    <div className={`relative inline-block text-left min-w-0 shrink ${className}`} ref={dropdownRef}>
       {/* Trigger Button */}
       <button
         type="button"
-        onClick={() => !readOnly && setIsOpen(!isOpen)}
+        ref={triggerRef}
+        onClick={() => {
+          if (readOnly) return;
+          if (!isOpen && triggerRef.current) {
+            const rect = triggerRef.current.getBoundingClientRect();
+            setDropdownStyle({
+              position: 'fixed',
+              top: rect.bottom + 6,
+              left: rect.left,
+              width: Math.max(320, rect.width),
+              maxWidth: 'calc(100vw - 24px)',
+            });
+          }
+          setIsOpen(!isOpen);
+        }}
         disabled={isPending || readOnly}
-        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold transition-all duration-200 shadow-sm ${activeConfig.badgeClass} ${
+        className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 sm:py-1 min-h-[38px] sm:min-h-0 rounded-xl border text-xs font-bold transition-all duration-150 shadow-xs min-w-0 shrink ${activeConfig.badgeClass} ${
           readOnly ? 'cursor-default opacity-85' : 'hover:opacity-90 active:scale-95 cursor-pointer'
         }`}
         title={
           readOnly
             ? `Текущий режим: ${activeConfig.label} (только просмотр)`
-            : 'Переключение режимов окружения (Оплата x Провайдер)'
+            : `Режим: ${activeConfig.label}`
         }
+        aria-label={`Режим окружения: ${activeConfig.label}`}
       >
         {isPending ? (
           <Loader2 className="w-3.5 h-3.5 animate-spin" />
         ) : (
           <ActiveIcon className="w-3.5 h-3.5 shrink-0" />
         )}
-        <span className="truncate max-w-[120px]">{activeConfig.badge}</span>
-        {!readOnly && <ChevronDown className="w-3 h-3 opacity-60 ml-0.5" />}
+        <span className="hidden sm:inline truncate max-w-[120px]">{activeConfig.badge}</span>
+        {!readOnly && <ChevronDown className="w-3 h-3 opacity-60 ml-0.5 shrink-0" />}
       </button>
 
-      {/* Dropdown Menu */}
-      {!readOnly && isOpen && (
-        <div className="absolute right-0 mt-1.5 w-80 rounded-xl border border-border bg-card shadow-2xl p-1.5 z-50 animate-in fade-in-0 zoom-in-95">
+      {/* Dropdown Menu — rendered via portal to escape overflow-y-auto and backdrop-filter clipping */}
+      {!readOnly && isOpen && mounted && createPortal(
+        <div
+          ref={menuRef}
+          style={dropdownStyle}
+          className="rounded-2xl border border-border/80 bg-card/95 backdrop-blur-xl shadow-2xl p-1.5 z-[200] animate-in fade-in-0 zoom-in-95 duration-150"
+        >
+
           <div className="px-2 py-1.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border/50 mb-1">
             Режимы платформы (Оплата × Исполнение)
           </div>
@@ -182,7 +231,8 @@ export function EnvironmentModeSwitcher({
                   key={modeConfig.id}
                   type="button"
                   onClick={() => handleSelectMode(modeConfig.id)}
-                  className={`w-full text-left p-2 rounded-lg transition-all text-xs flex flex-col gap-1 ${
+                  title={modeConfig.note}
+                  className={`w-full text-left p-2 rounded-lg transition-all text-xs flex flex-col gap-1 cursor-pointer ${
                     isSelected
                       ? 'bg-primary/10 border border-primary/30 text-foreground font-medium'
                       : 'hover:bg-muted/50 text-muted-foreground hover:text-foreground'
@@ -190,7 +240,7 @@ export function EnvironmentModeSwitcher({
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 font-bold text-foreground">
-                      <Icon className="w-4 h-4 text-primary" />
+                      <Icon className="w-4 h-4 text-primary shrink-0" />
                       <span>{modeConfig.label}</span>
                     </div>
                     {isSelected && <Check className="w-4 h-4 text-primary shrink-0" />}
@@ -204,16 +254,18 @@ export function EnvironmentModeSwitcher({
               );
             })}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* Confirmation Modal for High-Impact Modes */}
-      {confirmModalMode && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+
+      {/* Confirmation Modal for High-Impact Modes (Portaled to avoid backdrop-filter and overflow clipping) */}
+      {confirmModalMode && mounted && createPortal(
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
           <div className="bg-card border border-border rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in-0 zoom-in-95">
             <div className="flex items-center gap-3 text-amber-500">
               <div className="p-2.5 bg-amber-500/10 rounded-xl">
-                <AlertTriangle className="w-6 h-6" />
+                <AlertTriangle className="w-6 h-6 shrink-0" />
               </div>
               <div>
                 <h3 className="font-bold text-foreground text-sm">
@@ -228,7 +280,7 @@ export function EnvironmentModeSwitcher({
             <p className="text-xs text-muted-foreground leading-relaxed">
               {confirmModalMode === 'HYBRID' && (
                 <>
-                  В <b>Гибридном режиме</b> оплата на чекауте останется тестовой (0 ₽), но заказы будут отправляться в <b>реальный VexBoost</b> со списанием вашего реального баланса поставщика.
+                  В <b>Гибридном режиме</b> оплата на чекауте останется тестовой (0 ₽), а заказы будут отправляться на <b>тест провайдера</b>.
                 </>
               )}
               {confirmModalMode === 'PRODUCTION' && (
@@ -243,7 +295,7 @@ export function EnvironmentModeSwitcher({
                 type="button"
                 onClick={() => setConfirmModalMode(null)}
                 disabled={isPending}
-                className="px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:bg-muted"
+                className="px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:bg-muted cursor-pointer"
               >
                 Отмена
               </button>
@@ -251,14 +303,15 @@ export function EnvironmentModeSwitcher({
                 type="button"
                 onClick={() => executeSwitch(confirmModalMode)}
                 disabled={isPending}
-                className="px-4 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold shadow hover:bg-primary/90 flex items-center gap-1.5"
+                className="px-4 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold shadow hover:bg-primary/90 flex items-center gap-1.5 cursor-pointer"
               >
                 {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 Подтвердить переключение
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

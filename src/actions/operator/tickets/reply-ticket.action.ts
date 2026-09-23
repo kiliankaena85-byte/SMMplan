@@ -8,6 +8,7 @@ import { getClientIp } from '@/utils/ip';
 import { auditAdminAwaitable } from '@/lib/admin-audit';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { isTenantAllowedForUser } from '@/utils/admin-tenant';
 
 const schema = z.object({
   ticketId: z.string().min(1),
@@ -30,12 +31,11 @@ export async function replyTicketAction(data: {
     const result = await requireOperatorPermission('tickets', 'edit', async (admin) => {
       const { ticketId, message, isInternal } = parsed.data;
 
-      // tenant-isolation-ignore: manual IDOR check
       const ticket = await db.ticket.findUnique({
         where: { id: ticketId },
         select: { id: true, userId: true, tenantId: true },
       });
-      if (!ticket || (admin.tenantId && ticket.tenantId && admin.tenantId !== 'smmplan' && ticket.tenantId !== admin.tenantId)) {
+      if (!ticket || !isTenantAllowedForUser(admin, ticket.tenantId)) {
         throw new Error('Обращение не найдено или доступ ограничен');
       }
 

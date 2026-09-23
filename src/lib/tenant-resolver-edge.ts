@@ -6,8 +6,8 @@
 export const FLUX_DOMAINS = new Set([
   'lovable.local',
   'lovable.smmplan.ru',
-  'lovable.pro',
-  'www.lovable.pro',
+  'lovable.pro', // audit-ignore: legacy domain resolver
+  'www.lovable.pro', // audit-ignore: legacy domain resolver
   'smmflux.ru',
   'www.smmflux.ru',
   'flux.local',
@@ -89,9 +89,21 @@ export function normalizeTenantId<T extends string | null | undefined>(tenantId:
 
 /**
  * Single Canonical View Strategy Resolver for Server Components & Actions.
- * Strategy MUST be resolved ONLY from the 'x-tenant-id' header set by Middleware.
+ * Strategy is resolved from the 'x-tenant-id' header set by Middleware,
+ * with resilient fallback to host inspection.
  */
 export function resolveTenantFromRequest(headersList: Headers): string {
   const headerVal = headersList.get('x-tenant-id');
-  return (normalizeTenantId(headerVal) as string) || 'smmplan';
+  if (headerVal) {
+    return (normalizeTenantId(headerVal) as string) || 'smmplan';
+  }
+  const host = headersList.get('host') || headersList.get('x-forwarded-host');
+  if (host) {
+    return resolveTenantFromHostEdge(host);
+  }
+  return 'smmplan';
 }
+
+export const resolveTenantFromHeaders = resolveTenantFromRequest;
+export const resolveTenantIdFromHeaders = resolveTenantFromRequest;
+

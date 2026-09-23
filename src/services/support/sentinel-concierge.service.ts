@@ -18,7 +18,6 @@ export class SentinelConciergeService {
    * Scans in-progress orders and dispatches proactive notifications before the client complains.
    */
   public static async evaluateOrderHealth(orderId: string): Promise<ProactiveDelayAlert | null> {
-    // tenant-isolation-ignore: manual IDOR check
     const order = await db.order.findUnique({
       where: { id: orderId },
       include: {

@@ -64,16 +64,15 @@ export async function POST(request: NextRequest) {
 
     let resolvedTenantId = payloadTenantId || 'smmplan';
     if (internalPaymentId) {
-      let p = await db.payment.findUnique({
-        where: { id: internalPaymentId },
+      const p = await db.payment.findFirst({
+        where: {
+          OR: [
+            { id: internalPaymentId },
+            { gatewayId: String(internalPaymentId) }
+          ]
+        },
         select: { tenantId: true }
       });
-      if (!p) {
-        p = await db.payment.findFirst({
-          where: { gatewayId: String(internalPaymentId) },
-          select: { tenantId: true }
-        });
-      }
       if (p?.tenantId) resolvedTenantId = p.tenantId;
     }
 
@@ -182,13 +181,14 @@ export async function POST(request: NextRequest) {
 
       try {
         const result = await MutexManager.withLock(`webhook_payment_crypto_${gatewayId}`, 15000, 10000, async () => {
-          let payment = null;
-          if (paymentId) {
-            payment = await db.payment.findUnique({ where: { id: paymentId } });
-          }
-          if (!payment) {
-            payment = await db.payment.findFirst({ where: { gatewayId } });
-          }
+          const payment = await db.payment.findFirst({
+            where: {
+              OR: [
+                ...(paymentId ? [{ id: paymentId }] : []),
+                { gatewayId }
+              ]
+            }
+          });
           
           if (!payment) {
              console.error(`[Webhook] Payment record not found for payload ${paymentId} / gateway ${gatewayId}`);

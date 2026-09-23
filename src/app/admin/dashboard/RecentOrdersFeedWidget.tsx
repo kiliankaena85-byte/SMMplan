@@ -1,58 +1,43 @@
 import React from 'react';
 import Link from 'next/link';
-import { Package, ArrowRight, Clock } from 'lucide-react';
+import { Package, ArrowRight } from 'lucide-react';
 import { formatKopecks } from '@/utils/format-kopecks';
-import { TenantBrandBadge } from '@/app/admin/orders/components/columns';
-
-interface RecentOrder {
-  id: string;
-  numericId: number;
-  charge: bigint;
-  status: string;
-  createdAt: Date;
-  tenantId: string;
-  user: { email: string };
-  service: {
-    name: string;
-    category: {
-      name: string;
-      network: { name: string; slug: string } | null;
-    } | null;
-  };
-}
+import { adminOrderService } from '@/services/admin/order.service';
 
 interface Props {
-  orders: RecentOrder[];
+  tenantFilter?: string;
+  limit?: number;
 }
 
-const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
-  COMPLETED:        { label: 'Выполнен',  cls: 'bg-success/10 text-success-text border-success/20' },
-  IN_PROGRESS:      { label: 'В работе',  cls: 'bg-primary/10 text-primary border-primary/20' },
-  PENDING:          { label: 'В очереди', cls: 'bg-warning/10 text-warning-text border-warning/20' },
-  AWAITING_PAYMENT: { label: 'Ожидает',   cls: 'bg-muted text-muted-foreground border-border' },
-  PARTIAL:          { label: 'Частично',  cls: 'bg-warning/10 text-warning-text border-warning/20' },
-  CANCELED:         { label: 'Отменён',   cls: 'bg-destructive/10 text-destructive-text border-destructive/20' },
-  ERROR:            { label: 'Ошибка',    cls: 'bg-destructive/10 text-destructive-text border-destructive/20' },
-};
+export async function RecentOrdersFeedWidget({ tenantFilter, limit = 6 }: Props) {
+  const orders = await adminOrderService.getRecentOrders(limit, tenantFilter);
 
-function timeAgo(date: Date): string {
-  const diff = Date.now() - new Date(date).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'только что';
-  if (mins < 60) return `${mins}м назад`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}ч назад`;
-  return `${Math.floor(hours / 24)}д назад`;
-}
+  const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
+    COMPLETED:        { label: 'Выполнен',  cls: 'bg-success/10 text-success-text border-success/20' },
+    IN_PROGRESS:      { label: 'В работе',  cls: 'bg-primary/10 text-primary border-primary/20' },
+    PENDING:          { label: 'В очереди', cls: 'bg-warning/10 text-warning-text border-warning/20' },
+    AWAITING_PAYMENT: { label: 'Ожидает',   cls: 'bg-muted text-muted-foreground border-border' },
+    PARTIAL:          { label: 'Частично',  cls: 'bg-warning/10 text-warning-text border-warning/20' },
+    CANCELED:         { label: 'Отменён',   cls: 'bg-destructive/10 text-destructive-text border-destructive/20' },
+    ERROR:            { label: 'Ошибка',    cls: 'bg-destructive/10 text-destructive-text border-destructive/20' },
+  };
 
-export function RecentOrdersFeedWidget({ orders }: Props) {
+  function timeAgo(date: Date): string {
+    const diff = Date.now() - new Date(date).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'только что';
+    if (mins < 60) return `${mins}м назад`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}ч назад`;
+    return `${Math.floor(hours / 24)}д назад`;
+  }
   return (
     <div className="bg-card text-card-foreground rounded-lg p-5 border border-border/70 shadow-sm flex flex-col justify-between space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border/50 pb-3">
         <div className="flex items-center gap-2">
           <div className="p-1.5 rounded-md bg-sky-500/10 text-sky-600 dark:text-sky-400">
-            <Package className="w-4 h-4" />
+            <Package className="w-4 h-4 shrink-0" />
           </div>
           <div>
             <h4 className="font-bold text-xs uppercase tracking-wider text-foreground">
@@ -68,7 +53,7 @@ export function RecentOrdersFeedWidget({ orders }: Props) {
           className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-1"
         >
           <span>Все заказы</span>
-          <ArrowRight className="w-3 h-3" />
+          <ArrowRight className="w-3 h-3 shrink-0" />
         </Link>
       </div>
 
@@ -110,12 +95,12 @@ export function RecentOrdersFeedWidget({ orders }: Props) {
                     <div className="font-semibold text-foreground truncate max-w-[180px] sm:max-w-[240px]" title={o.service?.name}>
                       {o.service?.name || 'Услуга'}
                     </div>
-                    <div className="text-[10px] text-muted-foreground flex items-center gap-1.5 truncate">
+                    <div className="text-[10px] text-muted-foreground flex items-center gap-1.5 truncate min-w-0">
                       <span className="font-medium text-foreground/80">
                         {o.service?.category?.network?.name || '—'}
                       </span>
                       <span>•</span>
-                      <span className="truncate">{o.user.email}</span>
+                      <span className="truncate min-w-0">{o.user.email}</span>
                     </div>
                   </div>
                 </div>

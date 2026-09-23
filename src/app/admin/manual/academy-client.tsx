@@ -21,7 +21,8 @@ import {
   Compass,
   Calculator,
   UserCheck,
-  TrendingUp
+  TrendingUp,
+  Download
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { 
@@ -30,6 +31,7 @@ import {
   DifficultyLevel,
   ScenarioCategory
 } from '@/data/support-training-scenarios';
+import { InteractiveTextbook } from '@/components/admin/manual/interactive-textbook';
 
 interface AcademyClientProps {
   manualHtml: string;
@@ -40,7 +42,8 @@ interface AcademyClientProps {
 export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: AcademyClientProps) {
   // Navigation Modes: SHIFT (на смене) vs LEARN (обучение)
   const [activeMode, setActiveMode] = useState<'SHIFT' | 'LEARN'>('LEARN');
-  const [activeTab, setActiveTab] = useState<'simulator' | 'matrix' | 'cheatsheet' | 'handbook' | 'exam' | 'tech_db' | 'tech_analyzer' | 'tech_services' | 'tech_buttons' | 'tech_queues' | 'tech_multitenant'>('handbook');
+  const [activeTab, setActiveTab] = useState<'simulator' | 'matrix' | 'cheatsheet' | 'handbook' | 'exam' | 'tech_db' | 'tech_analyzer' | 'tech_services' | 'tech_buttons' | 'tech_queues' | 'tech_multitenant' | 'tech_settings'>('handbook');
+  const [manualPresentationMode, setManualPresentationMode] = useState<'INTERACTIVE' | 'TEXT'>('INTERACTIVE');
   const [selectedManualType, setSelectedManualType] = useState<'admin' | 'support'>('admin');
   const [buttonSearch, setButtonSearch] = useState('');
   const [handbookSearch, setHandbookSearch] = useState('');
@@ -300,8 +303,18 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
               <span>Визуальный Двойник</span>
             </button>
 
+            <a
+              href="/manual/OMNISMM_ADMIN_DESK_HANDBOOK_2026.docx"
+              download="OMNISMM_ADMIN_DESK_HANDBOOK_2026.docx"
+              className="px-2.5 py-1 text-xs font-bold rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 transition-colors flex items-center gap-1 cursor-pointer"
+              title="Скачать полную настольную книгу администратора в формате Microsoft Word (DOCX) для распечатки"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>📄 DOCX для печати</span>
+            </a>
+
             <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-700 dark:text-amber-400 font-bold text-xs">
-              <Award className="w-4 h-4 text-amber-500" />
+              <Award className="w-4 h-4 text-amber-500 shrink-0" />
               <span>{totalScore} / {maxPossibleScore} XP</span>
             </div>
 
@@ -320,7 +333,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
           <div className="p-4 sm:p-5 rounded-2xl bg-rose-500/5 border border-rose-500/30 shadow-md animate-in slide-in-from-top-2 duration-300 space-y-4">
             <div className="flex items-center justify-between border-b border-rose-500/20 pb-2">
               <h3 className="text-xs font-black text-rose-600 dark:text-rose-400 uppercase tracking-wider flex items-center gap-1.5">
-                <AlertTriangle className="w-4 h-4 text-rose-500" /> 🚨 SOS-Памятка Новичка: Первый день на смене (3 минуты)
+                <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" /> 🚨 SOS-Памятка Новичка: Первый день на смене (3 минуты)
               </h3>
               <span className="text-[10px] px-2 py-0.5 bg-rose-500/10 text-rose-600 rounded-md font-bold">
                 Zero-Training Shield
@@ -337,7 +350,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
                   onClick={() => handleCopy('«Здравствуйте! Взял ваш вопрос в работу. Сейчас поднимаю технические логи серверов по заказу и связываюсь со старшим инженером. Вернусь к вам с детальным решением в течение 10–15 минут!»', 'sos-magic')}
                   className="px-2.5 py-1 bg-rose-600 text-white text-[10px] font-bold rounded-lg hover:bg-rose-700 transition-colors flex items-center gap-1 cursor-pointer"
                 >
-                  {copiedId === 'sos-magic' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                  {copiedId === 'sos-magic' ? <Check className="w-3 h-3 shrink-0" /> : <Copy className="w-3 h-3" />}
                   <span>{copiedId === 'sos-magic' ? 'Скопировано!' : 'Скопировать спасительный скрипт'}</span>
                 </button>
               </div>
@@ -374,7 +387,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
           <div className="p-4 rounded-2xl bg-card border border-primary/20 shadow-sm animate-in slide-in-from-top-2 duration-300 space-y-3">
             <div className="flex items-center justify-between border-b border-border/50 pb-2">
               <h3 className="text-xs font-extrabold text-foreground uppercase tracking-wider flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-primary" /> Экспресс-Гид: Как работать с Академией
+                <Sparkles className="w-4 h-4 text-primary shrink-0" /> Экспресс-Гид: Как работать с Академией
               </h3>
               <span className="text-[11px] text-muted-foreground font-medium">Краткая памятка оператора</span>
             </div>
@@ -407,7 +420,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-primary/10 text-primary rounded-2xl ring-1 ring-primary/20 shrink-0">
-              <GraduationCap className="w-6 h-6" />
+              <GraduationCap className="w-6 h-6 shrink-0" />
             </div>
             <div>
               <h1 className="text-lg sm:text-xl font-extrabold text-foreground tracking-tight flex items-center gap-2 flex-wrap">
@@ -492,7 +505,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
                       onClick={() => handleCopy(item.script, `gs-${idx}`)}
                       className="px-2.5 py-1 bg-primary text-primary-foreground text-[10px] font-bold rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-1 cursor-pointer"
                     >
-                      {copiedId === `gs-${idx}` ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                      {copiedId === `gs-${idx}` ? <Check className="w-3 h-3 shrink-0" /> : <Copy className="w-3 h-3" />}
                       <span>{copiedId === `gs-${idx}` ? 'Скопировано!' : 'Копировать ответ'}</span>
                     </button>
                   </div>
@@ -623,6 +636,18 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
 
               <button
                 type="button"
+                onClick={() => setActiveTab('tech_settings')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer select-none ${
+                  activeTab === 'tech_settings'
+                    ? 'bg-primary text-primary-foreground shadow-xs'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                }`}
+              >
+                <span>⚙️ Настройки Системы</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setActiveTab('simulator')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer select-none ${
                   activeTab === 'simulator'
@@ -703,7 +728,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
                       <span className="text-lg">{sc.icon}</span>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-1 mb-0.5">
-                          <span className="text-xs font-bold truncate text-foreground">{sc.title}</span>
+                          <span className="text-xs font-bold truncate text-foreground min-w-0">{sc.title}</span>
                           {score !== undefined && (
                             <span className={`text-[10px] font-black font-mono px-1.5 py-0.2 rounded ${
                               score >= 100 ? 'bg-emerald-500/20 text-emerald-600' : 'bg-amber-500/20 text-amber-600'
@@ -839,7 +864,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
                             opt.isCorrect ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-800 dark:text-emerald-300' : 'bg-rose-500/10 border-rose-500/30 text-rose-800 dark:text-rose-300'
                           }`}>
                             <div className="font-bold flex items-center gap-1 mb-1">
-                              {opt.isCorrect ? <Check className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+                              {opt.isCorrect ? <Check className="w-4 h-4 shrink-0" /> : <AlertTriangle className="w-4 h-4" />}
                               Разбор решения ({opt.score}/100 XP):
                             </div>
                             <p className="leading-relaxed">{opt.analysis}</p>
@@ -867,7 +892,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
                   disabled={!selectedOptionId}
                   className="w-full h-11 bg-primary text-primary-foreground text-xs font-bold rounded-xl shadow-xs hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-2"
                 >
-                  <ShieldCheck className="w-4 h-4" />
+                  <ShieldCheck className="w-4 h-4 shrink-0" />
                   <span>Проверить ответ и разобрать последствия</span>
                 </button>
               ) : (
@@ -876,7 +901,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
                   <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-black text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
-                        <Check className="w-4 h-4" /> Эталонный ответ клиенту (Legal & Marketing Symbiosis):
+                        <Check className="w-4 h-4 shrink-0" /> Эталонный ответ клиенту (Legal & Marketing Symbiosis):
                       </span>
                       <button
                         type="button"
@@ -914,7 +939,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
                           className="inline-flex items-center gap-1 px-2.5 py-1 bg-background text-primary border border-border rounded-lg text-xs font-bold hover:bg-muted transition-all"
                         >
                           <span>{lnk.label}</span>
-                          <ExternalLink className="w-3 h-3" />
+                          <ExternalLink className="w-3 h-3 shrink-0" />
                         </Link>
                       ))}
                     </div>
@@ -932,7 +957,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
           <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-2xl p-6 shadow-sm ring-1 ring-border/5 space-y-6">
             <div>
               <h2 className="text-base font-extrabold text-foreground flex items-center gap-2">
-                <Compass className="w-5 h-5 text-primary" />
+                <Compass className="w-5 h-5 text-primary shrink-0" />
                 Интерактивная карта решений: «Услуга БЕЗ гарантии & Списания»
               </h2>
               <p className="text-xs text-muted-foreground mt-1">
@@ -944,7 +969,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
               {/* 1. LTV / Сегмент клиента */}
               <div className="space-y-2">
                 <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                  <UserCheck className="w-4 h-4 text-primary" /> 1. Сегмент клиента (LTV)
+                  <UserCheck className="w-4 h-4 text-primary shrink-0" /> 1. Сегмент клиента (LTV)
                 </label>
                 <div className="space-y-1.5">
                   {[
@@ -972,7 +997,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
               {/* 2. Тип тарифа */}
               <div className="space-y-2">
                 <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-primary" /> 2. Тариф услуги
+                  <ShieldCheck className="w-4 h-4 text-primary shrink-0" /> 2. Тариф услуги
                 </label>
                 <div className="space-y-1.5">
                   {[
@@ -998,7 +1023,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
               {/* 3. Суть проблемы */}
               <div className="space-y-2">
                 <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                  <AlertTriangle className="w-4 h-4 text-primary" /> 3. Суть обращения
+                  <AlertTriangle className="w-4 h-4 text-primary shrink-0" /> 3. Суть обращения
                 </label>
                 <div className="space-y-1.5">
                   {[
@@ -1071,7 +1096,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
         <div className="space-y-6">
           <div className="flex items-center justify-between gap-4">
             <div className="relative flex-1 max-w-md">
-              <Search className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
+              <Search className="w-4 h-4 absolute left-3 top-3 text-muted-foreground shrink-0" />
               <input
                 type="text"
                 value={cheatSearch}
@@ -1097,7 +1122,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
               return (
                 <div key={idx} className="bg-card/60 backdrop-blur-md border border-border/50 rounded-2xl p-5 shadow-sm ring-1 ring-border/5 space-y-4">
                   <h3 className="text-sm font-bold text-foreground flex items-center gap-2 border-b border-border/50 pb-3">
-                    <Zap className="w-4 h-4 text-primary" />
+                    <Zap className="w-4 h-4 text-primary shrink-0" />
                     {cat.category}
                   </h3>
 
@@ -1136,60 +1161,100 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
 
       {/* TAB 4: HANDBOOK & CODEBASE ARCHITECTURE */}
       {activeTab === 'handbook' && (
-        <div className="space-y-4">
-          {/* Top Manual Switcher Bar */}
-          <div className="flex items-center justify-between gap-3 flex-wrap bg-card border border-border/80 rounded-2xl p-2 shadow-xs">
+        <div className="space-y-6">
+          {/* Main Format Presentation Switcher */}
+          <div className="flex items-center justify-between gap-3 flex-wrap bg-card border border-border/80 rounded-2xl p-2.5 shadow-xs">
             <div className="flex items-center gap-1.5 p-1 bg-muted rounded-xl text-xs font-bold">
               <button
                 type="button"
-                onClick={() => setSelectedManualType('admin')}
-                className={`px-3.5 py-1.5 rounded-lg transition-all ${
-                  selectedManualType === 'admin'
+                onClick={() => setManualPresentationMode('INTERACTIVE')}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition-all cursor-pointer ${
+                  manualPresentationMode === 'INTERACTIVE'
                     ? 'bg-primary text-primary-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                📘 Мастер-Руководство SMMpanel 1.0 (Сисадмин & MVP)
+                <span>🎨 Интерактивный учебник с иллюстрациями</span>
+                <span className="px-1.5 py-0.2 rounded bg-background/20 text-[10px]">ГОСТ ЕСПД</span>
               </button>
-              {supportManualHtml && (
-                <button
-                  type="button"
-                  onClick={() => setSelectedManualType('support')}
-                  className={`px-3.5 py-1.5 rounded-lg transition-all ${
-                    selectedManualType === 'support'
-                      ? 'bg-primary text-primary-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  🎓 Академия Саппорта & Политики
-                </button>
-              )}
+
+              <button
+                type="button"
+                onClick={() => setManualPresentationMode('TEXT')}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition-all cursor-pointer ${
+                  manualPresentationMode === 'TEXT'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <span>📄 Полный текст руководства (Markdown)</span>
+              </button>
             </div>
 
-            {/* Section Quick Jump Buttons */}
-            {selectedManualType === 'admin' && (
-              <div className="flex items-center gap-1.5 text-[11px] font-semibold flex-wrap">
-                <a href="#раздел-0-архитектура-и-ключевые-инварианты" className="px-2.5 py-1 rounded-lg bg-muted hover:bg-muted/80 text-foreground transition-colors">
-                  0. Стек
-                </a>
-                <a href="#раздел-1-каталог-услуг-таксономия-и-импорт" className="px-2.5 py-1 rounded-lg bg-muted hover:bg-muted/80 text-foreground transition-colors">
-                  1. Каталог & Услуги
-                </a>
-                <a href="#раздел-2-операционный-центр-и-обработка-заказов" className="px-2.5 py-1 rounded-lg bg-muted hover:bg-muted/80 text-foreground transition-colors">
-                  2. Заказы & Refills
-                </a>
-                <a href="#раздел-3-финансы-54-фз-чеки-и-биллинг" className="px-2.5 py-1 rounded-lg bg-muted hover:bg-muted/80 text-foreground transition-colors">
-                  3. Финансы & 54-ФЗ
-                </a>
-                <a href="#раздел-4-команда-настройки-и-мульти-тенант" className="px-2.5 py-1 rounded-lg bg-muted hover:bg-muted/80 text-foreground transition-colors">
-                  4. Команда & Настройки
-                </a>
-                <a href="#чек-лист-готовности-к-запуску-mvp" className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold transition-colors">
-                  🎯 Чек-Лист MVP
-                </a>
-              </div>
-            )}
+            <span className="text-[11px] text-muted-foreground font-semibold px-2">
+              {manualPresentationMode === 'INTERACTIVE'
+                ? 'Режим иллюстрированного учебника с диаграммами и скриншотами'
+                : 'Режим классического чтения документации'}
+            </span>
           </div>
+
+          {manualPresentationMode === 'INTERACTIVE' ? (
+            <InteractiveTextbook />
+          ) : (
+            <div className="space-y-4">
+              {/* Top Manual Switcher Bar */}
+              <div className="flex items-center justify-between gap-3 flex-wrap bg-card border border-border/80 rounded-2xl p-2 shadow-xs">
+                <div className="flex items-center gap-1.5 p-1 bg-muted rounded-xl text-xs font-bold">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedManualType('admin')}
+                    className={`px-3.5 py-1.5 rounded-lg transition-all ${
+                      selectedManualType === 'admin'
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    📘 Мастер-Руководство OmniSMM 1.0 (Сисадмин & MVP)
+                  </button>
+                  {supportManualHtml && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedManualType('support')}
+                      className={`px-3.5 py-1.5 rounded-lg transition-all ${
+                        selectedManualType === 'support'
+                          ? 'bg-primary text-primary-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      🎓 Академия Саппорта & Политики
+                    </button>
+                  )}
+                </div>
+
+                {/* Section Quick Jump Buttons */}
+                {selectedManualType === 'admin' && (
+                  <div className="flex items-center gap-1.5 text-[11px] font-semibold flex-wrap">
+                    <a href="#раздел-0-архитектура-и-ключевые-инварианты" className="px-2.5 py-1 rounded-lg bg-muted hover:bg-muted/80 text-foreground transition-colors">
+                      0. Стек
+                    </a>
+                    <a href="#раздел-1-каталог-услуг-таксономия-и-импорт" className="px-2.5 py-1 rounded-lg bg-muted hover:bg-muted/80 text-foreground transition-colors">
+                      1. Каталог & Услуги
+                    </a>
+                    <a href="#раздел-2-операционный-центр-и-обработка-заказов" className="px-2.5 py-1 rounded-lg bg-muted hover:bg-muted/80 text-foreground transition-colors">
+                      2. Заказы & Refills
+                    </a>
+                    <a href="#раздел-3-финансы-54-фз-чеки-и-биллинг" className="px-2.5 py-1 rounded-lg bg-muted hover:bg-muted/80 text-foreground transition-colors">
+                      3. Финансы & 54-ФЗ
+                    </a>
+                    <a href="#раздел-4-команда-настройки-и-мульти-тенант" className="px-2.5 py-1 rounded-lg bg-muted hover:bg-muted/80 text-foreground transition-colors">
+                      4. Команда & Настройки
+                    </a>
+                    <a href="#чек-лист-готовности-к-запуску-mvp" className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold transition-colors">
+                      🎯 Чек-Лист MVP
+                    </a>
+                  </div>
+                )}
+              </div>
 
           <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* Sidebar TOC */}
@@ -1222,6 +1287,8 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
               />
             </main>
           </div>
+        </div>
+      )}
         </div>
       )}
 
@@ -1797,6 +1864,166 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
         </div>
       )}
 
+      {/* TAB TECH 7: SYSTEM SETTINGS & ARCHITECTURE */}
+      {activeTab === 'tech_settings' && (
+        <div className="space-y-6">
+          <div className="bg-card border border-border/80 rounded-3xl p-6 md:p-8 shadow-sm space-y-6">
+            <div className="flex items-center justify-between border-b border-border/60 pb-4 flex-wrap gap-3">
+              <div>
+                <h2 className="text-lg font-extrabold text-foreground flex items-center gap-2">
+                  <span>⚙️</span> Архитектура Настроек Системы & Безопасность (OmniSMM 1.0)
+                </h2>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Конфигурация параметров платформы, управление секретами Vault, аварийные механизмы и разграничение прав
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/admin/settings"
+                  className="px-3 py-1.5 bg-primary text-primary-foreground font-bold text-xs rounded-xl shadow-xs hover:opacity-90 transition-opacity flex items-center gap-1.5"
+                >
+                  <span>Открыть раздел настроек</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            </div>
+
+            {/* Grid of Settings Modules */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+              <div className="p-4 rounded-2xl bg-muted/30 border border-border space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold text-foreground flex items-center gap-1.5">
+                    <span>🛑</span> Режим техработ (KillSwitch)
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-rose-500/10 text-rose-600 font-bold text-[10px]">HTTP 503</span>
+                </div>
+                <p className="text-muted-foreground text-[11px] leading-relaxed">
+                  Аварийный рубильник в SystemSettings. Переводит витрины в защитный режим с сообщением о технических работах, не затрагивая админку.
+                </p>
+                <Link
+                  href="/admin/settings?tab=general"
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
+                >
+                  Общие настройки & KillSwitch →
+                </Link>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-muted/30 border border-border space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold text-foreground flex items-center gap-1.5">
+                    <span>📢</span> Telegram Bot P0 & Алерты
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-sky-500/10 text-sky-600 font-bold text-[10px]">P0 Alert</span>
+                </div>
+                <p className="text-muted-foreground text-[11px] leading-relaxed">
+                  Мгновенные оповещения в дежурный Telegram-канал при сбоях провайдеров, блокировках и финансовых аномалиях с защитой от 409 Conflict.
+                </p>
+                <Link
+                  href="/admin/settings?tab=telegram"
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
+                >
+                  Настройки Telegram-бота →
+                </Link>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-muted/30 border border-border space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold text-foreground flex items-center gap-1.5">
+                    <span>🌐</span> Прокси-пулы Провайдеров
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 font-bold text-[10px]">SOCKS5 / HTTP</span>
+                </div>
+                <p className="text-muted-foreground text-[11px] leading-relaxed">
+                  Маршрутизация запросов к API внешних провайдеров через изолированные прокси-ноды для обхода блокировок РКН и Cloudflare.
+                </p>
+                <Link
+                  href="/admin/settings?tab=proxies"
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
+                >
+                  Управление прокси →
+                </Link>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-muted/30 border border-border space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold text-foreground flex items-center gap-1.5">
+                    <span>🛡️</span> Роли и Доступы (RBAC)
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-purple-500/10 text-purple-600 font-bold text-[10px]">16 секций</span>
+                </div>
+                <p className="text-muted-foreground text-[11px] leading-relaxed">
+                  Матрица прав доступа: OWNER, ADMIN, SUPPORT, ACCOUNTANT с гранулярным контролем (Full, Read-Only, None) по каждому экрану.
+                </p>
+                <Link
+                  href="/admin/settings?tab=roles"
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
+                >
+                  Матрица прав персонала →
+                </Link>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-muted/30 border border-border space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold text-foreground flex items-center gap-1.5">
+                    <span>🎨</span> Брендинг и Мульти-Тенант
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 font-bold text-[10px]">SMMplan / SMMflux</span>
+                </div>
+                <p className="text-muted-foreground text-[11px] leading-relaxed">
+                  Логотипы, цветовые схемы, фавиконы и метаданные брендов для smmplan.pro и smmflux.ru с независимой изоляцией.
+                </p>
+                <Link
+                  href="/admin/settings?tab=branding"
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
+                >
+                  Брендинг и домены →
+                </Link>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-muted/30 border border-border space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold text-foreground flex items-center gap-1.5">
+                    <span>🚩</span> Feature Flags & CMS
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 font-bold text-[10px]">Zero-Downtime</span>
+                </div>
+                <p className="text-muted-foreground text-[11px] leading-relaxed">
+                  Мгновенное включение и отключение экспериментальных фичей (Drip-Feed, Free Promotion, CryptoBot) без пересборки контейнеров.
+                </p>
+                <Link
+                  href="/admin/system/features"
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
+                >
+                  Переключатели фич →
+                </Link>
+              </div>
+            </div>
+
+            {/* Quick Action to open Textbook domain */}
+            <div className="p-4 rounded-2xl bg-primary/5 border border-primary/20 flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-2.5">
+                <span className="text-lg">📖</span>
+                <div>
+                  <h4 className="text-xs font-bold text-foreground">Интерактивный учебник по Настройкам и Безопасности</h4>
+                  <p className="text-[11px] text-muted-foreground">Глава 45 ГОСТ ЕСПД: регламенты, хотспоты скриншотов, чек-листы и схемы</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('handbook');
+                  setManualPresentationMode('INTERACTIVE');
+                }}
+                className="px-3 py-1.5 bg-primary text-primary-foreground rounded-xl text-xs font-bold shadow-xs hover:opacity-90 transition-opacity cursor-pointer flex items-center gap-1"
+              >
+                <span>Читать главу в Учебнике</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* TAB 5: QUALIFICATION EXAM */}
       {activeTab === 'exam' && (
         <div className="max-w-2xl mx-auto space-y-6">
@@ -1849,7 +2076,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
                   className="w-full h-11 bg-primary text-primary-foreground text-xs font-bold rounded-xl shadow-xs hover:bg-primary/90 transition-all cursor-pointer flex items-center justify-center gap-2"
                 >
                   <span>{examStep < examScenarios.length - 1 ? 'Следующий вопрос' : 'Завершить экзамен'}</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight className="w-4 h-4 shrink-0" />
                 </button>
               </>
             ) : (

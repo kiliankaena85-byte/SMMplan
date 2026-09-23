@@ -12,6 +12,7 @@ import {
   BALANCE_ADJUSTMENT_DIRECTION,
   BALANCE_ADJUSTMENT_STATUS,
 } from "@/constants/balance-adjustments";
+import { isTenantAllowedForUser, resolveAdminTenantAsync } from "@/utils/admin-tenant";
 
 const createRequestSchema = z.object({
   userId: z.string().min(1, "Пользователь не выбран"),
@@ -125,14 +126,18 @@ export async function createBalanceAdjustmentRequestAction(formData: FormData) {
     }
 
     // Check target user
-    // tenant-isolation-ignore: manual IDOR check
     const targetUser = await db.user.findUnique({
       where: { id: data.userId },
-      select: { id: true, email: true, role: true, balance: true, isDeleted: true, isActive: true }
+      select: { id: true, email: true, role: true, balance: true, isDeleted: true, isActive: true, tenantId: true }
     });
 
     if (!targetUser) {
       return { success: false, error: "Целевой пользователь не найден" };
+    }
+
+    const targetTenant = targetUser.tenantId || 'smmplan';
+    if (!isTenantAllowedForUser(staffUser, targetTenant)) {
+      return { success: false, error: "У вас нет доступа к управлению балансом пользователей данного сайта/бренда" };
     }
 
     if (policy.blockDeletedTargets && targetUser.isDeleted) {
@@ -149,7 +154,6 @@ export async function createBalanceAdjustmentRequestAction(formData: FormData) {
 
     // Ticket requirement & existence check
     if (data.ticketId && data.ticketId.trim().length > 0) {
-      // tenant-isolation-ignore: manual IDOR check
       const ticket = await db.ticket.findUnique({ where: { id: data.ticketId } });
       if (!ticket) {
         return { success: false, error: "Указанный тикет поддержки не существует" };
@@ -224,6 +228,7 @@ export async function createBalanceAdjustmentRequestAction(formData: FormData) {
     const adjustment = await db.manualBalanceAdjustment.create({
       data: {
         userId: data.userId,
+        tenantId: targetTenant,
         requestedBy: staffUser.id,
         direction: data.direction,
         amount: amountBigInt,
@@ -256,7 +261,8 @@ export async function createBalanceAdjustmentRequestAction(formData: FormData) {
         amountCents: amountBigInt.toString(),
         reasonCode: data.reasonCode,
         ticketId: data.ticketId
-      }
+      },
+      tenantId: targetTenant
     });
 
     return {
@@ -284,6 +290,11 @@ export async function cancelBalanceAdjustmentRequestAction(formData: FormData) {
     const adjustment = await db.manualBalanceAdjustment.findUnique({ where: { id } });
     if (!adjustment) return { success: false, error: "Заявка не найдена" };
 
+    const adjTenant = adjustment.tenantId || 'smmplan';
+    if (!isTenantAllowedForUser(staffUser, adjTenant)) {
+      return { success: false, error: "У вас нет прав на отмену заявок пользователей данного бренда" };
+    }
+
     if (adjustment.requestedBy !== staffUser.id && staffUser.role !== 'OWNER' && staffUser.role !== 'ADMIN') {
       return { success: false, error: "Вы можете отменять только свои собственные заявки" };
     }
@@ -300,7 +311,7 @@ export async function cancelBalanceAdjustmentRequestAction(formData: FormData) {
           adjustment.userId,
           adjustment.amount,
           `Возврат средств: Заявка на возврат на карту отменена инициатором`,
-          { idempotencyKey: `refund_cancel_${adjustment.id}`, adminId: staffUser.id }
+          { idempotencyKey: `refund_cancel_${adjustment.id}`, adminId: staffUser.id, tenantId: adjTenant }
         );
       });
     }
@@ -317,7 +328,8 @@ export async function cancelBalanceAdjustmentRequestAction(formData: FormData) {
       target: adjustment.id,
       targetType: 'ManualBalanceAdjustment',
       oldValue: { status: adjustment.status },
-      newValue: { status: updated.status }
+      newValue: { status: updated.status },
+      tenantId: adjTenant
     });
 
     return { success: true, id: updated.id, status: updated.status };
@@ -336,6 +348,11 @@ export async function approveBalanceAdjustmentAction(formData: FormData) {
     });
 
     if (!adjustment) return { success: false, error: "Заявка не найдена" };
+
+    const adjTenant = adjustment.tenantId || adjustment.user?.tenantId || 'smmplan';
+    if (!isTenantAllowedForUser(approver, adjTenant)) {
+      return { success: false, error: "У вас нет прав на утверждение заявок пользователей данного бренда" };
+    }
 
     if (adjustment.status !== BALANCE_ADJUSTMENT_STATUS.PENDING_APPROVAL) {
       return { success: false, error: `Заявка находится в статусе ${adjustment.status} и не может быть подтверждена` };
@@ -360,7 +377,6 @@ export async function approveBalanceAdjustmentAction(formData: FormData) {
     }
 
     // Fresh Target User Revalidation before approval execution
-    // tenant-isolation-ignore: manual IDOR check
     const freshTargetUser = await db.user.findUnique({
       where: { id: adjustment.userId },
       select: { id: true, email: true, balance: true, isDeleted: true, isActive: true, role: true }
@@ -396,7 +412,6 @@ export async function approveBalanceAdjustmentAction(formData: FormData) {
     if (adjustment.reasonCode === 'REFUND_TO_CARD') {
       try {
         const payment = adjustment.paymentId
-          // tenant-isolation-ignore: manual IDOR check
           ? await db.payment.findUnique({ where: { id: adjustment.paymentId } })
           : null;
 
@@ -414,7 +429,7 @@ export async function approveBalanceAdjustmentAction(formData: FormData) {
             email: freshTargetUser.email || adjustment.user?.email,
             reason: adjustment.reasonNote || 'Возврат средств по заявке',
             idempotencyKey: `yoo_refund_${adjustment.id}`,
-            tenantId: payment.tenantId || adjustment.user?.tenantId || 'smmplan',
+            tenantId: adjTenant || payment.tenantId || adjustment.user?.tenantId || 'smmplan',
           });
           refundReceiptId = refundRes.receiptRegistration || refundRes.refundId;
         } else {
@@ -443,7 +458,6 @@ export async function approveBalanceAdjustmentAction(formData: FormData) {
         }
 
         if (refundReceiptId) {
-          // tenant-isolation-ignore: manual IDOR check
           await db.payment.update({
             where: { id: payment.id },
             data: { refundReceiptId }
@@ -501,7 +515,7 @@ export async function approveBalanceAdjustmentAction(formData: FormData) {
             adjustment.userId,
             adjustment.amount,
             `Корректировка баланса (заявка #${adjustment.id.slice(-6)}): ${adjustment.reasonCode}`,
-            { idempotencyKey: `manual_adjustment:${adjustment.id}`, adminId: approver.id }
+            { idempotencyKey: `manual_adjustment:${adjustment.id}`, adminId: approver.id, tenantId: adjTenant }
           );
         } else {
           res = await WalletOps.adminAdjust(
@@ -509,7 +523,7 @@ export async function approveBalanceAdjustmentAction(formData: FormData) {
             adjustment.userId,
             -adjustment.amount,
             `Корректировка баланса (заявка #${adjustment.id.slice(-6)}): ${adjustment.reasonCode}`,
-            { idempotencyKey: `manual_adjustment:${adjustment.id}`, adminId: approver.id, transactionType: 'ADJUSTMENT' }
+            { idempotencyKey: `manual_adjustment:${adjustment.id}`, adminId: approver.id, transactionType: 'ADJUSTMENT', tenantId: adjTenant }
           );
         }
 
@@ -537,7 +551,8 @@ export async function approveBalanceAdjustmentAction(formData: FormData) {
           direction: adjustment.direction,
           amountCents: adjustment.amount.toString(),
           ledgerEntryId: executionResult.entry.id
-        }
+        },
+        tenantId: adjTenant
       });
 
       return { success: true, id: adjustment.id, status: BALANCE_ADJUSTMENT_STATUS.EXECUTED };
@@ -559,7 +574,8 @@ export async function approveBalanceAdjustmentAction(formData: FormData) {
         action: 'BALANCE_ADJUSTMENT_EXECUTION_FAILED',
         target: adjustment.id,
         targetType: 'ManualBalanceAdjustment',
-        newValue: { error: errMsg }
+        newValue: { error: errMsg },
+        tenantId: adjTenant
       });
 
       return { success: false, error: `Сбой при зачислении/списании: ${errMsg}` };
@@ -587,6 +603,11 @@ export async function rejectBalanceAdjustmentAction(formData: FormData) {
     const adjustment = await db.manualBalanceAdjustment.findUnique({ where: { id } });
     if (!adjustment) return { success: false, error: "Заявка не найдена" };
 
+    const adjTenant = adjustment.tenantId || 'smmplan';
+    if (!isTenantAllowedForUser(rejecter, adjTenant)) {
+      return { success: false, error: "У вас нет прав на отклонение заявок пользователей данного бренда" };
+    }
+
     if (adjustment.status !== BALANCE_ADJUSTMENT_STATUS.PENDING_APPROVAL && adjustment.status !== BALANCE_ADJUSTMENT_STATUS.EXECUTION_FAILED) {
       return { success: false, error: `Заявка находится в статусе ${adjustment.status} и не может быть отклонена` };
     }
@@ -603,7 +624,7 @@ export async function rejectBalanceAdjustmentAction(formData: FormData) {
           adjustment.userId,
           adjustment.amount,
           `Возврат средств: Заявка на возврат на карту отклонена (${rejectionReason.trim()})`,
-          { idempotencyKey: `refund_reject_${adjustment.id}`, adminId: rejecter.id }
+          { idempotencyKey: `refund_reject_${adjustment.id}`, adminId: rejecter.id, tenantId: adjTenant }
         );
       });
     }
@@ -627,7 +648,8 @@ export async function rejectBalanceAdjustmentAction(formData: FormData) {
       newValue: {
         rejectedBy: rejecter.id,
         rejectionReason: rejectionReason.trim()
-      }
+      },
+      tenantId: adjTenant
     });
 
     return { success: true, id: updated.id, status: updated.status };
@@ -642,6 +664,9 @@ const getAdjustmentsSchema = z.object({
   reasonCode: z.string().optional(),
   ticketId: z.string().optional(),
   search: z.string().optional(),
+  tenantId: z.string().optional(),
+  tenant: z.string().optional(),
+  cursor: z.string().optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20)
 });
@@ -650,7 +675,9 @@ const getAdjustmentStatsSchema = z.object({
   requestedBy: z.string().optional(),
   direction: z.string().optional(),
   reasonCode: z.string().optional(),
-  status: z.string().optional()
+  status: z.string().optional(),
+  tenantId: z.string().optional(),
+  tenant: z.string().optional(),
 });
 
 export async function getBalanceAdjustmentsAction(formData: FormData) {
@@ -668,6 +695,14 @@ export async function getBalanceAdjustmentsAction(formData: FormData) {
 
     // Filter construction
     const where: Prisma.ManualBalanceAdjustmentWhereInput = {};
+
+    const requestedTenant = parsed.data.tenantId || parsed.data.tenant || (formData.get('tenantId') as string) || (formData.get('tenant') as string) || null;
+    const resolvedTenant = await resolveAdminTenantAsync(staffUser, requestedTenant);
+    if (resolvedTenant !== 'all') {
+      where.tenantId = resolvedTenant;
+    } else if (staffUser.role !== 'OWNER') {
+      where.tenantId = staffUser.tenantId || 'smmplan';
+    }
 
     if (!canViewAll) {
       where.requestedBy = staffUser.id;
@@ -694,7 +729,7 @@ export async function getBalanceAdjustmentsAction(formData: FormData) {
     const total = await db.manualBalanceAdjustment.count({ where });
     const items = await db.manualBalanceAdjustment.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       skip: (page - 1) * pageSize,
       take: pageSize,
       include: {
@@ -749,6 +784,15 @@ export async function getBalanceAdjustmentStatsAction(formData: FormData) {
 
     const { requestedBy, direction, reasonCode, status } = parsed.data;
     const where: Prisma.ManualBalanceAdjustmentWhereInput = {};
+
+    const requestedTenant = parsed.data.tenantId || parsed.data.tenant || (formData.get('tenantId') as string) || (formData.get('tenant') as string) || null;
+    const resolvedTenant = await resolveAdminTenantAsync(staffUser, requestedTenant);
+    if (resolvedTenant !== 'all') {
+      where.tenantId = resolvedTenant;
+    } else if (staffUser.role !== 'OWNER') {
+      where.tenantId = staffUser.tenantId || 'smmplan';
+    }
+
     if (!canViewAll) {
       where.requestedBy = staffUser.id;
     } else if (requestedBy) {
@@ -866,3 +910,7 @@ export async function getBalanceAdjustmentStatsAction(formData: FormData) {
     };
   });
 }
+
+export const requestManualBalanceAdjustmentAction = createBalanceAdjustmentRequestAction;
+export const getManualBalanceAdjustmentsAction = getBalanceAdjustmentsAction;
+

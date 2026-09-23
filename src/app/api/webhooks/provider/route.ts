@@ -92,23 +92,16 @@ export async function POST(req: Request) {
     console.info(`[Webhook] Received update signal for external ID: ${externalId}`);
 
     // 1. Find the order
-    let order = await db.order.findFirst({
+    const order = await db.order.findFirst({
       where: {
         status: { in: ["IN_PROGRESS", "PENDING_CHECK"] },
-        externalId
+        OR: [
+          { externalId },
+          { dripExternalIds: { has: externalId } }
+        ]
       },
       include: { service: true, user: { select: { email: true } } }
     });
-
-    if (!order) {
-      order = await db.order.findFirst({
-        where: {
-          status: { in: ["IN_PROGRESS", "PENDING_CHECK"] },
-          dripExternalIds: { has: externalId }
-        },
-        include: { service: true, user: { select: { email: true } } }
-      });
-    }
 
     if (!order) {
       console.info(`[Webhook] Order with external ID ${externalId} not found or not active.`);

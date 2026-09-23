@@ -2,6 +2,7 @@ import { adminTicketService } from '@/services/admin/ticket.service';
 import { getTemplates } from '@/actions/support/template';
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
+import { cookies, headers } from 'next/headers';
 import { UnifiedTicketsWorkspace } from './components/unified-workspace';
 import { resolveAdminTenantContext } from '@/utils/admin-tenant';
 
@@ -23,7 +24,8 @@ import { enforceSectionAccess } from '@/lib/server/rbac';
 import { getMSKMidnightUTC } from '@/services/admin/escrow.service';
 
 export default async function AdminTicketsPage({ searchParams }: Props) {
-  await enforceSectionAccess('tickets');
+  const user = await enforceSectionAccess('tickets');
+  const session = await verifySession();
   const params = await searchParams;
   const search = params.q || '';
   const statusFilter = params.status || 'ALL';
@@ -32,14 +34,13 @@ export default async function AdminTicketsPage({ searchParams }: Props) {
   const currentPage = Math.max(1, parseInt(params.page || '1', 10));
   const activeTicketId = params.ticketId || null;
 
-  const session = await verifySession();
-  const user = session ? await db.user.findUnique({
-    where: { id: session.userId },
-    include: { staffRole: { include: { permissions: true } } }
-  }) : null;
-
   const isOwner = user?.role === 'OWNER';
-  const effectiveTenant = resolveAdminTenantContext(user, params.tenant);
+  const cookieStore = await cookies();
+  const reqHeaders = await headers();
+  const cookieTenant = cookieStore.get('x_admin_tenant')?.value;
+  const headerTenant = reqHeaders.get('x-tenant-id') || undefined;
+  const effectiveParamTenant = params.tenant || cookieTenant || headerTenant;
+  const effectiveTenant = resolveAdminTenantContext(user, effectiveParamTenant, cookieTenant || headerTenant);
   const userAllowedTenants = isOwner
     ? undefined
     : (user?.allowedTenants && user.allowedTenants.length > 0 ? user.allowedTenants : [user?.tenantId || 'smmplan']);

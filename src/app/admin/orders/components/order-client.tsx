@@ -464,20 +464,20 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-muted/40 border-b border-border/60 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground select-none">
-              <th scope="col" className="py-2 px-3 w-[125px]">
+              <th scope="col" className="py-2 px-3 w-[125px] max-w-full">
                 <OrderSortableHeader title="ID" field="numericId" />
               </th>
-              <th scope="col" className="py-2 px-3 w-[160px]">
+              <th scope="col" className="py-2 px-3 w-[160px] max-w-full">
                 <OrderSortableHeader title="Клиент" field="client" />
               </th>
               <th scope="col" className="py-2.5 px-3">Информация о заказе</th>
-              <th scope="col" className="py-2 px-3 w-[130px]">
+              <th scope="col" className="py-2 px-3 w-[130px] max-w-full">
                 <OrderSortableHeader title="Дата" field="createdAt" />
               </th>
-              <th scope="col" className="py-2 px-3 w-[100px] text-right">
+              <th scope="col" className="py-2 px-3 w-[100px] max-w-full text-right">
                 <OrderSortableHeader title="Сумма" field="charge" align="right" />
               </th>
-              <th scope="col" className="py-2 px-3 w-[120px]">
+              <th scope="col" className="py-2 px-3 w-[120px] max-w-full">
                 <OrderSortableHeader title="Статус" field="status" />
               </th>
               <th scope="col" className="py-2.5 px-3 w-[90px] text-right">Действия</th>
@@ -683,7 +683,7 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
                 <span className="text-muted-foreground">Клиент:</span>
                 <Link
                   href={`/admin/clients?q=${encodeURIComponent(order.user.email)}`}
-                  className="font-semibold text-primary hover:underline truncate max-w-[200px]"
+                  className="font-semibold text-primary hover:underline truncate max-w-[200px] min-w-0"
                   onClick={(e) => e.stopPropagation()}
                 >
                   {order.user.email}

@@ -78,7 +78,7 @@ export function MobileCheckoutOrderSummary({
         ) : (
           <>
             <Zap className="w-4 h-4 fill-current shrink-0" />
-            <span className="truncate flex items-center gap-2">
+            <span className="truncate flex items-center gap-2 min-w-0">
               {hasDiscount && (
                 <span className="line-through opacity-70 text-xs font-semibold">
                   {(pricing!.originalTotalCents / 100).toFixed(2)} ₽

@@ -3,6 +3,7 @@ import { StorefrontKeyService } from '@/services/storefront/storefront-key.servi
 import { db } from '@/lib/db';
 
 export interface StorefrontContext {
+  keyId?: string;
   tenantId: string;
   tenantSlug: string;
   tenantName: string;

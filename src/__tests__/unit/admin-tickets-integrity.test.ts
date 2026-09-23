@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { getSupportSlaInfo } from '@/utils/support-sla';
 import { getMSKMidnightUTC } from '@/services/admin/escrow.service';
-import { OPERATIONS_TABS } from '@/components/admin/navigation-data';
+import { TICKETS_TABS } from '@/components/admin/navigation-data';
 
 describe('Admin Tickets Integrity & Contracts Suite (SIL-2026 Step 14)', () => {
   describe('Support SLA Day/Night Shift Calculations', () => {
@@ -37,8 +37,8 @@ describe('Admin Tickets Integrity & Contracts Suite (SIL-2026 Step 14)', () => {
   });
 
   describe('Navigation & Operations Cluster Integrity', () => {
-    it('verifies /admin/tickets is part of OPERATIONS_TABS navigation cluster', () => {
-      const ticketTab = OPERATIONS_TABS.find((t) => t.href === '/admin/tickets');
+    it('verifies /admin/tickets is part of TICKETS_TABS navigation cluster', () => {
+      const ticketTab = TICKETS_TABS.find((t) => t.href === '/admin/tickets');
       expect(ticketTab).toBeDefined();
       expect(ticketTab?.label).toBe('Тикеты поддержки');
     });

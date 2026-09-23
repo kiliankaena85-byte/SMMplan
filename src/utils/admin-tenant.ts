@@ -89,3 +89,28 @@ export function isTenantAllowedForUser(
 
   return allowed.includes(tenantId);
 }
+
+/**
+ * Asynchronously resolves the active tenant context for administrative queries.
+ * Automatically resolves cookies ('x_admin_tenant') and request headers ('x-tenant-id') on the server if omitted.
+ */
+export async function resolveAdminTenantAsync(
+  user: UserWithAllowedTenants | null,
+  urlTenantParam?: string | null,
+  cookieTenant?: string | null
+): Promise<string> {
+  let effectiveCookie = cookieTenant;
+  if (!effectiveCookie) {
+    try {
+      const { cookies, headers } = await import('next/headers');
+      const cookieStore = await cookies();
+      effectiveCookie = cookieStore.get('x_admin_tenant')?.value;
+      if (!effectiveCookie) {
+        const headerStore = await headers();
+        effectiveCookie = headerStore.get('x-tenant-id') || undefined;
+      }
+    } catch {}
+  }
+  return resolveAdminTenantContext(user, urlTenantParam, effectiveCookie);
+}
+

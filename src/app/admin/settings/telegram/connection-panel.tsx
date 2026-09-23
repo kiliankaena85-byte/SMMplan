@@ -85,7 +85,7 @@ export function ConnectionPanel({ settings, tenantId = 'smmplan', diagnostics, o
         <DialogContent className="sm:max-w-md bg-card border-border">
           <DialogHeader>
             <div className="flex items-center gap-3 text-rose-500 pb-2">
-              <AlertTriangle className="w-6 h-6" />
+              <AlertTriangle className="w-6 h-6 shrink-0" />
               <DialogTitle className="text-lg font-bold">Отвязать Telegram-бота?</DialogTitle>
             </div>
             <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
@@ -181,7 +181,7 @@ export function ConnectionPanel({ settings, tenantId = 'smmplan', diagnostics, o
             {settings.telegramBotToken && !isEditingToken ? (
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2 px-3 py-2 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-xl text-xs font-bold flex-1">
-                  <CheckCircle className="w-4 h-4" />
+                  <CheckCircle className="w-4 h-4 shrink-0" />
                   <span>Токен привязан (скрыт)</span>
                 </div>
                 <Button 
@@ -218,25 +218,25 @@ export function ConnectionPanel({ settings, tenantId = 'smmplan', diagnostics, o
           <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border/40">
             <div className="p-3 rounded-2xl bg-muted/20 border border-border/60 space-y-1">
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                <Server className="w-3 h-3 text-blue-400" /> Daemon
+                <Server className="w-3 h-3 text-blue-400 shrink-0" /> Daemon
               </span>
               <div className="flex items-center gap-1.5">
                 {diagnostics?.daemonRunning ? (
-                  <><Wifi className="w-4 h-4 text-emerald-400" /><span className="text-xs font-bold text-emerald-400">Active ({diagnostics.heartbeatAgeMs}ms)</span></>
+                  <><Wifi className="w-4 h-4 text-emerald-400 shrink-0" /><span className="text-xs font-bold text-emerald-400">Active ({diagnostics.heartbeatAgeMs}ms)</span></>
                 ) : (
-                  <><WifiOff className="w-4 h-4 text-rose-400" /><span className="text-xs font-bold text-rose-400">Stopped</span></>
+                  <><WifiOff className="w-4 h-4 text-rose-400 shrink-0" /><span className="text-xs font-bold text-rose-400">Stopped</span></>
                 )}
               </div>
             </div>
             <div className="p-3 rounded-2xl bg-muted/20 border border-border/60 space-y-1">
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                <Key className="w-3 h-3 text-amber-400" /> Proxy
+                <Key className="w-3 h-3 text-amber-400 shrink-0" /> Proxy
               </span>
               <div className="flex items-center gap-1.5">
                 {diagnostics?.proxy?.isActive ? (
-                  <><ShieldCheck className="w-4 h-4 text-emerald-400" /><span className="text-xs font-bold text-emerald-400">{diagnostics.proxy.label} ({diagnostics.proxy.protocol})</span></>
+                  <><ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" /><span className="text-xs font-bold text-emerald-400">{diagnostics.proxy.label} ({diagnostics.proxy.protocol})</span></>
                 ) : (
-                  <><AlertCircle className="w-4 h-4 text-zinc-500" /><span className="text-xs font-bold text-zinc-400">Direct</span></>
+                  <><AlertCircle className="w-4 h-4 text-zinc-500 shrink-0" /><span className="text-xs font-bold text-zinc-400">Direct</span></>
                 )}
               </div>
             </div>

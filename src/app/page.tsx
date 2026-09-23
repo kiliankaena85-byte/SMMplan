@@ -18,22 +18,45 @@ import { TENANTS } from "@/config/tenants";
 import { verifySession } from "@/lib/session";
 import { db } from "@/lib/db";
 import { headers, cookies } from "next/headers";
-import { normalizeTenantId } from "@/lib/tenant-resolver-edge";
+import { absoluteCanonical, getTenantSiteName, normalizeTenantId } from "@/lib/seo-helpers";
+import { resolveTenantUserBalance } from "@/lib/tenant-user-resolver";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
+  const reqHeaders = await headers();
+  const tenantId = normalizeTenantId(reqHeaders.get('x-tenant-id')) || 'smmplan';
   const settings = await SettingsProvider.getContactAndLegalSettings();
-  const siteName = settings.SITE_NAME || "SMMplan";
+  const siteName = getTenantSiteName(tenantId) || settings.SITE_NAME || "SMMplan";
+  const canonical = absoluteCanonical(tenantId, '/');
+  
+  const ogUrl = `${canonical.replace(/\/$/, '')}/api/og?tenant=${tenantId}&title=${encodeURIComponent(siteName + ' — Продвижение в соцсетях')}&subtitle=${encodeURIComponent(tenantId === 'flux' ? 'Экспресс-витрина от 1 шт • Без паролей • Мгновенный старт' : 'Оптовая API платформа от 1 шт • REST API v2 • Моментальный запуск')}&price=${encodeURIComponent('0.01 ₽ / шт')}`;
   
   return {
     title: `Продвижение подписчиков и просмотров в Telegram, Instagram, VK | ${siteName}`,
     description: settings.SITE_DESCRIPTION || "Оптовая платформа продвижения в соцсетях. Надежно и конфиденциально. Мгновенный старт.",
-    alternates: { canonical: '/' },
+    alternates: { canonical },
     openGraph: {
       title: `${siteName} — Продвижение в соцсетях`,
-      description: settings.SITE_DESCRIPTION || "Профессиональная продвижение подписчиков, просмотров, лайков для бизнеса.",
+      description: settings.SITE_DESCRIPTION || "Профессиональное продвижение подписчиков, просмотров, лайков для бизнеса.",
+      url: canonical,
+      siteName,
       type: "website",
+      locale: "ru_RU",
+      images: [
+        {
+          url: ogUrl,
+          width: 1200,
+          height: 630,
+          alt: `${siteName} — Продвижение в соцсетях`,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${siteName} — Продвижение в соцсетях`,
+      description: settings.SITE_DESCRIPTION || "Профессиональное продвижение подписчиков, просмотров, лайков для бизнеса.",
+      images: [ogUrl],
     },
   };
 }
@@ -73,7 +96,6 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
   const isHoldingParam = params.mode === "holding";
   const isHoldingMode = isHoldingParam || (isProdHost && params.contour !== "test");
 
-  let userBalanceCents = 0;
   const [catalogResult, settings, session, baseUrl] = await Promise.all([
     getPublicCatalogAction(tenantId),
     SettingsProvider.getContactAndLegalSettings(),
@@ -97,38 +119,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
   const tenantConfig = TENANTS.find(t => t.id === tenantId);
   const siteName = tenantConfig?.name || settings.SITE_NAME || "SMMplan";
 
-  // Resolve user session, email and balance
-  let userEmail: string | undefined = undefined;
-  if (session?.userId) {
-    const user = await db.user.findUnique({
-      where: { id: session.userId },
-      select: { email: true, balance: true }
-    });
-    if (user) {
-      userEmail = user.email;
-      userBalanceCents = Number(user.balance);
-    }
-  }
+  // Resolve user session, email and tenant-isolated balance (ст. 54.1 НК РФ)
+  const { userEmail, userBalanceCents } = await resolveTenantUserBalance(session?.userId, tenantId);
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "WebSite",
-            name: siteName,
-            url: baseUrl,
-            potentialAction: {
-              "@type": "SearchAction",
-              target: `${baseUrl}/?q={search_term_string}`,
-              "query-input": "required name=search_term_string",
-            },
-          }),
-        }}
-      />
-      
       {/* Static SEO block visible only to search engines */}
       <section id="services-catalog" className="sr-only">
         <h1>Продвижение подписчиков и просмотров в соцсетях</h1>
@@ -147,25 +142,25 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
       {/* Interactive App */}
       <div id="main-content" tabIndex={-1} className="outline-none">
         {tenantId === "flux" ? (
-          <div className="min-h-screen bg-background text-foreground font-sans flex flex-col relative overflow-x-clip">
+          <div className="min-h-screen bg-background text-foreground font-sans flex flex-col relative overflow-x-clip isolate">
             {/* ── SMMFLUX VIBRANT HERO BACKGROUND (Full Bleed - GPU Optimized Static Layer) ── */}
-            <div className="absolute top-0 inset-x-0 h-[2500px] z-0 pointer-events-none overflow-hidden select-none bg-background transform-gpu contain-paint">
+            <div className="absolute top-0 inset-x-0 h-[2500px] -z-10 pointer-events-none overflow-hidden select-none bg-background transform-gpu contain-paint max-w-full">
               <div
                 className="absolute inset-0 pointer-events-none"
                 style={{
                   background:
-                    'radial-gradient(65% 55% at 15% 0%, rgba(59, 130, 246, 0.70), transparent 70%), ' +
-                    'radial-gradient(55% 55% at 85% 5%, rgba(56, 189, 248, 0.60), transparent 70%), ' +
-                    'radial-gradient(65% 55% at 20% 40%, rgba(244, 63, 94, 0.60), transparent 70%), ' +
-                    'radial-gradient(55% 55% at 80% 50%, rgba(249, 115, 22, 0.55), transparent 70%), ' +
-                    'radial-gradient(70% 70% at 50% 25%, rgba(217, 70, 239, 0.65), transparent 75%)',
+                    'radial-gradient(65% 55% at 15% 0%, rgba(59, 130, 246, 0.28), transparent 70%), ' +
+                    'radial-gradient(55% 55% at 85% 5%, rgba(56, 189, 248, 0.22), transparent 70%), ' +
+                    'radial-gradient(65% 55% at 20% 40%, rgba(244, 63, 94, 0.20), transparent 70%), ' +
+                    'radial-gradient(55% 55% at 80% 50%, rgba(249, 115, 22, 0.18), transparent 70%), ' +
+                    'radial-gradient(70% 70% at 50% 25%, rgba(217, 70, 239, 0.22), transparent 75%)',
                 }}
               />
               {/* Saturated Mesh Color Orbs for signature punch & depth */}
-              <div className="absolute top-0 left-[2%] w-[700px] h-[700px] rounded-full bg-blue-500/45 blur-[120px] pointer-events-none" />
-              <div className="absolute top-4 left-[25%] w-[650px] h-[650px] rounded-full bg-purple-600/55 blur-[110px] pointer-events-none" />
-              <div className="absolute top-0 right-[5%] w-[700px] h-[700px] rounded-full bg-pink-500/50 blur-[120px] pointer-events-none" />
-              <div className="absolute top-20 right-[1%] w-[500px] h-[500px] rounded-full bg-orange-400/40 blur-[90px] pointer-events-none" />
+              <div className="absolute top-0 left-0 w-[300px] sm:w-[500px] md:w-[700px] h-[300px] sm:h-[500px] md:h-[700px] rounded-full bg-blue-500/20 blur-[90px] sm:blur-[120px] pointer-events-none" />
+              <div className="absolute top-4 left-[15%] w-[280px] sm:w-[450px] md:w-[600px] h-[280px] sm:h-[450px] md:h-[600px] rounded-full bg-purple-600/25 blur-[80px] sm:blur-[110px] pointer-events-none" />
+              <div className="absolute top-0 right-0 w-[300px] sm:w-[500px] md:w-[650px] h-[300px] sm:h-[500px] md:h-[650px] rounded-full bg-pink-500/20 blur-[90px] sm:blur-[120px] pointer-events-none" />
+              <div className="absolute top-20 right-[5%] w-[250px] sm:w-[400px] h-[250px] sm:h-[400px] rounded-full bg-orange-400/15 blur-[70px] sm:blur-[90px] pointer-events-none" />
 
               <div className="absolute bottom-0 inset-x-0 h-[400px] bg-gradient-to-t from-background via-background/80 to-transparent" />
             </div>
@@ -175,15 +170,24 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
             </div>
 
             <div className="flex-1 w-full max-w-screen-2xl mx-auto px-4 pt-2 md:pt-6 pb-2 md:pb-4 flex flex-col items-center relative z-10">
-              <FluxOrderClient initialCatalog={catalog} initialEmail={userEmail} userBalanceCents={userBalanceCents} tenantId={tenantId} />
+              <FluxOrderClient 
+                initialCatalog={catalog} 
+                initialEmail={userEmail} 
+                userBalanceCents={userBalanceCents} 
+                tenantId={tenantId}
+                initialNetworkId={initialNetworkId}
+                initialCategoryId={initialCategoryId}
+                initialServiceId={initialServiceId}
+                initialServices={initialServiceId ? (initialServices as any) : undefined}
+              />
             </div>
 
-            <div className="relative z-10 w-full my-2 md:my-4">
+            <div className="relative z-10 w-full mt-4 mb-8 sm:mb-12">
               <FluxTrustBar />
             </div>
 
             {/* Solid Underlay for lower page section */}
-            <div className="relative z-10 bg-card mx-2 sm:mx-4 lg:mx-6 rounded-t-[32px] md:rounded-t-[48px] shadow-[0_-8px_30px_rgb(0,0,0,0.04)] pt-12 pb-16">
+            <div className="relative z-10 bg-card mx-2 sm:mx-4 lg:mx-6 rounded-t-[32px] md:rounded-t-[48px] shadow-[0_-8px_30px_rgb(0,0,0,0.04)] border-t border-border/40 pt-12 pb-16">
               <FluxWhyUs companyName={siteName} />
               <FluxReviews />
               <FluxFAQ companyName={siteName} />

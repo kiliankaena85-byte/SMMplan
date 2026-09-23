@@ -191,7 +191,7 @@ export async function getTransactionsListAction(
       const pageSize = p.pageSize;
       const entries = await db.ledgerEntry.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         take: pageSize + 1,
         ...(p.cursor ? { cursor: { id: p.cursor }, skip: 1 } : {}),
         select: {

@@ -189,7 +189,7 @@ export default async function OrderStatusesDocPage() {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20">
-                <XCircle className="w-4 h-4 text-rose-500" />
+                <XCircle className="w-4 h-4 text-rose-500 shrink-0" />
                 CANCELED (Отменён)
               </span>
               <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
@@ -226,7 +226,7 @@ export default async function OrderStatusesDocPage() {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-red-500/10 text-red-700 dark:text-red-300 border border-red-500/20">
-                <AlertOctagon className="w-4 h-4 text-red-500" />
+                <AlertOctagon className="w-4 h-4 text-red-500 shrink-0" />
                 ERROR (Ошибка)
               </span>
               <span className="text-[11px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider">
@@ -262,7 +262,7 @@ export default async function OrderStatusesDocPage() {
       {/* Lifecycle Flow Visual Timeline */}
       <div className="p-5 rounded-2xl bg-card border border-border/70 shadow-xs space-y-4">
         <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-          <Zap className="w-4 h-4 text-primary" />
+          <Zap className="w-4 h-4 text-primary shrink-0" />
           <span>Диаграмма жизненного цикла заказа</span>
         </h3>
 
@@ -339,11 +339,11 @@ export default async function OrderStatusesDocPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-muted/40 border-b border-border/60 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground select-none">
-                <th className="py-3 px-4 w-[160px]">Статус</th>
-                <th className="py-3 px-4 w-[140px]">Кто выставляет</th>
-                <th className="py-3 px-4 w-[130px]">Баланс клиента</th>
-                <th className="py-3 px-4 min-w-[240px]">Техническое описание</th>
-                <th className="py-3 px-4 min-w-[260px]">Что отвечать клиенту</th>
+                <th className="py-3 px-4 w-[160px] max-w-full">Статус</th>
+                <th className="py-3 px-4 w-[140px] max-w-full">Кто выставляет</th>
+                <th className="py-3 px-4 w-[130px] max-w-full">Баланс клиента</th>
+                <th className="py-3 px-4 min-w-[240px] max-w-full">Техническое описание</th>
+                <th className="py-3 px-4 min-w-[260px] max-w-full">Что отвечать клиенту</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40 text-xs">
@@ -405,7 +405,7 @@ export default async function OrderStatusesDocPage() {
         <div className="flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-border/60">
           <div>
             <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-              <ShieldAlert className="w-4 h-4 text-rose-500" />
+              <ShieldAlert className="w-4 h-4 text-rose-500 shrink-0" />
               <span>Справочник кодов ошибок платформы и шлюзов (Error Codes Taxonomy)</span>
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5">

@@ -26,7 +26,7 @@ export default function RolesManagementLoading() {
       {/* ── 2. Top Action Bar Skeleton ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card border border-border/70 rounded-lg p-4 shadow-xs">
         <div className="space-y-1.5">
-          <Skeleton className="h-4 w-44 rounded-md" />
+          <Skeleton className="h-4 w-44 rounded-md shrink-0" />
           <Skeleton className="h-3 w-72 rounded-md" />
         </div>
         <Skeleton className="h-9 w-32 rounded-lg shrink-0" />
@@ -52,7 +52,7 @@ export default function RolesManagementLoading() {
                 <Skeleton className="h-4 w-16 rounded-full" />
               </div>
               <div className="w-[30%]">
-                <Skeleton className="h-3 w-48 rounded-md" />
+                <Skeleton className="h-3 w-48 rounded-md shrink-0" />
               </div>
               <div className="w-[15%]">
                 <Skeleton className="h-5 w-12 rounded-md" />

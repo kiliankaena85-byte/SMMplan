@@ -68,6 +68,23 @@ export function isPublicIp(rawIp: string): boolean {
     }
   }
 
+  // Carrier-Grade NAT (RFC 6598: 100.64.0.0/10)
+  if (ip.startsWith('100.')) {
+    const parts = ip.split('.');
+    if (parts.length >= 2) {
+      const secondOctet = parseInt(parts[1], 10);
+      if (secondOctet >= 64 && secondOctet <= 127) {
+        return false;
+      }
+    }
+  }
+
+  // Multicast (224.0.0.0/4) & Reserved (240.0.0.0/4)
+  const firstOctet = parseInt(ip.split('.')[0], 10);
+  if (!isNaN(firstOctet) && firstOctet >= 224) {
+    return false;
+  }
+
   // IPv6 Loopback, Unique Local, Link-Local, Cloud Metadata
   if (
     ip === '::1' ||
@@ -167,11 +184,11 @@ export async function resolveShortLink(rawUrl: string): Promise<string> {
     try {
       const parsed = new URL(currentUrl);
       if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-        return currentUrl;
+        return rawUrl;
       }
       const isAllowedHost = await isPublicHost(parsed.hostname);
       if (!isAllowedHost) {
-        return currentUrl;
+        return rawUrl;
       }
 
       const controller = new AbortController();

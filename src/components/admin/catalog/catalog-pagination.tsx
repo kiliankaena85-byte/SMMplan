@@ -243,7 +243,7 @@ export function CatalogPagination({
               title="Перейти на страницу"
               className="h-8 px-2 flex items-center justify-center rounded-lg border border-border/70 bg-card text-muted-foreground hover:text-foreground hover:bg-muted/80 disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer shadow-2xs active:scale-95"
             >
-              <ArrowRight className="w-3 h-3" />
+              <ArrowRight className="w-3 h-3 shrink-0" />
             </button>
           </form>
         )}

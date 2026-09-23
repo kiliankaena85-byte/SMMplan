@@ -1,84 +1,160 @@
 /**
+ * Domain alias map: maps sub-routes that are NOT directly listed in ADMIN_NAVIGATION
+ * to their logical sidebar parent domain. This prevents "ghost page" disappearance
+ * (sidebar losing all highlights) when navigating to these routes.
+ *
+ * Key   = route prefix (or exact path)
+ * Value = the sidebar href that should be highlighted
+ */
+export const SIDEBAR_DOMAIN_ALIASES: Record<string, string> = {
+  // Operations domain
+  '/admin/refills':            '/admin/orders',
+  '/admin/smart':              '/admin/orders',
+  '/admin/docs':               '/admin/orders',
+  // Finance domain
+  '/admin/marketing':          '/admin/finance',
+  '/admin/promocodes':         '/admin/finance',
+  '/admin/fraud-monitor':      '/admin/finance',
+  // Catalog domain — все суб-маршруты каталога
+  '/admin/services':           '/admin/catalog',
+  '/admin/catalog/import':     '/admin/catalog',
+  '/admin/catalog/categories': '/admin/catalog',
+  '/admin/catalog/networks':   '/admin/catalog',
+  '/admin/catalog/patterns':   '/admin/catalog',
+  '/admin/catalog/quarantine': '/admin/catalog',
+  '/admin/catalog/drift':      '/admin/catalog',
+  '/admin/catalog/sync':       '/admin/catalog',
+  // Analytics domain
+  '/admin/economics':          '/admin/analytics',
+  // Settings domain
+  '/admin/tenants':            '/admin/settings',
+  '/admin/pages':              '/admin/settings',
+  '/admin/knowledge':          '/admin/settings',
+  '/admin/system':             '/admin/settings',
+  '/admin/staff':              '/admin/settings',
+  '/admin/cms':                '/admin/settings',
+  '/admin/manual':             '/admin/settings',
+};
+
+/**
+ * Resolves the canonical sidebar href for the current pathname.
+ * For routes in SIDEBAR_DOMAIN_ALIASES, returns the aliased parent sidebar href.
+ * Otherwise returns the clean pathname unchanged.
+ */
+export function resolveSidebarDomain(pathname: string | null | undefined): string {
+  if (!pathname) return '';
+  const [cleanPath] = pathname.split('?');
+  if (SIDEBAR_DOMAIN_ALIASES[cleanPath]) return SIDEBAR_DOMAIN_ALIASES[cleanPath];
+  // Prefix match — longest match wins
+  let bestMatch = '';
+  for (const prefix of Object.keys(SIDEBAR_DOMAIN_ALIASES)) {
+    if ((cleanPath.startsWith(prefix + '/') || cleanPath === prefix) && prefix.length > bestMatch.length) {
+      bestMatch = prefix;
+    }
+  }
+  return bestMatch ? SIDEBAR_DOMAIN_ALIASES[bestMatch] : cleanPath;
+}
+
+/**
  * Calculates whether a navigation item is active using the Best Match Rule.
- * Prevents parent routes (e.g. /admin/catalog) from staying active when a more specific
- * child route (e.g. /admin/catalog/categories) is currently visited.
+ * Pass resolvedPathname (from resolveSidebarDomain) to support ghost-page aliasing.
  */
 export function isNavTabActive(
   pathname: string | null | undefined,
   tabHref: string,
-  allHrefs: string[]
+  allHrefs: string[],
+  resolvedPathname?: string,
 ): boolean {
   if (!pathname) return false;
 
-  // Exact match
-  if (pathname === tabHref) return true;
+  // Use the domain-resolved pathname if provided
+  const effectivePathname = resolvedPathname ?? pathname;
 
-  // Handle query params in tabHref (e.g., /admin/settings?tab=telegram)
+  if (effectivePathname === tabHref) return true;
+
   const [cleanTabPath] = tabHref.split('?');
-  const [cleanCurrentPath] = pathname.split('?');
-
-  if (cleanCurrentPath === cleanTabPath && !tabHref.includes('?')) return true;
-
-  // Dashboard is strictly exact match
+  const [cleanCurrentPath] = effectivePathname.split('?');
+  if (cleanCurrentPath === cleanTabPath && !tabHref.includes('?')) {
+    const hasSpecificQueryMatch = allHrefs.some((otherHref) => otherHref !== tabHref && otherHref === effectivePathname);
+    if (hasSpecificQueryMatch) return false;
+    const hasAnyQueryVariantInTabs = allHrefs.some((otherHref) => otherHref.startsWith(cleanTabPath + '?'));
+    if (hasAnyQueryVariantInTabs && effectivePathname.includes('?')) return false;
+    return true;
+  }
   if (cleanTabPath === '/admin/dashboard' || cleanTabPath === '/admin') {
-    return cleanCurrentPath === cleanTabPath;
+    return cleanCurrentPath === cleanTabPath || cleanCurrentPath.startsWith(cleanTabPath + '/');
   }
 
-  // Prefix match check: pathname must start with tabHref + '/'
   const isPrefixMatch = cleanCurrentPath.startsWith(cleanTabPath + '/');
   if (!isPrefixMatch) return false;
 
-  // Check if there is a more specific candidate in allHrefs that matches current path
   const hasMoreSpecificMatch = allHrefs.some((otherHref) => {
     if (otherHref === tabHref) return false;
     const [cleanOther] = otherHref.split('?');
     if (cleanOther === cleanTabPath) return false;
-
-    // other is a child of tabHref (e.g. /admin/catalog/categories is child of /admin/catalog)
     const isChild = cleanOther.startsWith(cleanTabPath + '/');
     if (!isChild) return false;
-
-    // And current path matches other
     return cleanCurrentPath === cleanOther || cleanCurrentPath.startsWith(cleanOther + '/');
   });
 
   return !hasMoreSpecificMatch;
 }
 
-export const OPERATIONS_TABS = [
-  { label: 'Сводка дашборда', href: '/admin/dashboard' },
-  { label: 'Заказы клиентов', href: '/admin/orders' },
+export const DASHBOARD_TABS = [
+  { label: 'Обзор', href: '/admin/dashboard' },
+];
+
+export const ORDERS_TABS = [
+  { label: 'Заказы', href: '/admin/orders' },
   { label: 'Заявки на докрутку', href: '/admin/refills' },
+  { label: 'Smart Drip-Feed', href: '/admin/smart' },
+];
+
+export const CLIENTS_TABS = [
+  { label: 'Клиенты', href: '/admin/clients' },
+];
+
+export const TICKETS_TABS = [
   { label: 'Тикеты поддержки', href: '/admin/tickets' },
 ];
 
 export const FINANCE_TABS = [
-  { label: 'Клиенты платформы', href: '/admin/clients' },
+  { label: 'Касса & P&L', href: '/admin/finance' },
+  { label: 'Казначейство & Вывод', href: '/admin/finance/treasury' },
+  { label: 'Запросы баланса', href: '/admin/finance/balance-requests' },
+  { label: 'Партнерская программа', href: '/admin/marketing' },
+  { label: 'Промокоды', href: '/admin/promocodes' },
+  { label: 'Fraud Monitor', href: '/admin/fraud-monitor' },
+];
+
+export const TRANSACTIONS_TABS = [
   { label: 'Транзакции (Ledger)', href: '/admin/transactions' },
-  { label: 'Финансы & P&L', href: '/admin/finance' },
-  { label: 'Казначейство & Банк', href: '/admin/finance/treasury' },
-  { label: 'Маркетинг и промокоды', href: '/admin/marketing' },
 ];
 
 export const CATALOG_TABS = [
-  { label: 'Каталог услуг', href: '/admin/catalog' },
+  { label: 'Каталог услуг',   href: '/admin/catalog' },
+  { label: 'Импорт услуг',    href: '/admin/catalog/import' },
+  { label: 'Категории',       href: '/admin/catalog/categories' },
+  { label: 'Соцсети',         href: '/admin/catalog/networks' },
   { label: 'Паттерны ссылок', href: '/admin/catalog/patterns' },
-  { label: 'Импорт услуг', href: '/admin/providers/import' },
+  { label: 'Карантин цен',    href: '/admin/catalog/quarantine' },
+  { label: 'Синхронизация',   href: '/admin/catalog/sync' },
+];
+
+// ✅ FIX [ADMIN-NAV-DOMAIN-2026]: Removed cross-domain link `/admin/settings?tab=proxy`.
+// Proxy management lives under Настройки → Платежи и Каналы (SYSTEM_TABS).
+// Импорт перенесён в домен Каталога (/admin/catalog/import).
+export const PROVIDERS_TABS = [
   { label: 'Провайдеры API', href: '/admin/providers' },
-  { label: 'Прокси провайдеров', href: '/admin/settings?tab=proxy' },
-  { label: 'Категории & Соцсети', href: '/admin/catalog/categories' },
-  { label: 'Карантин & Дрифт цен', href: '/admin/catalog/quarantine' },
 ];
 
 export const SYSTEM_TABS = [
-  { label: 'Глобальные настройки', href: '/admin/settings' },
-  { label: 'Telegram Бот', href: '/admin/settings?tab=telegram' },
-  { label: 'Прокси провайдеров', href: '/admin/settings?tab=proxy' },
-  { label: 'Роли и права', href: '/admin/settings/roles' },
   { label: 'Бренды & Домены', href: '/admin/tenants' },
+  { label: 'Сотрудники & Смены', href: '/admin/staff' },
   { label: 'CMS Страницы', href: '/admin/pages' },
   { label: 'Статьи блога', href: '/admin/knowledge' },
   { label: 'Фичи (Flags)', href: '/admin/system/features' },
+  { label: 'Учебник & Инструкция', href: '/admin/manual' },
 ];
 
 export const ONBOARDING_CONFIGS = {
@@ -131,6 +207,14 @@ export const ONBOARDING_CONFIGS = {
     docLink: '/admin/manual#4-платёжная-система'
   },
   marketing: {
+    description: 'Управление партнерской программой. Отслеживайте балансы рефералов, статистику по выплатам и LTV привлеченных пользователей.',
+    faqs: [
+      { q: 'Как начисляются партнерские выплаты?', a: 'Система автоматически зачисляет % от всех трат привлеченного пользователя на партнерский счет рефовода.' },
+      { q: 'Где увидеть график выплат?', a: 'На главном экране раздела отображается аналитика распределения комиссий по месяцам.' },
+    ],
+    docLink: '/admin/manual#10-внутренние-процессы'
+  },
+  promocodes: {
     description: 'Управление маркетинговыми инструментами: создание купонов на скидку (DISCOUNT) или ваучеров на баланс (VOUCHER).',
     faqs: [
       { q: 'В чем разница между ваучером и скидкой?', a: 'Ваучер начисляет фиксированную сумму в рублях на баланс клиента при активации. Скидка снижает розничную цену на услуги на заданный процент.' },
@@ -203,3 +287,4 @@ export const ONBOARDING_CONFIGS = {
     docLink: '/admin/manual#5-административная-панель'
   }
 };
+

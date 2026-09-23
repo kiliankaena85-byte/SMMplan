@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from "react";
 import { Info, HelpCircle, Zap } from "lucide-react";
 import { OrderEngine } from "@/hooks/useOrderEngine";

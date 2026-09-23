@@ -26,7 +26,7 @@ export function ReconciliationController({
     <div className="bg-card border border-border rounded-xl p-5 shadow-xs space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-          <SlidersHorizontal className="w-4 h-4 text-primary" />
+          <SlidersHorizontal className="w-4 h-4 text-primary shrink-0" />
           Сверка фактических остатков
         </h3>
         <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border">

@@ -15,8 +15,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const reqHeaders = await headers();
   const tenantId = normalizeTenantId(reqHeaders.get("x-tenant-id"));
 
-  const post = await prisma.contentItem.findUnique({
-    where: { slug: resolvedParams.slug },
+  const post = await prisma.contentItem.findFirst({
+    where: { slug: resolvedParams.slug, tenantId },
     select: { title: true, metaTitle: true, metaDescription: true },
   });
 

@@ -115,12 +115,12 @@ describe('Password Login Tests', () => {
     process.env.SMTP_PASSWORD = 'password';
 
     const res = await loginWithPasswordAction({}, formData);
-    expect(res).toEqual({ success: false, error: 'Для вашего аккаунта не установлен пароль. Пожалуйста, войдите по ссылке на почту.' });
+    expect(res).toEqual({ success: false, error: 'Для вашего аккаунта вход выполняется по ссылке. Пожалуйста, переключитесь на вкладку «Войти по ссылке».' });
 
     // Branch: SMTP down
     delete process.env.SMTP_HOST;
     const resNoSmtp = await loginWithPasswordAction({}, formData);
-    expect(resNoSmtp).toEqual({ success: false, error: 'Вход по ссылке временно недоступен (ошибка почты). Обратитесь в поддержку для установки пароля.' });
+    expect(resNoSmtp).toEqual({ success: false, error: 'Для вашего аккаунта вход выполняется по ссылке. Пожалуйста, переключитесь на вкладку «Войти по ссылке».' });
 
     process.env.SMTP_HOST = originalHost; // Restore
   });

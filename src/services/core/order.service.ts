@@ -9,6 +9,7 @@ import { CompensationService } from '@/services/financial/compensation.service';
 import { runSerializableTransaction } from '@/lib/transactions';
 
 import { ordersQueue } from '@/lib/queue-manager';
+import { ORDER_COOLING_OFF_MS } from '@/config/order-constants';
 
 /**
  * MANDATORY INTEGRITY WARNING:
@@ -53,7 +54,6 @@ class OrderService {
       // 2. Atomic Charge & Creation (Prevents Ghost Deductions)
       const newOrder = await runSerializableTransaction(async (tx) => {
         // 2a. Fetch User tenant and validate service tenant isolation
-        // tenant-isolation-ignore: manual IDOR check
         const user = await tx.user.findUnique({
           where: { id: userId },
           select: { id: true, tenantId: true }
@@ -69,7 +69,6 @@ class OrderService {
 
         const userTenantId = user.tenantId;
 
-        // tenant-isolation-ignore: manual IDOR check
         const service = await tx.service.findUnique({
           where: { id: input.serviceId },
           select: {
@@ -123,7 +122,7 @@ class OrderService {
         }
 
         const serviceTenantId = service.tenantId;
-        if (serviceTenantId !== userTenantId) {
+        if (serviceTenantId !== 'all' && serviceTenantId !== userTenantId) {
           // REMEDIATION HARDENING: Await SecurityEvent via root db to guarantee audit trail persistence
           try {
             await db.securityEvent.create({
@@ -217,7 +216,7 @@ class OrderService {
 
       // 3. Dispatch to Queues (Drip-feed is now passed natively to the provider)
       try {
-        await ordersQueue.add('order-dispatch', { orderId: newOrder.id }, { jobId: `dispatch-${newOrder.id}`, delay: 3 * 60 * 1000 });
+        await ordersQueue.add('order-dispatch', { orderId: newOrder.id }, { jobId: `dispatch-${newOrder.id}`, delay: ORDER_COOLING_OFF_MS });
       } catch (queueError: unknown) {
         // [FIN-006] Premortem Bugfix: Ghost Order Prevention.
         // If Redis is down, we MUST NOT fail the request since the balance is already charged 
@@ -229,10 +228,8 @@ class OrderService {
       // 4. Return success instantly to User Interface. No delays!
       // Email Notification (Fire and Forget)
       import('../../lib/smtp').then(({ sendOrderBalanceDebitMail }) => {
-        // tenant-isolation-ignore: manual IDOR check
         db.user.findUnique({ where: { id: userId }, select: { email: true, balance: true, tenantId: true } }).then(u => {
           if (u?.email) {
-            // tenant-isolation-ignore: manual IDOR check
             db.service.findUnique({ where: { id: input.serviceId }, select: { name: true } }).then(s => {
               if (s?.name) {
                 sendOrderBalanceDebitMail({
@@ -264,18 +261,22 @@ class OrderService {
    */
   async cancelPendingOrderClient(orderId: string, userId: string, tenantId?: string): Promise<{ success: boolean; error?: string }> {
     try {
-      return await runSerializableTransaction(async (tx) => {
-        // tenant-isolation-ignore: manual IDOR check
+      const result = await runSerializableTransaction(async (tx) => {
         const order = await tx.order.findUnique({
           where: { id: orderId }
         });
 
         if (!order || order.userId !== userId || (tenantId && order.tenantId !== tenantId)) {
-          return { success: false, error: 'Заказ не найден или доступ ограничен' };
+          return { success: false as const, error: 'Заказ не найден или доступ ограничен' };
         }
 
         if (order.status !== 'PENDING' && order.status !== 'AWAITING_PAYMENT') {
-          return { success: false, error: 'Заказ уже ушел в работу или отменен' };
+          return { success: false as const, error: 'Заказ уже ушел в работу или отменен' };
+        }
+
+        // Запрет отмены если заказ уже отправлен провайдеру
+        if (order.externalId || (order as unknown as { providerOrderId?: string }).providerOrderId) {
+          return { success: false as const, error: 'Заказ уже передан в обработку и не может быть отменён' };
         }
 
         const charge = order.charge; // totalCents
@@ -293,7 +294,7 @@ class OrderService {
         });
 
         if (updated.count === 0) {
-          return { success: false, error: 'Заказ уже ушел в работу или отменен' };
+          return { success: false as const, error: 'Заказ уже ушел в работу или отменен' };
         }
 
         // Cascade cancel associated SmartCampaign and pending SmartTasks
@@ -331,21 +332,31 @@ class OrderService {
           }
         }
 
-        // Email Notification for Canceled
-        import('../../lib/smtp').then(({ sendOrderCanceledMail }) => {
-          // tenant-isolation-ignore: manual IDOR check
-          db.user.findUnique({ where: { id: userId }, select: { email: true } }).then(u => {
-            if (u?.email) {
-              // tenant-isolation-ignore: manual IDOR check
-              db.service.findUnique({ where: { id: order.serviceId }, select: { name: true } }).then(s => {
-                if (s?.name) sendOrderCanceledMail(u.email, order.numericId.toString(), s.name, order.tenantId).catch(console.error);
-              });
-            }
-          });
-        });
-
-        return { success: true };
+        return {
+          success: true as const,
+          emailData: {
+            userId,
+            numericId: order.numericId,
+            serviceId: order.serviceId,
+            tenantId: order.tenantId,
+          }
+        };
       });
+
+      if (result.success && result.emailData) {
+        try {
+          const { sendOrderCanceledMail } = await import('../../lib/smtp');
+          const user = await db.user.findUnique({ where: { id: result.emailData.userId }, select: { email: true } });
+          const service = await db.service.findUnique({ where: { id: result.emailData.serviceId }, select: { name: true } });
+          if (user?.email && service?.name) {
+            await sendOrderCanceledMail(user.email, result.emailData.numericId.toString(), service.name, result.emailData.tenantId);
+          }
+        } catch (emailErr) {
+          console.error('[OrderService] Failed to send cancel email:', emailErr);
+        }
+      }
+
+      return { success: result.success, error: 'error' in result ? result.error : undefined };
     } catch (e: unknown) {
       console.error('[OrderService] cancelPendingOrderClient failed:', (e instanceof Error ? e.message : String(e)));
       return { success: false, error: 'Внутренняя ошибка при отмене заказа' };
@@ -398,7 +409,6 @@ class OrderService {
         // Once a terminal state (COMPLETED, CANCELED, PARTIAL, ERROR) is reached, we only allow updating remains for record keeping.
         if (['COMPLETED', 'CANCELED', 'PARTIAL', 'ERROR'].includes(order.status)) {
            if (order.remains !== remains) {
-              // tenant-isolation-ignore: manual IDOR check
               await tx.order.update({
                 where: { id: order.id },
                 data: { remains: Math.max(0, remains) }
@@ -411,8 +421,10 @@ class OrderService {
         
         // 3. Calculate Refund if status is terminal and non-complete
         // We only refund if transition is TO a terminal state FROM a non-terminal state
-        if (internalStatus === 'PARTIAL' || internalStatus === 'CANCELED') {
-           if (internalStatus === 'CANCELED' && (remains <= 0 || order.quantity <= 0)) {
+        if (internalStatus === 'PARTIAL' || internalStatus === 'CANCELED' || internalStatus === 'ERROR') {
+           if ((internalStatus === 'CANCELED' || internalStatus === 'ERROR') && (remains <= 0 || order.quantity <= 0)) {
+              refundCents = Number(order.charge);
+           } else if (internalStatus === 'ERROR') {
               refundCents = Number(order.charge);
            } else {
               refundCents = calculatePartialRefund({ remains, quantity: order.quantity, charge: order.charge });
@@ -421,7 +433,6 @@ class OrderService {
 
 
         // 4. Update Order
-        // tenant-isolation-ignore: manual IDOR check
         await tx.order.update({
           where: { id: order.id },
           data: {
@@ -473,7 +484,6 @@ class OrderService {
   async failOrderTerminal(orderId: string, reason: string, isRawReason: boolean = false): Promise<void> {
     try {
       const txResult = await runSerializableTransaction(async (tx) => {
-        // tenant-isolation-ignore: manual IDOR check
         const order = await tx.order.findUnique({
           where: { id: orderId },
           include: { user: true, service: true }
@@ -484,7 +494,6 @@ class OrderService {
         }
 
         // Update status
-        // tenant-isolation-ignore: manual IDOR check
         await tx.order.update({
           where: { id: order.id },
           data: { status: 'ERROR', updatedAt: new Date() }
@@ -557,7 +566,6 @@ class OrderService {
   async failOrderTerminalFast(orderId: string, reason: string): Promise<void> {
     try {
       const txResult = await runSerializableTransaction(async (tx) => {
-        // tenant-isolation-ignore: manual IDOR check
         const order = await tx.order.findUnique({
           where: { id: orderId },
           include: { user: true, service: true }
@@ -569,7 +577,6 @@ class OrderService {
         }
 
         // 1. Atomically change order status to CANCELED
-        // tenant-isolation-ignore: manual IDOR check
         await tx.order.update({
           where: { id: order.id },
           data: {

@@ -8,7 +8,7 @@ import {
   Sliders,
   Check
 } from 'lucide-react';
-import { useShortcuts, HotkeyConfig } from './shortcuts-provider';
+import { useShortcuts, type HotkeyConfig } from './shortcuts-context';
 
 interface ShortcutsModalProps {
   isOpen?: boolean;
@@ -42,7 +42,7 @@ export function ShortcutsModal({ isOpen = false, onClose }: ShortcutsModalProps)
         <div className="flex items-center justify-between pb-4 border-b border-border/50 mb-4">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-sm">
-              <Keyboard className="w-4 h-4" />
+              <Keyboard className="w-4 h-4 shrink-0" />
             </div>
             <div>
               <h3 className="text-base font-extrabold tracking-tight text-foreground">
@@ -66,7 +66,7 @@ export function ShortcutsModal({ isOpen = false, onClose }: ShortcutsModalProps)
         {/* Global On/Off Toggle & Reset */}
         <div className="flex items-center justify-between bg-muted/40 border border-border/50 rounded-xl p-3 mb-4">
           <div className="flex items-center gap-2.5">
-            <Sliders className="w-4 h-4 text-primary" />
+            <Sliders className="w-4 h-4 text-primary shrink-0" />
             <div>
               <div className="text-xs font-bold text-foreground">Глобальные горячие клавиши</div>
               <div className="text-[11px] text-muted-foreground">

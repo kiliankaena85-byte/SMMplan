@@ -22,6 +22,7 @@ import { ordersQueue } from '@/lib/queue-manager';
 import { redis } from '@/lib/redis';
 import { SettingsManager } from '@/lib/settings';
 import { CompensationService } from '@/services/financial/compensation.service';
+import { isTenantAllowedForUser } from '@/utils/admin-tenant';
 
 /**
  * MANDATORY INTEGRITY WARNING:
@@ -74,8 +75,8 @@ export async function cancelOrderAction(formData: FormData) {
           ? 'Запрос на отмену отправлен провайдеру. Средства удерживаются в эскроу до подтверждения.'
           : 'Заказ отменен, средства возвращены клиенту.',
       };
-    } catch (err: any) {
-      return { success: false as const, error: err?.message || 'Ошибка отмены заказа' };
+    } catch (err: unknown) {
+      return { success: false as const, error: err instanceof Error ? err.message : 'Ошибка отмены заказа' };
     }
   });
 }
@@ -83,14 +84,22 @@ export async function cancelOrderAction(formData: FormData) {
 export async function syncSingleOrderStatusAction(orderId: string) {
   return requireStaffPermission('orders', 'edit', async (admin) => {
     try {
+      const order = await db.order.findUnique({
+        where: { id: orderId },
+        select: { tenantId: true }
+      });
+      if (!order || !isTenantAllowedForUser(admin, order.tenantId)) {
+        return { success: false as const, error: 'Заказ не найден или доступ ограничен' };
+      }
+
       const result = await adminOrderService.syncOrderStatusWithProvider(orderId, {
         id: admin.id,
         email: admin.email,
       });
       revalidatePath('/admin/orders');
       return { success: true as const, ...result };
-    } catch (err: any) {
-      return { success: false as const, error: err?.message || 'Ошибка сверки статуса с провайдером' };
+    } catch (err: unknown) {
+      return { success: false as const, error: err instanceof Error ? err.message : 'Ошибка сверки статуса с провайдером' };
     }
   });
 }
@@ -100,6 +109,14 @@ export async function restartOrderAction(formData: FormData) {
     const parsed = orderIdSchema.safeParse(Object.fromEntries(formData.entries()));
     if (!parsed.success) return { success: false as const, error: 'Missing orderId' };
     const { orderId } = parsed.data;
+
+    const order = await db.order.findUnique({
+      where: { id: orderId },
+      select: { tenantId: true }
+    });
+    if (!order || !isTenantAllowedForUser(admin, order.tenantId)) {
+      return { success: false as const, error: 'Заказ не найден или доступ ограничен' };
+    }
 
     await adminOrderService.restartOrder(orderId, {
       id: admin.id,
@@ -137,6 +154,10 @@ export async function setOrderStatusAction(
         where: { id: validatedOrderId },
         include: { user: { select: { id: true, balance: true } } },
       });
+
+      if (!isTenantAllowedForUser(admin, order.tenantId)) {
+        throw new Error('Заказ не найден или доступ ограничен');
+      }
 
       const oldStatus = order.status;
       const newStatus = validatedStatus;
@@ -206,7 +227,6 @@ export async function setOrderStatusAction(
 
       const newRemains = validatedRemains ?? order.remains;
 
-      // tenant-isolation-ignore: manual IDOR check
       await tx.order.update({
         where: { id: validatedOrderId },
         data: {
@@ -244,7 +264,7 @@ export async function setOrderStatusAction(
       if (refundCents > 0) {
         await WalletOps.refund(tx, order.userId, refundCents,
           `Ручная смена статуса заказа #${order.numericId}: ${oldStatus}→${newStatus}`,
-          { adminId: admin.id, idempotencyKey: `refund_${order.id}_${newStatus}_${Date.now()}`, tenantId: order.tenantId }
+          { adminId: admin.id, idempotencyKey: `refund_${order.id}_${newStatus}`, tenantId: order.tenantId }
         );
       }
 
@@ -279,6 +299,10 @@ export async function forceCompleteOrderAction(orderId: string) {
         where: { id: orderId },
       });
 
+      if (!isTenantAllowedForUser(admin, order.tenantId)) {
+        throw new Error('Заказ не найден или доступ ограничен');
+      }
+
       if (['COMPLETED', 'CANCELED', 'ERROR', 'PARTIAL'].includes(order.status)) {
         throw new Error('Order is already in a terminal state');
       }
@@ -291,7 +315,6 @@ export async function forceCompleteOrderAction(orderId: string) {
       // CRITICAL FIX: Unpaid orders in AWAITING_PAYMENT must never generate refunds
       const refundCents = order.status === 'AWAITING_PAYMENT' ? 0 : calculatePartialRefund(order);
 
-      // tenant-isolation-ignore: manual IDOR check
       await tx.order.update({
         where: { id: orderId },
         data: {
@@ -348,7 +371,12 @@ export async function bulkCancelOrdersAction(
     const skippedCount = parsed.data.orderIds.length - targetIds.length;
 
     const orders = await db.order.findMany({
-      where: { id: { in: targetIds }, tenantId: admin.tenantId ?? 'smmplan' },
+      where: {
+        id: { in: targetIds },
+        ...(admin.role === 'OWNER'
+          ? {}
+          : { tenantId: { in: admin.allowedTenants?.length ? admin.allowedTenants : [admin.tenantId || 'smmplan'] } })
+      },
       select: { id: true, userId: true, numericId: true, status: true, charge: true, quantity: true, remains: true, providerCost: true }
     });
 
@@ -383,7 +411,12 @@ export async function bulkCancelOrdersAction(
         try {
           await runSerializableTransaction(async (tx) => {
             const safeOrder = await tx.order.findFirst({
-              where: { id: order.id, tenantId: admin.tenantId ?? 'smmplan' }
+              where: {
+                id: order.id,
+                ...(admin.role === 'OWNER'
+                  ? {}
+                  : { tenantId: { in: admin.allowedTenants?.length ? admin.allowedTenants : [admin.tenantId || 'smmplan'] } })
+              }
             });
             
             if (!safeOrder || ['CANCELED'].includes(safeOrder.status)) return; // Allow COMPLETED
@@ -412,7 +445,6 @@ export async function bulkCancelOrdersAction(
               refundCents = Math.max(0, calculatedRefundCents - Number(previousRefunds._sum.amount || 0));
             }
 
-            // tenant-isolation-ignore: manual IDOR check
             await tx.order.update({
               where: { id: safeOrder.id },
               data: { status: 'CANCELED' },
@@ -440,7 +472,7 @@ export async function bulkCancelOrdersAction(
             if (refundCents > 0) {
               await WalletOps.refund(tx, safeOrder.userId, refundCents,
                 `Массовая отмена заказа #${safeOrder.numericId}${reason ? ` (${reason})` : ''}`,
-                { adminId: admin.id, idempotencyKey: `refund_${safeOrder.id}_CANCELED_${Date.now()}`, tenantId: safeOrder.tenantId }
+                { adminId: admin.id, idempotencyKey: `refund_${safeOrder.id}_CANCELED`, tenantId: safeOrder.tenantId }
               );
             }
             totalRefunded += refundCents;
@@ -481,7 +513,9 @@ export async function bulkRestartOrdersAction(orderIds: string[]) {
     const orders = await db.order.findMany({
       where: {
         id: { in: targetIds },
-        ...(admin.tenantId ? { tenantId: admin.tenantId } : {})
+        ...(admin.role === 'OWNER'
+          ? {}
+          : { tenantId: { in: admin.allowedTenants?.length ? admin.allowedTenants : [admin.tenantId || 'smmplan'] } })
       }
     });
 
@@ -519,7 +553,12 @@ export async function bulkRestartOrdersAction(orderIds: string[]) {
 export async function getFailoverPreview(orderId: string) {
   return requireStaffPermission('orders', 'edit', async (admin) => {
     const order = await db.order.findFirst({
-      where: { id: orderId, tenantId: admin.tenantId ?? 'smmplan' },
+      where: {
+        id: orderId,
+        ...(admin.role === 'OWNER'
+          ? {}
+          : { tenantId: { in: admin.allowedTenants?.length ? admin.allowedTenants : [admin.tenantId || 'smmplan'] } })
+      },
       include: {
         service: {
           include: {
@@ -604,7 +643,12 @@ export async function manualRerouteOrder(orderId: string, newRouteId: string, ac
   return requireStaffPermission('orders', 'edit', async (admin) => {
     const result = await runSerializableTransaction(async (tx) => {
       const order = await tx.order.findFirst({
-        where: { id: orderId, tenantId: admin.tenantId ?? 'smmplan' },
+        where: {
+          id: orderId,
+          ...(admin.role === 'OWNER'
+            ? {}
+            : { tenantId: { in: admin.allowedTenants?.length ? admin.allowedTenants : [admin.tenantId || 'smmplan'] } })
+        },
         select: { id: true, numericId: true, status: true, charge: true, userId: true, serviceId: true, providerId: true }
       });
 
@@ -637,7 +681,6 @@ export async function manualRerouteOrder(orderId: string, newRouteId: string, ac
         throw new Error('Цена провайдера неизвестна. Синхронизируйте каталог или подтвердите reroute вслепую.');
       }
 
-      // tenant-isolation-ignore: manual IDOR check
       const user = await tx.user.findUnique({
         where: { id: order.userId },
         select: { balance: true }
@@ -661,7 +704,6 @@ export async function manualRerouteOrder(orderId: string, newRouteId: string, ac
       });
 
       // Обновление заказа
-      // tenant-isolation-ignore: manual IDOR check
       await tx.order.update({
         where: { id: orderId },
         data: {
@@ -715,7 +757,9 @@ export async function getOrderDetailsAction(orderId: string) {
     const order = await db.order.findFirst({
       where: {
         id: orderId,
-        ...(admin.tenantId ? { tenantId: admin.tenantId } : {})
+        ...(admin.role === 'OWNER'
+          ? {}
+          : { tenantId: { in: admin.allowedTenants?.length ? admin.allowedTenants : [admin.tenantId || 'smmplan'] } })
       },
       include: {
         user: { select: { email: true } },
@@ -789,7 +833,9 @@ export async function sendReorderOfferAction(orderId: string, customNote?: strin
     const order = await db.order.findFirst({
       where: {
         id: orderId,
-        ...(admin.tenantId ? { tenantId: admin.tenantId } : {})
+        ...(admin.role === 'OWNER'
+          ? {}
+          : { tenantId: { in: admin.allowedTenants?.length ? admin.allowedTenants : [admin.tenantId || 'smmplan'] } })
       },
       include: {
         user: { select: { id: true, email: true, balance: true } },

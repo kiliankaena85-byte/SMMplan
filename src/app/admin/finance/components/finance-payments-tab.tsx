@@ -162,7 +162,7 @@ export function FinancePaymentsTab({ initial, period: initPeriod, tenantId, curr
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider text-[10px]">Период:</span>
               <Select defaultValue={period} onValueChange={applyPeriod}>
-                <SelectTrigger className="w-[130px] h-9 text-xs" size="sm">
+                <SelectTrigger className="w-[130px] max-w-full h-9 text-xs" size="sm">
                   <SelectValue placeholder="Период">
                     {(value: string) => PERIOD_OPTIONS.find(p => p.value === value)?.label ?? value}
                   </SelectValue>
@@ -178,7 +178,7 @@ export function FinancePaymentsTab({ initial, period: initPeriod, tenantId, curr
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider text-[10px]">Статус:</span>
               <Select defaultValue={status} onValueChange={applyStatus}>
-                <SelectTrigger className="w-[140px] h-9 text-xs" size="sm">
+                <SelectTrigger className="w-[140px] max-w-full h-9 text-xs" size="sm">
                   <SelectValue placeholder="Статус">
                     {(value: string) => PAYMENT_STATUS_OPTIONS.find(s => s.value === value)?.label ?? value}
                   </SelectValue>
@@ -194,7 +194,7 @@ export function FinancePaymentsTab({ initial, period: initPeriod, tenantId, curr
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider text-[10px]">Шлюз:</span>
               <Select defaultValue={gateway} onValueChange={applyGateway}>
-                <SelectTrigger className="w-[130px] h-9 text-xs" size="sm">
+                <SelectTrigger className="w-[130px] max-w-full h-9 text-xs" size="sm">
                   <SelectValue placeholder="Шлюз">
                     {(value: string) => GATEWAY_OPTIONS.find(g => g.value === value)?.label ?? value}
                   </SelectValue>

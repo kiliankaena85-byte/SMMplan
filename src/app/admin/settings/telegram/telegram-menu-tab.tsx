@@ -161,7 +161,7 @@ export function TelegramMenuTab({ initialButtons, onButtonsChange, tenantId = 's
       <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-muted/20 border border-border/60">
         <div>
           <h3 className="text-sm font-extrabold text-foreground tracking-tight flex items-center gap-2">
-            <Smartphone className="w-4 h-4 text-primary" />
+            <Smartphone className="w-4 h-4 text-primary shrink-0" />
             Конструктор Telegram Reply Keyboard
           </h3>
           <p className="text-xs text-muted-foreground">
@@ -241,7 +241,7 @@ export function TelegramMenuTab({ initialButtons, onButtonsChange, tenantId = 's
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 min-w-0">
                           <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                            <Icon className="w-4 h-4" />
+                            <Icon className="w-4 h-4 shrink-0" />
                           </div>
                           <div className="min-w-0">
                             <input

@@ -129,7 +129,7 @@ export function IconPicker({
         <label className="text-xs font-semibold text-foreground/80 flex items-center justify-between">
           <span>{label}</span>
           {value && (
-            <span className="text-[10px] text-muted-foreground font-mono truncate max-w-[150px]">
+            <span className="text-[10px] text-muted-foreground font-mono truncate max-w-[150px] min-w-0">
               {value.startsWith('custom:') ? 'Свой SVG' : value}
             </span>
           )}
@@ -138,10 +138,13 @@ export function IconPicker({
 
       {/* Main trigger card */}
       <div className="flex items-center gap-2">
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={() => setIsOpen(true)}
+        {/* Outer trigger: div to avoid <button> inside <button> DOM nesting violation */}
+        <div
+          role="button"
+          tabIndex={disabled ? -1 : 0}
+          aria-disabled={disabled}
+          onClick={() => !disabled && setIsOpen(true)}
+          onKeyDown={(e) => !disabled && (e.key === 'Enter' || e.key === ' ') && setIsOpen(true)}
           className={`flex items-center gap-3 px-3 py-2 border rounded-xl bg-card hover:bg-accent/40 transition-all text-left w-full group ${
             disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
           } ${value ? 'border-primary/40 shadow-xs' : 'border-border/70 hover:border-border'}`}
@@ -150,15 +153,15 @@ export function IconPicker({
             {value ? (
               <UniversalIcon icon={value} size={20} />
             ) : (
-              <Sparkles className="w-4 h-4 text-muted-foreground/60" />
+              <Sparkles className="w-4 h-4 text-muted-foreground/60 shrink-0" />
             )}
           </div>
 
           <div className="flex flex-col min-w-0 flex-1">
-            <span className="text-xs font-medium text-foreground truncate">
+            <span className="text-xs font-medium text-foreground truncate min-w-0">
               {currentIconDef ? currentIconDef.label : (value ? (value.startsWith('custom:') ? 'Пользовательский SVG' : value) : 'Выбрать визуальную иконку')}
             </span>
-            <span className="text-[11px] text-muted-foreground truncate">
+            <span className="text-[11px] text-muted-foreground truncate min-w-0">
               {value ? 'Нажмите, чтобы изменить' : 'Кликните для выбора из каталога или вставки SVG'}
             </span>
           </div>
@@ -170,10 +173,10 @@ export function IconPicker({
               className="p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors shrink-0"
               title="Сбросить иконку"
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-3.5 h-3.5 shrink-0" />
             </button>
           )}
-        </button>
+        </div>
       </div>
 
       {/* Quick 1-Click Suggestions Chips */}
@@ -203,7 +206,7 @@ export function IconPicker({
           <DialogHeader className="p-4 pb-2 border-b border-border/50">
             <div className="flex items-center justify-between">
               <DialogTitle className="text-base font-semibold text-foreground flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-primary" />
+                <Sparkles className="w-4 h-4 text-primary shrink-0" />
                 Каталог SVG & Векторных иконок
               </DialogTitle>
             </div>
@@ -215,7 +218,7 @@ export function IconPicker({
           {/* Search & Tabs bar */}
           <div className="px-4 pt-3 pb-2 flex flex-col gap-2.5">
             <div className="relative">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground shrink-0" />
               <Input
                 placeholder="Поиск по названию, действию, тегам (рус/eng)..."
                 value={searchQuery}

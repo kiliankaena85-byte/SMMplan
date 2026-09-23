@@ -1,3 +1,5 @@
+'use client';
+
 import { useState } from 'react';
 
 export const ImageZoomModal = ({ url, onClose }: { url: string; onClose: () => void }) => {

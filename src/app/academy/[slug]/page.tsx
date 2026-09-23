@@ -21,8 +21,8 @@ export async function generateMetadata({ params }: AcademyArticlePageProps) {
   const tenantId = normalizeTenantId(reqHeaders.get('x-tenant-id'));
   const siteName = getTenantSiteName(tenantId);
 
-  const article = await db.contentItem.findUnique({
-    where: { slug, type: 'ACADEMY_LESSON', isPublished: true },
+  const article = await db.contentItem.findFirst({
+    where: { slug, type: 'ACADEMY_LESSON', isPublished: true, tenantId },
   });
 
   if (!article) {
@@ -55,11 +55,12 @@ export default async function AcademyArticlePage({ params }: AcademyArticlePageP
   const host = getTenantHost(tenantId);
 
   // Retrieve individual lesson
-  const article = await db.contentItem.findUnique({
+  const article = await db.contentItem.findFirst({
     where: {
       slug,
       type: 'ACADEMY_LESSON',
       isPublished: true,
+      tenantId: tenantId
     },
     include: {
       category: {

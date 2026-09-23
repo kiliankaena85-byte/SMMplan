@@ -79,7 +79,7 @@ export const bulkUpdateMarkupSchema = z.object({
 // Settings
 export const roleSchema = z.object({
   userId: z.string().min(1),
-  role: z.enum(['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT', 'USER', 'CLIENT', 'BANNED']),
+  role: z.enum(['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT', 'OPERATOR', 'USER', 'CLIENT', 'BANNED']),
   staffRoleId: z.string().nullable().optional(),
 });
 
@@ -87,6 +87,9 @@ export const createRoleSchema = z.object({
   name: z.string().trim().min(2, "Название должно быть не менее 2 символов").max(50, "Название не должно превышать 50 символов"),
   description: z.string().trim().max(200).optional().default(""),
 });
+
+const optionalNumber = (schema: z.ZodTypeAny) =>
+  z.preprocess((val) => (val === '' || val === null || val === undefined ? undefined : val), schema.optional());
 
 export const globalSettingsSchema = z.object({
   maintenanceMode: z.any().transform((val) => val === 'true' || val === 'on').optional(),
@@ -102,11 +105,11 @@ export const globalSettingsSchema = z.object({
   yookassaTestShopId: z.string().trim().max(150).nullable().optional(),
   yookassaTestSecretKey: z.string().trim().max(300).nullable().optional(),
   cryptoBotToken: z.string().trim().max(300).nullable().optional(),
-  exchangeRateUSD: z.coerce.number().min(0, "Курс не должен быть меньше 0").max(300, "Курс не должен превышать 300").optional(),
+  exchangeRateUSD: optionalNumber(z.coerce.number().min(0, "Курс не должен быть меньше 0").max(300, "Курс не должен превышать 300")),
   emailProvider: z.string().trim().max(100).optional(),
   resendApiKey: z.string().trim().max(300).nullable().optional(),
   smtpHost: z.string().trim().max(250).nullable().optional(),
-  smtpPort: z.coerce.number().int("Порт должен быть целым числом").min(1, "Минимальный порт: 1").max(65535, "Максимальный порт: 65535").optional(),
+  smtpPort: optionalNumber(z.coerce.number().int("Порт должен быть целым числом").min(1, "Минимальный порт: 1").max(65535, "Максимальный порт: 65535")),
   smtpUser: z.string().trim().max(250).nullable().optional(),
   smtpPassword: z.string().trim().max(300).nullable().optional(),
   supportEmailDomain: z.string().trim().regex(/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, "Некорректный формат домена (например, smmplan.pro)").or(z.literal("")).nullable().optional(),
@@ -136,11 +139,11 @@ export const globalSettingsSchema = z.object({
   robokassaLogin: z.string().trim().max(150).nullable().optional(),
   robokassaPassword: z.string().trim().max(300).nullable().optional(),
   robokassaWebhookPassword: z.string().trim().max(300).nullable().optional(),
-  taxRate: z.coerce.number().min(0, "Ставка налога не должна быть меньше 0%").max(100, "Ставка налога не должна превышать 100%").optional(),
-  opexMonthly: z.coerce.number().min(0, "Постоянные расходы не могут быть меньше 0").optional(),
-  quarantineThreshold: z.coerce.number().min(0, "Порог не должен быть меньше 0%").max(100, "Порог не должен превышать 100%").optional(),
-  globalMarkup: z.coerce.number().min(1.05, "Минимальная наценка: 1.05 (+5%)").max(100, "Наценка не должна превышать 100.0").optional(),
-  safetyFloor: z.coerce.number().min(1.05, "Порог безопасности не должен быть меньше 1.05 (+5%)").max(100, "Порог безопасности не должен превышать 100.0").optional(),
+  taxRate: optionalNumber(z.coerce.number().min(0, "Ставка налога не должна быть меньше 0%").max(100, "Ставка налога не должна превышать 100%")),
+  opexMonthly: optionalNumber(z.coerce.number().min(0, "Постоянные расходы не могут быть меньше 0")),
+  quarantineThreshold: optionalNumber(z.coerce.number().min(0, "Порог не должен быть меньше 0%").max(100, "Порог не должен превышать 100%")),
+  globalMarkup: optionalNumber(z.coerce.number().min(1.05, "Минимальная наценка: 1.05 (+5%)").max(100, "Наценка не должна превышать 100.0")),
+  safetyFloor: optionalNumber(z.coerce.number().min(1.05, "Порог безопасности не должен быть меньше 1.05 (+5%)").max(100, "Порог безопасности не должен превышать 100.0")),
   siteLogoUrl: z.string().trim().max(500).nullable().optional().transform((val) => (val === '' ? null : val)),
   siteFaviconUrl: z.string().trim().max(500).nullable().optional().transform((val) => (val === '' ? null : val)),
   geminiApiKeys: z.string().trim().max(2000).nullable().optional(),

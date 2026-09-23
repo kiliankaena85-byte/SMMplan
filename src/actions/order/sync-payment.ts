@@ -10,9 +10,9 @@ import { paymentService } from '@/services/financial/payment.service';
  * совершая прямой REST-запрос к ЮKassa для обхода задержек вебхуков.
  * Возвращает true, если хотя бы один платеж был успешно синхронизирован.
  */
-export async function forceSyncMyPaymentsAction(): Promise<boolean> {
+export async function forceSyncMyPaymentsAction(): Promise<{ success: boolean; anySynced?: boolean; error?: string }> {
   const session = await verifySession();
-  if (!session) return false;
+  if (!session) return { success: false, error: 'Необходима авторизация' };
 
   let anySynced = false;
 
@@ -29,13 +29,13 @@ export async function forceSyncMyPaymentsAction(): Promise<boolean> {
       take: 5 // Ограничим чтобы не повесить API ЮKassa
     });
 
-    if (pendingPayments.length === 0) return false;
+    if (pendingPayments.length === 0) return { success: true, anySynced: false };
 
     const tenantId = session.tenantId || 'smmplan';
     const secrets = await SettingsManager.getPaymentSecrets(tenantId);
     const shopId = secrets.yookassaShopId;
     const secretKey = secrets.yookassaSecretKey;
-    if (!shopId || !secretKey) return false;
+    if (!shopId || !secretKey) return { success: false, error: 'Платежный шлюз не настроен' };
 
     const authHeader = 'Basic ' + Buffer.from(`${shopId}:${secretKey}`).toString('base64');
     const isTestMode = await SettingsManager.isTestMode(tenantId);
@@ -71,9 +71,9 @@ export async function forceSyncMyPaymentsAction(): Promise<boolean> {
       }
     }
 
-    return anySynced;
+    return { success: true, anySynced };
   } catch (error) {
     console.error(`[AutoSync] Фатальная ошибка:`, error);
-    return false;
+    return { success: false, error: error instanceof Error ? error.message : 'Ошибка синхронизации платежей' };
   }
 }

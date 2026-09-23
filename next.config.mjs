@@ -37,11 +37,15 @@ function buildAllowedOrigins() {
     'localhost',
     'localhost:3000',
     'localhost:3001',
+    'localhost:3005',
     '127.0.0.1',
     '127.0.0.1:3000',
     '127.0.0.1:3001',
+    '127.0.0.1:3005',
     '0.0.0.0:3000',
+    '0.0.0.0:3005',
     'host.docker.internal:3000',
+    'host.docker.internal:3005',
     '192.168.*',
     '192.168.*:3000',
     '10.*',
@@ -93,13 +97,20 @@ const nextConfig = {
   poweredByHeader: false,
   serverExternalPackages: ["@blocknote/core", "@blocknote/react", "@blocknote/server-util"],
 
-  // TypeScript строгий гейт проверяется через 'npx tsc --noEmit' в preflight / CI.
-  // Во время standalone сборки next build внутренний воркер tsc потребляет > 2.5GB RAM и вызывает OOM (код 134).
-  typescript: { ignoreBuildErrors: true },
+  typescript: { ignoreBuildErrors: false },
 
   transpilePackages: ["@base-ui/react"],
 
   experimental: {
+    optimizePackageImports: [
+      'lucide-react',
+      'recharts',
+      '@heroui/react',
+      '@heroui/theme',
+      '@mantine/core',
+      '@mantine/hooks',
+      'react-icons',
+    ],
     serverActions: {
       bodySizeLimit: '2mb',
       allowedOrigins: dynamicOrigins,
@@ -124,6 +135,16 @@ const nextConfig = {
       {
         source: '/services/vkontakte',
         destination: '/services/vk',
+        permanent: true,
+      },
+      {
+        source: '/ab-lovable',
+        destination: '/?tenant=flux',
+        permanent: true,
+      },
+      {
+        source: '/ab-lovable/:path*',
+        destination: '/?tenant=flux',
         permanent: true,
       },
     ];

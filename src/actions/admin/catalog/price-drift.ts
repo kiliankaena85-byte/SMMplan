@@ -27,7 +27,9 @@ export type DriftCandidate = {
 export async function getDriftCandidatesAction(): Promise<{ success: true; data: DriftCandidate[] } | { success: false; error: string }> {
   return requireStaffPermission('catalog', 'view', async (admin) => {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const tenantFilter = admin.tenantId ? { tenantId: admin.tenantId } : {};
+    const tenantFilter = (admin.role === 'OWNER' || admin.role === 'ADMIN')
+      ? {}
+      : { tenantId: { in: [admin.tenantId || 'smmplan', 'all'] } };
 
     const services = await db.service.findMany({
       where: {
@@ -142,7 +144,6 @@ export async function getServicePriceHistoryAction(serviceId: string) {
  */
 export async function compensateServiceMarginAction(serviceId: string) {
   return requireStaffPermission('finance', 'edit', async (admin) => {
-    // tenant-isolation-ignore: manual IDOR check
     const service = await db.service.findUnique({
       where: { id: serviceId }
     });
@@ -158,7 +159,6 @@ export async function compensateServiceMarginAction(serviceId: string) {
       return { success: true, message: 'Цена уже соответствует марже' };
     }
 
-    // tenant-isolation-ignore: manual IDOR check
     await db.service.update({
       where: { id: serviceId },
       data: {

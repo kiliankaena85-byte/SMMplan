@@ -44,7 +44,7 @@ describe('Admin Panel Exhaustive Backend Audit — 33 Subtabs & Action Handlers'
 
     // 3. Setup Category
     const cat = await db.category.upsert({
-      where: { slug: 'audit-exhaustive-cat' },
+      where: { tenantId_slug: { tenantId: 'all', slug: 'audit-exhaustive-cat' } },
       update: { tenantId: 'all' },
       create: {
         name: 'Audit Exhaustive Category',

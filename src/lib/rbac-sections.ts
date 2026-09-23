@@ -1,11 +1,26 @@
-export type RbacSectionId =
+export type RbacCanonicalSectionId =
   | 'dashboard' | 'clients' | 'orders' | 'refills' | 'tickets'
   | 'catalog' | 'providers' | 'marketing' | 'content'
   | 'finance' | 'balance_requests' | 'balance_approvals' | 'balance_stats'
   | 'balance_policy' | 'analytics' | 'settings';
 
+export type RbacSectionAlias = 'support' | 'staff';
+
+export type RbacSectionId = RbacCanonicalSectionId | RbacSectionAlias;
+export type StaffPermissionSection = RbacSectionId;
+
+export const RBAC_SECTION_ALIASES: Record<string, RbacCanonicalSectionId> = {
+  support: 'tickets',
+  staff: 'settings',
+};
+
+export function normalizeRbacSection(section: string): RbacCanonicalSectionId {
+  const lower = section.toLowerCase().trim();
+  return RBAC_SECTION_ALIASES[lower] || (lower as RbacCanonicalSectionId);
+}
+
 export const RBAC_SECTIONS: ReadonlyArray<{
-  id: RbacSectionId;
+  id: RbacCanonicalSectionId;
   label: string;
   group: string;
   description: string;
@@ -27,3 +42,4 @@ export const RBAC_SECTIONS: ReadonlyArray<{
   { id: 'analytics',        label: 'Аналитика',              group: 'Аналитика',description: 'Воронки, LTV, прибыльность' },
   { id: 'settings',         label: 'Настройки и система',    group: 'Система',  description: 'Глобальные настройки, бренды, фичи, антифрод' },
 ];
+

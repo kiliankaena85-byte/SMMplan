@@ -1,4 +1,4 @@
-import { compileServiceMetrics, normalizeGeo } from './src/utils/translation-dictionary';
+import { compileServiceMetrics, normalizeGeo } from '@/utils/translation-dictionary';
 import fs from 'fs';
 
 const PROVIDERS = [
