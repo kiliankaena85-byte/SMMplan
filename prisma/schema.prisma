@@ -121,6 +121,7 @@ model User {
   @@unique([email, tenantId])
   @@unique([phoneHash, tenantId])
   @@index([tenantId])
+  @@index([telegramId, tenantId])
   @@index([customerGroupId])
   @@index([createdAt(sort: Desc), id(sort: Desc)])
   @@index([tenantId, createdAt(sort: Desc), id(sort: Desc)])
@@ -392,6 +393,10 @@ model Provider {
   proxyId   String?            @unique
   proxy     ProviderProxy?     @relation(fields: [proxyId], references: [id], onDelete: SetNull)
   proxyLogs ProviderProxyLog[]
+
+  // Hot-path index: 19 query sites filter providers by isActive (admin lists, sync workers,
+  // routing/fallback selection). Provider had no indexes at all before this migration.
+  @@index([isActive])
 }
 
 model ProviderProxy {
