@@ -57,6 +57,17 @@ stream-promotion-services.json
 curl_out.txt
 *.dump.json
 *.dump
+*.sql.gz
+pre_cleanup_backup.dump
+
+# ── One-off rollback/migration artefacts that must not be committed ──
+# (v2_backup.ts / fix.js / scripts/auto-fix-linter.js were committed during an
+#  emergency rollback on 2026-09-22 and removed from main afterwards — see AUDIT-2026-09-23)
+v2_backup.ts
+fix.js
+scripts/auto-fix-linter.js
+tunnel.err
+*.err
 
 # ── SQLite dev database ──
 prisma/dev.db
