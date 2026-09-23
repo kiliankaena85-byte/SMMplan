@@ -5,6 +5,7 @@ import { unstable_cache, revalidateTag } from "next/cache";
 import { normalizeTenantId } from "@/lib/tenant-resolver-edge";
 
 const localSettingsCache: Record<string, { data: SystemSettings; expiresAt: number }> = {};
+const tenantRecordIdMemoryCache = new Map<string, string>();
 const CACHE_TTL_MS = 60 * 1000; // 1 minute cache for workers
 
 export interface DecryptedPaymentSecrets {
@@ -67,10 +68,13 @@ export class SettingsProvider {
       const cleanSlug = normalizeTenantId(tenantId) || 'smmplan';
       delete localSettingsCache[cleanSlug];
       delete localSettingsCache[tenantId];
+      tenantRecordIdMemoryCache.delete(cleanSlug);
+      tenantRecordIdMemoryCache.delete(tenantId);
     } else {
       for (const k of Object.keys(localSettingsCache)) {
         delete localSettingsCache[k];
       }
+      tenantRecordIdMemoryCache.clear();
     }
   }
 
@@ -154,10 +158,17 @@ export class SettingsProvider {
    */
   static async resolveTenantRecordId(tenantSlug: string): Promise<string> {
     const slug = normalizeTenantId(tenantSlug) || 'smmplan';
+    const cachedId = tenantRecordIdMemoryCache.get(slug);
+    if (cachedId) return cachedId;
+
     const tenant = await db.tenant.findUnique({ where: { slug } }) 
       || await db.tenant.findFirst({ where: { slug: 'smmplan' } })
       || await db.tenant.findFirst();
-    if (tenant) return tenant.id;
+    if (tenant) {
+      tenantRecordIdMemoryCache.set(slug, tenant.id);
+      return tenant.id;
+    }
+    tenantRecordIdMemoryCache.set(slug, slug);
     return slug;
   }
 

@@ -25,13 +25,14 @@ class AnalyticsService {
   async getServiceProfitability(days: number, tenantId?: string): Promise<ServiceProfitability[]> {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);
+    const isSingleTenant = Boolean(tenantId && tenantId !== 'all');
 
     // Fetch orders with service and category info
     const orders = await db.order.findMany({
       where: {
         createdAt: { gte: cutoff },
         status: { notIn: ['AWAITING_PAYMENT', 'PENDING', 'ERROR'] },
-        ...(tenantId ? { tenantId } : {})
+        ...(isSingleTenant ? { tenantId } : {})
       },
       include: {
         service: {

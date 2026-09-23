@@ -18,6 +18,7 @@ import { BotSettingsService } from '../services/bot-settings.service';
 import { calculatePricePerUnit, formatPricePerUnit, escapeHtml } from '../utils/formatter';
 import { WalletOps } from '@/services/financial/wallet-ops';
 import { auditAdminAwaitable } from '@/lib/admin-audit';
+import { normalizeTenantId } from '@/lib/seo-helpers';
 
 export interface BotHandlerOptions {
   botId: string;
@@ -353,7 +354,7 @@ function setupCustomFlowPipeline(bot: Telegraf<BotContext>, opts: BotHandlerOpti
  */
 function setupStorePipeline(bot: Telegraf<BotContext>, opts: BotHandlerOptions): void {
   const tenantId = opts.tenantId || 'smmplan';
-  const siteName = opts.botName || (tenantId === 'flux' || tenantId === 'lovable' ? 'SMMflux' : 'SMMplan');
+  const siteName = opts.botName || (normalizeTenantId(tenantId) === 'flux' ? 'SMMflux' : 'SMMplan');
 
   const replyKeyboard = buildReplyKeyboard(opts.menuConfig || [
     ['🚀 Заказать по ссылке', '🛍 Каталог услуг'],
@@ -636,7 +637,7 @@ function setupStorePipeline(bot: Telegraf<BotContext>, opts: BotHandlerOptions):
 
   // ── Helper: Bind Instructions ──
   async function sendBindInstructions(ctx: BotContext) {
-    const host = process.env.APP_URL || (tenantId === 'flux' || tenantId === 'lovable' ? 'https://smmflux.ru' : 'https://test.smmplan.pro');
+    const host = process.env.APP_URL || (normalizeTenantId(tenantId) === 'flux' ? 'https://smmflux.ru' : 'https://test.smmplan.pro');
     await ctx.reply(
       `🔗 <b>Связывание аккаунта ${escapeHtml(siteName)}</b>\n\n` +
       `Привяжите Telegram к сайту, чтобы синхронизировать баланс, получать уведомления о заказах и обращаться в поддержку без задержек.\n\n` +

@@ -9,6 +9,7 @@ import type { BotContext } from '../types/bot-context';
 import { Scenes, Markup } from 'telegraf';
 import { getBaseUrlSync } from '@/utils/get-base-url';
 import { db } from '@/lib/db';
+import { normalizeTenantId } from '@/lib/seo-helpers';
 
 export const REFERRAL_WIZARD = 'referral-wizard';
 
@@ -75,7 +76,7 @@ export const referralWizard = new Scenes.WizardScene<BotContext>(
         user.referralCode = newCode;
       }
 
-      const host = (botTenantId === 'flux' || botTenantId === 'lovable')
+      const host = normalizeTenantId(botTenantId) === 'flux'
         ? (process.env.FLUX_APP_URL || 'https://smmflux.ru')
         : getBaseUrlSync();
       const link = `${host}/?ref=${user.referralCode}`;

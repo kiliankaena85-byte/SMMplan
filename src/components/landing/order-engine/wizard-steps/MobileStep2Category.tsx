@@ -116,6 +116,7 @@ export function MobileStep2Category({
                 <button
                   key={cat.id}
                   type="button"
+                  onTouchStart={() => engine.prefetchCategory?.(cat.id)}
                   onClick={() => {
                     setCategoryId(cat.id);
                     setActiveStep(3);

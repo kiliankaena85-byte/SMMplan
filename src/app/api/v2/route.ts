@@ -356,7 +356,7 @@ async function handleAdd(user: User, formData: FormData) {
       link: validatedLink,
       quantity: totalQuantity,
       charge: pricing.totalCents,
-      providerCost: pricing.providerCostCents,
+      providerCost: pricing.providerCostCents ?? 0,
       runs,
       interval
     });
@@ -508,7 +508,7 @@ async function handleAddMulti(user: User, formData: FormData) {
         link: validatedLink,
         quantity: totalQuantity,
         charge: pricing.totalCents,
-        providerCost: pricing.providerCostCents,
+        providerCost: pricing.providerCostCents ?? 0,
         runs,
         interval
       });

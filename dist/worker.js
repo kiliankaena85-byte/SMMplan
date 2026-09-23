@@ -42914,6 +42914,11 @@ var require_request_cookies = __commonJS({
     var ReadonlyRequestCookiesError = class _ReadonlyRequestCookiesError extends Error {
       constructor() {
         super("Cookies can only be modified in a Server Action or Route Handler. Read more: https://nextjs.org/docs/app/api-reference/functions/cookies#options");
+        Object.defineProperty(this, "__NEXT_ERROR_CODE", {
+          value: "E1180",
+          enumerable: false,
+          configurable: true
+        });
       }
       static callable() {
         throw new _ReadonlyRequestCookiesError();
@@ -42931,6 +42936,17 @@ var require_request_cookies = __commonJS({
               default:
                 return _reflect.ReflectAdapter.get(target, prop, receiver);
             }
+          }
+        });
+      }
+      /**
+      * @param cookies
+      * @returns A fresh object identity backed by the original value
+      */
+      static fresh(cookies) {
+        return new Proxy(cookies, {
+          get(target, prop, receiver) {
+            return _reflect.ReflectAdapter.get(target, prop, receiver);
           }
         });
       }
@@ -43078,123 +43094,6 @@ var require_work_unit_async_storage_instance = __commonJS({
   }
 });
 
-// node_modules/next/dist/client/components/app-router-headers.js
-var require_app_router_headers = __commonJS({
-  "node_modules/next/dist/client/components/app-router-headers.js"(exports2, module2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", {
-      value: true
-    });
-    function _export(target, all) {
-      for (var name in all) Object.defineProperty(target, name, {
-        enumerable: true,
-        get: all[name]
-      });
-    }
-    _export(exports2, {
-      ACTION_HEADER: function() {
-        return ACTION_HEADER;
-      },
-      FLIGHT_HEADERS: function() {
-        return FLIGHT_HEADERS;
-      },
-      NEXT_ACTION_NOT_FOUND_HEADER: function() {
-        return NEXT_ACTION_NOT_FOUND_HEADER;
-      },
-      NEXT_ACTION_REVALIDATED_HEADER: function() {
-        return NEXT_ACTION_REVALIDATED_HEADER;
-      },
-      NEXT_DID_POSTPONE_HEADER: function() {
-        return NEXT_DID_POSTPONE_HEADER;
-      },
-      NEXT_HMR_REFRESH_HASH_COOKIE: function() {
-        return NEXT_HMR_REFRESH_HASH_COOKIE;
-      },
-      NEXT_HMR_REFRESH_HEADER: function() {
-        return NEXT_HMR_REFRESH_HEADER;
-      },
-      NEXT_HTML_REQUEST_ID_HEADER: function() {
-        return NEXT_HTML_REQUEST_ID_HEADER;
-      },
-      NEXT_INSTANT_PREFETCH_HEADER: function() {
-        return NEXT_INSTANT_PREFETCH_HEADER;
-      },
-      NEXT_INSTANT_TEST_COOKIE: function() {
-        return NEXT_INSTANT_TEST_COOKIE;
-      },
-      NEXT_IS_PRERENDER_HEADER: function() {
-        return NEXT_IS_PRERENDER_HEADER;
-      },
-      NEXT_REQUEST_ID_HEADER: function() {
-        return NEXT_REQUEST_ID_HEADER;
-      },
-      NEXT_REWRITTEN_PATH_HEADER: function() {
-        return NEXT_REWRITTEN_PATH_HEADER;
-      },
-      NEXT_REWRITTEN_QUERY_HEADER: function() {
-        return NEXT_REWRITTEN_QUERY_HEADER;
-      },
-      NEXT_ROUTER_PREFETCH_HEADER: function() {
-        return NEXT_ROUTER_PREFETCH_HEADER;
-      },
-      NEXT_ROUTER_SEGMENT_PREFETCH_HEADER: function() {
-        return NEXT_ROUTER_SEGMENT_PREFETCH_HEADER;
-      },
-      NEXT_ROUTER_STALE_TIME_HEADER: function() {
-        return NEXT_ROUTER_STALE_TIME_HEADER;
-      },
-      NEXT_ROUTER_STATE_TREE_HEADER: function() {
-        return NEXT_ROUTER_STATE_TREE_HEADER;
-      },
-      NEXT_RSC_UNION_QUERY: function() {
-        return NEXT_RSC_UNION_QUERY;
-      },
-      NEXT_URL: function() {
-        return NEXT_URL;
-      },
-      RSC_CONTENT_TYPE_HEADER: function() {
-        return RSC_CONTENT_TYPE_HEADER;
-      },
-      RSC_HEADER: function() {
-        return RSC_HEADER;
-      }
-    });
-    var RSC_HEADER = "rsc";
-    var ACTION_HEADER = "next-action";
-    var NEXT_ROUTER_STATE_TREE_HEADER = "next-router-state-tree";
-    var NEXT_ROUTER_PREFETCH_HEADER = "next-router-prefetch";
-    var NEXT_ROUTER_SEGMENT_PREFETCH_HEADER = "next-router-segment-prefetch";
-    var NEXT_HMR_REFRESH_HEADER = "next-hmr-refresh";
-    var NEXT_HMR_REFRESH_HASH_COOKIE = "__next_hmr_refresh_hash__";
-    var NEXT_URL = "next-url";
-    var RSC_CONTENT_TYPE_HEADER = "text/x-component";
-    var NEXT_INSTANT_PREFETCH_HEADER = "next-instant-navigation-testing-prefetch";
-    var NEXT_INSTANT_TEST_COOKIE = "next-instant-navigation-testing";
-    var FLIGHT_HEADERS = [
-      RSC_HEADER,
-      NEXT_ROUTER_STATE_TREE_HEADER,
-      NEXT_ROUTER_PREFETCH_HEADER,
-      NEXT_HMR_REFRESH_HEADER,
-      NEXT_ROUTER_SEGMENT_PREFETCH_HEADER
-    ];
-    var NEXT_RSC_UNION_QUERY = "_rsc";
-    var NEXT_ROUTER_STALE_TIME_HEADER = "x-nextjs-stale-time";
-    var NEXT_DID_POSTPONE_HEADER = "x-nextjs-postponed";
-    var NEXT_REWRITTEN_PATH_HEADER = "x-nextjs-rewritten-path";
-    var NEXT_REWRITTEN_QUERY_HEADER = "x-nextjs-rewritten-query";
-    var NEXT_IS_PRERENDER_HEADER = "x-nextjs-prerender";
-    var NEXT_ACTION_NOT_FOUND_HEADER = "x-nextjs-action-not-found";
-    var NEXT_REQUEST_ID_HEADER = "x-nextjs-request-id";
-    var NEXT_HTML_REQUEST_ID_HEADER = "x-nextjs-html-request-id";
-    var NEXT_ACTION_REVALIDATED_HEADER = "x-action-revalidated";
-    if ((typeof exports2.default === "function" || typeof exports2.default === "object" && exports2.default !== null) && typeof exports2.default.__esModule === "undefined") {
-      Object.defineProperty(exports2.default, "__esModule", { value: true });
-      Object.assign(exports2.default, exports2);
-      module2.exports = exports2.default;
-    }
-  }
-});
-
 // node_modules/next/dist/shared/lib/invariant-error.js
 var require_invariant_error = __commonJS({
   "node_modules/next/dist/shared/lib/invariant-error.js"(exports2) {
@@ -43211,327 +43110,14 @@ var require_invariant_error = __commonJS({
     var InvariantError = class extends Error {
       constructor(message, options) {
         super(`Invariant: ${message.endsWith(".") ? message : message + "."} This is a bug in Next.js.`, options);
+        Object.defineProperty(this, "__NEXT_ERROR_CODE", {
+          value: "E1179",
+          enumerable: false,
+          configurable: true
+        });
         this.name = "InvariantError";
       }
     };
-  }
-});
-
-// node_modules/next/dist/shared/lib/promise-with-resolvers.js
-var require_promise_with_resolvers = __commonJS({
-  "node_modules/next/dist/shared/lib/promise-with-resolvers.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", {
-      value: true
-    });
-    Object.defineProperty(exports2, "createPromiseWithResolvers", {
-      enumerable: true,
-      get: function() {
-        return createPromiseWithResolvers;
-      }
-    });
-    function createPromiseWithResolvers() {
-      let resolve;
-      let reject;
-      const promise = new Promise((res, rej) => {
-        resolve = res;
-        reject = rej;
-      });
-      return {
-        resolve,
-        reject,
-        promise
-      };
-    }
-  }
-});
-
-// node_modules/next/dist/server/app-render/staged-rendering.js
-var require_staged_rendering = __commonJS({
-  "node_modules/next/dist/server/app-render/staged-rendering.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", {
-      value: true
-    });
-    function _export(target, all) {
-      for (var name in all) Object.defineProperty(target, name, {
-        enumerable: true,
-        get: all[name]
-      });
-    }
-    _export(exports2, {
-      RenderStage: function() {
-        return RenderStage;
-      },
-      StagedRenderingController: function() {
-        return StagedRenderingController;
-      }
-    });
-    var _invarianterror = require_invariant_error();
-    var _promisewithresolvers = require_promise_with_resolvers();
-    var RenderStage = /* @__PURE__ */ (function(RenderStage2) {
-      RenderStage2[RenderStage2["Before"] = 1] = "Before";
-      RenderStage2[RenderStage2["EarlyStatic"] = 2] = "EarlyStatic";
-      RenderStage2[RenderStage2["Static"] = 3] = "Static";
-      RenderStage2[RenderStage2["EarlyRuntime"] = 4] = "EarlyRuntime";
-      RenderStage2[RenderStage2["Runtime"] = 5] = "Runtime";
-      RenderStage2[RenderStage2["Dynamic"] = 6] = "Dynamic";
-      RenderStage2[RenderStage2["Abandoned"] = 7] = "Abandoned";
-      return RenderStage2;
-    })({});
-    var StagedRenderingController = class {
-      constructor(abortSignal, abandonController, shouldTrackSyncIO) {
-        this.abortSignal = abortSignal;
-        this.abandonController = abandonController;
-        this.shouldTrackSyncIO = shouldTrackSyncIO;
-        this.currentStage = 1;
-        this.syncInterruptReason = null;
-        this.staticStageEndTime = Infinity;
-        this.runtimeStageEndTime = Infinity;
-        this.staticStageListeners = [];
-        this.earlyRuntimeStageListeners = [];
-        this.runtimeStageListeners = [];
-        this.dynamicStageListeners = [];
-        this.staticStagePromise = (0, _promisewithresolvers.createPromiseWithResolvers)();
-        this.earlyRuntimeStagePromise = (0, _promisewithresolvers.createPromiseWithResolvers)();
-        this.runtimeStagePromise = (0, _promisewithresolvers.createPromiseWithResolvers)();
-        this.dynamicStagePromise = (0, _promisewithresolvers.createPromiseWithResolvers)();
-        if (abortSignal) {
-          abortSignal.addEventListener("abort", () => {
-            const { reason } = abortSignal;
-            this.staticStagePromise.promise.catch(ignoreReject);
-            this.staticStagePromise.reject(reason);
-            this.earlyRuntimeStagePromise.promise.catch(ignoreReject);
-            this.earlyRuntimeStagePromise.reject(reason);
-            this.runtimeStagePromise.promise.catch(ignoreReject);
-            this.runtimeStagePromise.reject(reason);
-            this.dynamicStagePromise.promise.catch(ignoreReject);
-            this.dynamicStagePromise.reject(reason);
-          }, {
-            once: true
-          });
-        }
-        if (abandonController) {
-          abandonController.signal.addEventListener("abort", () => {
-            this.abandonRender();
-          }, {
-            once: true
-          });
-        }
-      }
-      onStage(stage2, callback) {
-        if (this.currentStage >= stage2) {
-          callback();
-        } else if (stage2 === 3) {
-          this.staticStageListeners.push(callback);
-        } else if (stage2 === 4) {
-          this.earlyRuntimeStageListeners.push(callback);
-        } else if (stage2 === 5) {
-          this.runtimeStageListeners.push(callback);
-        } else if (stage2 === 6) {
-          this.dynamicStageListeners.push(callback);
-        } else {
-          throw Object.defineProperty(new _invarianterror.InvariantError(`Invalid render stage: ${stage2}`), "__NEXT_ERROR_CODE", {
-            value: "E881",
-            enumerable: false,
-            configurable: true
-          });
-        }
-      }
-      shouldTrackSyncInterrupt() {
-        if (!this.shouldTrackSyncIO) {
-          return false;
-        }
-        switch (this.currentStage) {
-          case 1:
-            return false;
-          case 2:
-          case 3:
-            return true;
-          case 4:
-            return true;
-          case 5:
-            return false;
-          case 6:
-          case 7:
-            return false;
-          default:
-            return false;
-        }
-      }
-      syncInterruptCurrentStageWithReason(reason) {
-        if (this.currentStage === 1) {
-          return;
-        }
-        if (this.currentStage === 7) {
-          return;
-        }
-        if (this.abandonController) {
-          this.abandonController.abort();
-          return;
-        }
-        if (this.abortSignal) {
-          this.syncInterruptReason = reason;
-          this.currentStage = 7;
-          return;
-        }
-        switch (this.currentStage) {
-          case 2:
-          case 3:
-          case 4: {
-            this.syncInterruptReason = reason;
-            this.advanceStage(6);
-            return;
-          }
-          case 5: {
-            return;
-          }
-          case 6:
-          default:
-        }
-      }
-      getSyncInterruptReason() {
-        return this.syncInterruptReason;
-      }
-      getStaticStageEndTime() {
-        return this.staticStageEndTime;
-      }
-      getRuntimeStageEndTime() {
-        return this.runtimeStageEndTime;
-      }
-      abandonRender() {
-        const { currentStage } = this;
-        switch (currentStage) {
-          case 2: {
-            this.resolveStaticStage();
-          }
-          // intentional fallthrough
-          case 3: {
-            this.resolveEarlyRuntimeStage();
-          }
-          // intentional fallthrough
-          case 4: {
-            this.resolveRuntimeStage();
-          }
-          // intentional fallthrough
-          case 5: {
-            this.currentStage = 7;
-            return;
-          }
-          case 6:
-          case 1:
-          case 7:
-            break;
-          default: {
-            currentStage;
-          }
-        }
-      }
-      advanceStage(stage2) {
-        if (stage2 <= this.currentStage) {
-          return;
-        }
-        let currentStage = this.currentStage;
-        this.currentStage = stage2;
-        if (currentStage < 3 && stage2 >= 3) {
-          this.resolveStaticStage();
-        }
-        if (currentStage < 4 && stage2 >= 4) {
-          this.resolveEarlyRuntimeStage();
-        }
-        if (currentStage < 5 && stage2 >= 5) {
-          this.staticStageEndTime = performance.now() + performance.timeOrigin;
-          this.resolveRuntimeStage();
-        }
-        if (currentStage < 6 && stage2 >= 6) {
-          this.runtimeStageEndTime = performance.now() + performance.timeOrigin;
-          this.resolveDynamicStage();
-          return;
-        }
-      }
-      /** Fire the `onStage` listeners for the static stage and unblock any promises waiting for it. */
-      resolveStaticStage() {
-        const staticListeners = this.staticStageListeners;
-        for (let i = 0; i < staticListeners.length; i++) {
-          staticListeners[i]();
-        }
-        staticListeners.length = 0;
-        this.staticStagePromise.resolve();
-      }
-      /** Fire the `onStage` listeners for the early runtime stage and unblock any promises waiting for it. */
-      resolveEarlyRuntimeStage() {
-        const earlyRuntimeListeners = this.earlyRuntimeStageListeners;
-        for (let i = 0; i < earlyRuntimeListeners.length; i++) {
-          earlyRuntimeListeners[i]();
-        }
-        earlyRuntimeListeners.length = 0;
-        this.earlyRuntimeStagePromise.resolve();
-      }
-      /** Fire the `onStage` listeners for the runtime stage and unblock any promises waiting for it. */
-      resolveRuntimeStage() {
-        const runtimeListeners = this.runtimeStageListeners;
-        for (let i = 0; i < runtimeListeners.length; i++) {
-          runtimeListeners[i]();
-        }
-        runtimeListeners.length = 0;
-        this.runtimeStagePromise.resolve();
-      }
-      /** Fire the `onStage` listeners for the dynamic stage and unblock any promises waiting for it. */
-      resolveDynamicStage() {
-        const dynamicListeners = this.dynamicStageListeners;
-        for (let i = 0; i < dynamicListeners.length; i++) {
-          dynamicListeners[i]();
-        }
-        dynamicListeners.length = 0;
-        this.dynamicStagePromise.resolve();
-      }
-      getStagePromise(stage2) {
-        switch (stage2) {
-          case 3: {
-            return this.staticStagePromise.promise;
-          }
-          case 4: {
-            return this.earlyRuntimeStagePromise.promise;
-          }
-          case 5: {
-            return this.runtimeStagePromise.promise;
-          }
-          case 6: {
-            return this.dynamicStagePromise.promise;
-          }
-          default: {
-            stage2;
-            throw Object.defineProperty(new _invarianterror.InvariantError(`Invalid render stage: ${stage2}`), "__NEXT_ERROR_CODE", {
-              value: "E881",
-              enumerable: false,
-              configurable: true
-            });
-          }
-        }
-      }
-      waitForStage(stage2) {
-        return this.getStagePromise(stage2);
-      }
-      delayUntilStage(stage2, displayName, resolvedValue) {
-        const ioTriggerPromise = this.getStagePromise(stage2);
-        const promise = makeDevtoolsIOPromiseFromIOTrigger(ioTriggerPromise, displayName, resolvedValue);
-        if (this.abortSignal) {
-          promise.catch(ignoreReject);
-        }
-        return promise;
-      }
-    };
-    function ignoreReject() {
-    }
-    function makeDevtoolsIOPromiseFromIOTrigger(ioTrigger, displayName, resolvedValue) {
-      const promise = new Promise((resolve, reject) => {
-        ioTrigger.then(resolve.bind(null, resolvedValue), reject);
-      });
-      if (displayName !== void 0) {
-        promise.displayName = displayName;
-      }
-      return promise;
-    }
   }
 });
 
@@ -43558,11 +43144,8 @@ var require_work_unit_async_storage_external = __commonJS({
       getHmrRefreshHash: function() {
         return getHmrRefreshHash;
       },
-      getPrerenderResumeDataCache: function() {
-        return getPrerenderResumeDataCache;
-      },
-      getRenderResumeDataCache: function() {
-        return getRenderResumeDataCache;
+      getResumeDataCache: function() {
+        return getResumeDataCache;
       },
       getServerComponentsHmrCache: function() {
         return getServerComponentsHmrCache;
@@ -43570,11 +43153,11 @@ var require_work_unit_async_storage_external = __commonJS({
       getStagedRenderingController: function() {
         return getStagedRenderingController;
       },
+      getVaryParamsAccumulator: function() {
+        return getVaryParamsAccumulator;
+      },
       isHmrRefresh: function() {
         return isHmrRefresh;
-      },
-      isInEarlyRenderStage: function() {
-        return isInEarlyRenderStage;
       },
       throwForMissingRequestStore: function() {
         return throwForMissingRequestStore;
@@ -43587,16 +43170,7 @@ var require_work_unit_async_storage_external = __commonJS({
       }
     });
     var _workunitasyncstorageinstance = require_work_unit_async_storage_instance();
-    var _approuterheaders = require_app_router_headers();
     var _invarianterror = require_invariant_error();
-    var _stagedrendering = require_staged_rendering();
-    function isInEarlyRenderStage(requestStore) {
-      const stagedRendering = requestStore.stagedRendering;
-      if (stagedRendering) {
-        return stagedRendering.currentStage === _stagedrendering.RenderStage.EarlyStatic || stagedRendering.currentStage === _stagedrendering.RenderStage.EarlyRuntime;
-      }
-      return false;
-    }
     function throwForMissingRequestStore(callingExpression) {
       throw Object.defineProperty(new Error(`\`${callingExpression}\` was called outside a request scope. Read more: https://nextjs.org/docs/messages/next-dynamic-api-wrong-context`), "__NEXT_ERROR_CODE", {
         value: "E251",
@@ -43611,43 +43185,15 @@ var require_work_unit_async_storage_external = __commonJS({
         configurable: true
       });
     }
-    function getPrerenderResumeDataCache(workUnitStore) {
-      switch (workUnitStore.type) {
-        case "prerender":
-        case "prerender-runtime":
-        case "prerender-ppr":
-          return workUnitStore.prerenderResumeDataCache;
-        case "prerender-client":
-        case "validation-client":
-          return workUnitStore.prerenderResumeDataCache;
-        case "request": {
-          if (workUnitStore.prerenderResumeDataCache) {
-            return workUnitStore.prerenderResumeDataCache;
-          }
-        }
-        case "prerender-legacy":
-        case "cache":
-        case "private-cache":
-        case "unstable-cache":
-        case "generate-static-params":
-          return null;
-        default:
-          return workUnitStore;
-      }
-    }
-    function getRenderResumeDataCache(workUnitStore) {
+    function getResumeDataCache(workUnitStore) {
       switch (workUnitStore.type) {
         case "request":
         case "prerender":
         case "prerender-runtime":
         case "prerender-client":
         case "validation-client":
-          if (workUnitStore.renderResumeDataCache) {
-            return workUnitStore.renderResumeDataCache;
-          }
-        // fallthrough
         case "prerender-ppr":
-          return workUnitStore.prerenderResumeDataCache ?? null;
+          return workUnitStore.resumeDataCache;
         case "cache":
         case "private-cache":
         case "unstable-cache":
@@ -43665,10 +43211,8 @@ var require_work_unit_async_storage_external = __commonJS({
           case "private-cache":
           case "prerender":
           case "prerender-runtime":
-            return workUnitStore.hmrRefreshHash;
           case "request":
-            var _workUnitStore_cookies_get;
-            return (_workUnitStore_cookies_get = workUnitStore.cookies.get(_approuterheaders.NEXT_HMR_REFRESH_HASH_COOKIE)) == null ? void 0 : _workUnitStore_cookies_get.value;
+            return workUnitStore.hmrRefreshHash;
           case "prerender-client":
           case "validation-client":
           case "prerender-ppr":
@@ -43752,8 +43296,8 @@ var require_work_unit_async_storage_external = __commonJS({
       switch (workUnitStore.type) {
         case "request":
         case "prerender-runtime":
-          return workUnitStore.stagedRendering ?? null;
         case "prerender":
+          return workUnitStore.stagedRendering ?? null;
         case "prerender-client":
         case "validation-client":
         case "prerender-ppr":
@@ -43788,6 +43332,27 @@ var require_work_unit_async_storage_external = __commonJS({
           return null;
         default:
           return workUnitStore;
+      }
+    }
+    function getVaryParamsAccumulator(workUnitStore) {
+      switch (workUnitStore.type) {
+        case "prerender":
+        case "prerender-runtime":
+        case "request": {
+          return workUnitStore.varyParamsAccumulator ?? null;
+        }
+        case "prerender-ppr":
+        case "prerender-legacy":
+        case "cache":
+        case "private-cache":
+        case "prerender-client":
+        case "validation-client":
+        case "unstable-cache":
+        case "generate-static-params":
+          return null;
+        default:
+          workUnitStore;
+          return null;
       }
     }
   }
@@ -44853,6 +44418,350 @@ var require_static_generation_bailout = __commonJS({
   }
 });
 
+// node_modules/next/dist/shared/lib/promise-with-resolvers.js
+var require_promise_with_resolvers = __commonJS({
+  "node_modules/next/dist/shared/lib/promise-with-resolvers.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", {
+      value: true
+    });
+    Object.defineProperty(exports2, "createPromiseWithResolvers", {
+      enumerable: true,
+      get: function() {
+        return createPromiseWithResolvers;
+      }
+    });
+    function createPromiseWithResolvers() {
+      let resolve;
+      let reject;
+      const promise = new Promise((res, rej) => {
+        resolve = res;
+        reject = rej;
+      });
+      return {
+        resolve,
+        reject,
+        promise
+      };
+    }
+  }
+});
+
+// node_modules/next/dist/server/app-render/staged-rendering.js
+var require_staged_rendering = __commonJS({
+  "node_modules/next/dist/server/app-render/staged-rendering.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", {
+      value: true
+    });
+    function _export(target, all) {
+      for (var name in all) Object.defineProperty(target, name, {
+        enumerable: true,
+        get: all[name]
+      });
+    }
+    _export(exports2, {
+      RENDER_STAGE_ADVANCE_ORDER: function() {
+        return RENDER_STAGE_ADVANCE_ORDER;
+      },
+      RenderStage: function() {
+        return RenderStage;
+      },
+      StagedRenderingController: function() {
+        return StagedRenderingController;
+      },
+      SyncIOMode: function() {
+        return SyncIOMode;
+      },
+      getNextStage: function() {
+        return getNextStage;
+      },
+      isAdvanceableRenderStage: function() {
+        return isAdvanceableRenderStage;
+      }
+    });
+    var _invarianterror = require_invariant_error();
+    var _promisewithresolvers = require_promise_with_resolvers();
+    var RenderStage = /* @__PURE__ */ (function(RenderStage2) {
+      RenderStage2[RenderStage2["Before"] = 1] = "Before";
+      RenderStage2[RenderStage2["ShellStatic"] = 11] = "ShellStatic";
+      RenderStage2[RenderStage2["Static"] = 13] = "Static";
+      RenderStage2[RenderStage2["ShellRuntime"] = 21] = "ShellRuntime";
+      RenderStage2[RenderStage2["Runtime"] = 23] = "Runtime";
+      RenderStage2[RenderStage2["Dynamic"] = 30] = "Dynamic";
+      RenderStage2[RenderStage2["Abandoned"] = 40] = "Abandoned";
+      return RenderStage2;
+    })({});
+    var RENDER_STAGE_ADVANCE_ORDER = [
+      11,
+      13,
+      21,
+      23,
+      30
+    ];
+    function getNextStage(stage2) {
+      return RENDER_STAGE_ADVANCE_ORDER[RENDER_STAGE_ADVANCE_ORDER.indexOf(stage2) + 1];
+    }
+    function isAdvanceableRenderStage(stage2) {
+      return 1 < stage2 && stage2 <= 30;
+    }
+    var SyncIOMode = /* @__PURE__ */ (function(SyncIOMode2) {
+      SyncIOMode2[SyncIOMode2["Untracked"] = 1] = "Untracked";
+      SyncIOMode2[SyncIOMode2["AllowedInRuntimeOrDynamic"] = 2] = "AllowedInRuntimeOrDynamic";
+      SyncIOMode2[SyncIOMode2["AllowedInDynamic"] = 3] = "AllowedInDynamic";
+      return SyncIOMode2;
+    })({});
+    var StagedRenderingController = class {
+      constructor({ abortSignal, abandonController, syncIO, finalStage }) {
+        this.currentStage = 1;
+        this.syncInterruptReason = null;
+        this.triggers = {
+          [11]: createStageTrigger(),
+          [13]: createStageTrigger(),
+          //
+          [21]: createStageTrigger(),
+          [23]: createStageTrigger(),
+          //
+          [30]: createStageTrigger()
+        };
+        this.abortSignal = abortSignal;
+        this.abandonController = abandonController;
+        this.syncIOMode = syncIO;
+        this.finalStage = finalStage;
+        if (abortSignal) {
+          abortSignal.addEventListener("abort", () => {
+            const { reason } = abortSignal;
+            for (const trigger of Object.values(this.triggers)) {
+              cancelStageTrigger(trigger, reason);
+            }
+          }, {
+            once: true
+          });
+        }
+        if (abandonController) {
+          abandonController.signal.addEventListener("abort", () => {
+            this.abandonRender();
+          }, {
+            once: true
+          });
+        }
+      }
+      onStage(stage2, callback) {
+        addSyncTriggerListener(this.triggers[stage2], callback);
+      }
+      shouldTrackSyncInterrupt() {
+        if (this.syncIOMode === 1) {
+          return false;
+        }
+        switch (this.currentStage) {
+          case 1:
+            return false;
+          case 11:
+          case 13:
+            return true;
+          case 21:
+          case 23: {
+            switch (this.syncIOMode) {
+              case 2: {
+                return false;
+              }
+              case 3: {
+                return true;
+              }
+            }
+          }
+          case 30:
+          case 40:
+            return false;
+          default:
+            this.currentStage;
+            return false;
+        }
+      }
+      /** Note: only call this if `shouldTrackSyncInterrupt()` returned true */
+      syncInterruptCurrentStageWithReason(reason) {
+        const { currentStage } = this;
+        if (currentStage === 1 || currentStage === 30 || currentStage === 40) {
+          return;
+        }
+        if (this.abandonController) {
+          this.abandonController.abort();
+          return;
+        }
+        if (this.abortSignal) {
+          this.syncInterruptReason = reason;
+          this.currentStage = 40;
+          return;
+        }
+        this.syncInterruptReason = reason;
+        this.advanceStage(30);
+      }
+      getSyncInterruptReason() {
+        return this.syncInterruptReason;
+      }
+      getStageEndTime(stage2) {
+        return this.triggers[getNextStage(stage2)].triggeredAt ?? Infinity;
+      }
+      abandonRender() {
+        const { currentStage } = this;
+        if (currentStage === 1) {
+          throw Object.defineProperty(new _invarianterror.InvariantError("A render that hasn't started yet cannot be abandoned"), "__NEXT_ERROR_CODE", {
+            value: "E1300",
+            enumerable: false,
+            configurable: true
+          });
+        }
+        if (currentStage === 30 || currentStage === 40) {
+          return;
+        }
+        const nextStageIx = RENDER_STAGE_ADVANCE_ORDER.indexOf(currentStage) + 1;
+        const dynamicStageIx = RENDER_STAGE_ADVANCE_ORDER.indexOf(30);
+        for (let i = nextStageIx; i < dynamicStageIx; i++) {
+          this.resolveStage(RENDER_STAGE_ADVANCE_ORDER[i]);
+        }
+        this.currentStage = 40;
+      }
+      advanceStage(targetStage) {
+        if (this.finalStage !== null && targetStage > this.finalStage) {
+          throw Object.defineProperty(new _invarianterror.InvariantError(`Attempted to advance to stage ${RenderStage[targetStage]} but the render is limited to ${RenderStage[this.finalStage]}`), "__NEXT_ERROR_CODE", {
+            value: "E1302",
+            enumerable: false,
+            configurable: true
+          });
+        }
+        const { currentStage } = this;
+        if (currentStage === 30 || currentStage === 40) {
+          return;
+        }
+        if (targetStage <= currentStage) {
+          return;
+        }
+        this.currentStage = targetStage;
+        const nextStageIx = currentStage === 1 ? 0 : RENDER_STAGE_ADVANCE_ORDER.indexOf(currentStage) + 1;
+        const targetStageIx = RENDER_STAGE_ADVANCE_ORDER.indexOf(targetStage);
+        for (let i = nextStageIx; i <= targetStageIx; i++) {
+          this.resolveStage(RENDER_STAGE_ADVANCE_ORDER[i]);
+        }
+      }
+      resolveStage(stage2) {
+        fireStageTrigger(this.triggers[stage2]);
+      }
+      getStagePromise(stage2) {
+        return this.triggers[stage2].promise;
+      }
+      waitForStage(stage2) {
+        return this.getStagePromise(stage2);
+      }
+      delayUntilStage(stage2, displayName, resolvedValue) {
+        const stagePromise = this.getStagePromise(stage2);
+        const promise = process.env.NODE_ENV === "development" ? makeDevtoolsIOPromiseFromIOTrigger(stagePromise, displayName, resolvedValue) : stagePromise.then(() => resolvedValue);
+        if (this.abortSignal) {
+          promise.catch(ignoreReject);
+        }
+        return promise;
+      }
+    };
+    function ignoreReject() {
+    }
+    function makeDevtoolsIOPromiseFromIOTrigger(ioTrigger, displayName, resolvedValue) {
+      const promise = new Promise((resolve, reject) => {
+        ioTrigger.then(resolve.bind(null, resolvedValue), reject);
+      });
+      if (displayName !== void 0) {
+        promise.displayName = displayName;
+      }
+      return promise;
+    }
+    function addSyncTriggerListener(trigger, listener) {
+      if (trigger.state === "pending") {
+        trigger._listeners.push(listener);
+      } else {
+        listener();
+      }
+    }
+    function createStageTrigger() {
+      const { promise, resolve, reject } = (0, _promisewithresolvers.createPromiseWithResolvers)();
+      return {
+        state: "pending",
+        triggeredAt: null,
+        promise,
+        _listeners: [],
+        _resolvePromise: resolve,
+        _rejectPromise: reject
+      };
+    }
+    function fireStageTrigger(trigger) {
+      if (trigger.state !== "pending") {
+        return;
+      }
+      trigger.state = "triggered";
+      trigger.triggeredAt = performance.now() + performance.timeOrigin;
+      try {
+        const { _listeners: listeners } = trigger;
+        for (let i = 0; i < listeners.length; i++) {
+          listeners[i]();
+        }
+        listeners.length = 0;
+      } finally {
+        trigger._resolvePromise();
+      }
+    }
+    function cancelStageTrigger(trigger, reason) {
+      if (trigger.state !== "pending") {
+        return;
+      }
+      trigger.state = "cancelled";
+      trigger._listeners.length = 0;
+      trigger.promise.catch(ignoreReject);
+      trigger._rejectPromise(reason);
+    }
+  }
+});
+
+// node_modules/next/dist/server/runtime-reacts.external.js
+var require_runtime_reacts_external = __commonJS({
+  "node_modules/next/dist/server/runtime-reacts.external.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", {
+      value: true
+    });
+    function _export(target, all) {
+      for (var name in all) Object.defineProperty(target, name, {
+        enumerable: true,
+        get: all[name]
+      });
+    }
+    _export(exports2, {
+      getClientReact: function() {
+        return getClientReact;
+      },
+      getServerReact: function() {
+        return getServerReact;
+      },
+      registerClientReact: function() {
+        return registerClientReact;
+      },
+      registerServerReact: function() {
+        return registerServerReact;
+      }
+    });
+    var ClientReact = null;
+    function registerClientReact(react) {
+      ClientReact = react;
+    }
+    function getClientReact() {
+      return ClientReact;
+    }
+    var ServerReact = null;
+    function registerServerReact(react) {
+      ServerReact = react;
+    }
+    function getServerReact() {
+      return ServerReact;
+    }
+  }
+});
+
 // node_modules/next/dist/server/dynamic-rendering-utils.js
 var require_dynamic_rendering_utils = __commonJS({
   "node_modules/next/dist/server/dynamic-rendering-utils.js"(exports2) {
@@ -44867,23 +44776,55 @@ var require_dynamic_rendering_utils = __commonJS({
       });
     }
     _export(exports2, {
-      delayUntilRuntimeStage: function() {
-        return delayUntilRuntimeStage;
+      ClientHookDynamicError: function() {
+        return ClientHookDynamicError;
       },
-      getRuntimeStage: function() {
-        return getRuntimeStage;
+      RENDER_STAGES_BY_DATA_KIND: function() {
+        return RENDER_STAGES_BY_DATA_KIND;
+      },
+      applyOwnerStack: function() {
+        return applyOwnerStack;
+      },
+      isClientHookDynamicError: function() {
+        return isClientHookDynamicError;
       },
       isHangingPromiseRejectionError: function() {
         return isHangingPromiseRejectionError;
       },
+      makeClientHookHangingPromise: function() {
+        return makeClientHookHangingPromise;
+      },
       makeDevtoolsIOAwarePromise: function() {
         return makeDevtoolsIOAwarePromise;
       },
-      makeHangingPromise: function() {
-        return makeHangingPromise;
+      makeDynamicHangingPromise: function() {
+        return makeDynamicHangingPromise;
+      },
+      makeFallbackParamsHangingPromise: function() {
+        return makeFallbackParamsHangingPromise;
+      },
+      makePromiseFromTrigger: function() {
+        return makePromiseFromTrigger;
+      },
+      makeRuntimeHangingPromise: function() {
+        return makeRuntimeHangingPromise;
+      },
+      makeStageHangingPromise: function() {
+        return makeStageHangingPromise;
+      },
+      makeUntrackedHangingPromise: function() {
+        return makeUntrackedHangingPromise;
+      },
+      trackFallbackParamsAccessed: function() {
+        return trackFallbackParamsAccessed;
+      },
+      trackRuntimeDataAccessed: function() {
+        return trackRuntimeDataAccessed;
       }
     });
     var _stagedrendering = require_staged_rendering();
+    var _workunitasyncstorageexternal = require_work_unit_async_storage_external();
+    var _runtimereactsexternal = require_runtime_reacts_external();
     function isHangingPromiseRejectionError(err) {
       if (typeof err !== "object" || err === null || !("digest" in err)) {
         return false;
@@ -44896,13 +44837,95 @@ var require_dynamic_rendering_utils = __commonJS({
         super(`During prerendering, ${expression} rejects when the prerender is complete. Typically these errors are handled by React but if you move ${expression} to a different context by using \`setTimeout\`, \`after\`, or similar functions you may observe this error and you should handle it in that context. This occurred at route "${route}".`), this.route = route, this.expression = expression, this.digest = HANGING_PROMISE_REJECTION;
       }
     };
+    var CLIENT_HOOK_DYNAMIC = "CLIENT_HOOK_DYNAMIC";
+    var ClientHookDynamicError = class extends Error {
+      constructor(route, expression) {
+        super(`Route "${route}": Next.js encountered URL data \`${expression}\` in a Client Component outside of \`<Suspense>\`.
+
+This blocks prerendering because the value is only available at runtime.
+
+Ways to fix this:
+  - [stream] Wrap the component in \`<Suspense fallback={...}>\` so the hook value streams in after prerendering
+  - [block] Set \`export const instant = false\` to allow a blocking route
+
+Learn more: https://nextjs.org/docs/messages/blocking-prerender-client-hook`), this.digest = CLIENT_HOOK_DYNAMIC;
+        Object.defineProperty(this, "__NEXT_ERROR_CODE", {
+          value: "E1433",
+          enumerable: false,
+          configurable: true
+        });
+      }
+    };
+    function isClientHookDynamicError(err) {
+      if (typeof err !== "object" || err === null || !("digest" in err)) {
+        return false;
+      }
+      return err.digest === CLIENT_HOOK_DYNAMIC;
+    }
     var abortListenersBySignal = /* @__PURE__ */ new WeakMap();
-    function makeHangingPromise(signal, route, expression) {
+    function makeDynamicHangingPromise(signal, route, expression) {
+      return makeHangingPromiseWithError(signal, new HangingPromiseRejectionError(route, expression));
+    }
+    function makeUntrackedHangingPromise(signal, route, expression) {
+      return makeHangingPromiseWithError(signal, new HangingPromiseRejectionError(route, expression));
+    }
+    function makeRuntimeHangingPromise(signal, route, expression, workUnitStore) {
+      if (workUnitStore !== null) {
+        trackRuntimeDataAccessed(workUnitStore);
+      }
+      return makeHangingPromiseWithError(signal, new HangingPromiseRejectionError(route, expression));
+    }
+    function makeFallbackParamsHangingPromise(signal, route, expression, workUnitStore) {
+      if (workUnitStore !== null) {
+        trackFallbackParamsAccessed(workUnitStore);
+      }
+      return makeHangingPromiseWithError(signal, new HangingPromiseRejectionError(route, expression));
+    }
+    function makeStageHangingPromise(signal, route, expression, workUnitStore) {
+      trackRuntimeDataAccessed(workUnitStore);
+      return makeHangingPromiseWithError(signal, new HangingPromiseRejectionError(route, expression));
+    }
+    function trackRuntimeDataAccessed(workUnitStore) {
+      trackRuntimeDataAccessedImpl(workUnitStore, false);
+    }
+    function trackFallbackParamsAccessed(workUnitStore) {
+      trackRuntimeDataAccessedImpl(workUnitStore, true);
+    }
+    function trackRuntimeDataAccessedImpl(workUnitStore, isFallbackParamAccess) {
+      switch (workUnitStore.type) {
+        case "prerender": {
+          var _workUnitStore_runtimeDataAccessed;
+          (_workUnitStore_runtimeDataAccessed = workUnitStore.runtimeDataAccessed) == null ? void 0 : _workUnitStore_runtimeDataAccessed.resolve(true);
+          const hintCell = workUnitStore.shouldAttemptStaticPrefetch;
+          if (hintCell !== null && (!isFallbackParamAccess || !workUnitStore.isFallbackUpgradeable)) {
+            hintCell.current = false;
+          }
+          break;
+        }
+        case "prerender-client":
+        case "prerender-ppr":
+        case "prerender-legacy":
+        case "prerender-runtime":
+        case "validation-client":
+        case "request":
+        case "cache":
+        case "private-cache":
+        case "unstable-cache":
+        case "generate-static-params":
+          break;
+        default:
+          workUnitStore;
+      }
+    }
+    function makeClientHookHangingPromise(signal, error) {
+      return makeHangingPromiseWithError(signal, error);
+    }
+    function makeHangingPromiseWithError(signal, error) {
       if (signal.aborted) {
-        return Promise.reject(new HangingPromiseRejectionError(route, expression));
+        return Promise.reject(error);
       } else {
         const hangingPromise = new Promise((_, reject) => {
-          const boundRejection = reject.bind(null, new HangingPromiseRejectionError(route, expression));
+          const boundRejection = reject.bind(null, error);
           let currentListeners = abortListenersBySignal.get(signal);
           if (currentListeners) {
             currentListeners.push(boundRejection);
@@ -44926,6 +44949,11 @@ var require_dynamic_rendering_utils = __commonJS({
     }
     function ignoreReject() {
     }
+    function makePromiseFromTrigger(trigger, value) {
+      const promise = trigger.then(() => value);
+      promise.catch(ignoreReject);
+      return promise;
+    }
     function makeDevtoolsIOAwarePromise(underlying, requestStore, stage2) {
       if (requestStore.stagedRendering) {
         return requestStore.stagedRendering.delayUntilStage(stage2, void 0, underlying);
@@ -44936,18 +44964,53 @@ var require_dynamic_rendering_utils = __commonJS({
         }, 0);
       });
     }
-    function getRuntimeStage(stagedRendering) {
-      if (stagedRendering.currentStage === _stagedrendering.RenderStage.EarlyStatic || stagedRendering.currentStage === _stagedrendering.RenderStage.EarlyRuntime) {
-        return _stagedrendering.RenderStage.EarlyRuntime;
+    var RENDER_STAGES_BY_DATA_KIND = {
+      sessionData: _stagedrendering.RenderStage.ShellRuntime,
+      staticLinkData: _stagedrendering.RenderStage.Static,
+      runtimeLinkData: _stagedrendering.RenderStage.Runtime
+    };
+    function applyOwnerStack(error) {
+      if (process.env.NODE_ENV !== "production") {
+        var _getClientReact_captureOwnerStack, _getClientReact, _getServerReact_captureOwnerStack, _getServerReact;
+        let ownerStack;
+        const workUnitStore = _workunitasyncstorageexternal.workUnitAsyncStorage.getStore();
+        const innerOwnerStack = ((_getClientReact = (0, _runtimereactsexternal.getClientReact)()) == null ? void 0 : (_getClientReact_captureOwnerStack = _getClientReact.captureOwnerStack) == null ? void 0 : _getClientReact_captureOwnerStack.call(_getClientReact)) ?? ((_getServerReact = (0, _runtimereactsexternal.getServerReact)()) == null ? void 0 : (_getServerReact_captureOwnerStack = _getServerReact.captureOwnerStack) == null ? void 0 : _getServerReact_captureOwnerStack.call(_getServerReact));
+        switch (workUnitStore == null ? void 0 : workUnitStore.type) {
+          case "cache":
+          case "private-cache":
+            ownerStack = (innerOwnerStack || "") + (workUnitStore.outerOwnerStack || "") || void 0;
+            break;
+          case "unstable-cache":
+          case "request":
+          case "prerender":
+          case "prerender-ppr":
+          case "prerender-legacy":
+          case "prerender-runtime":
+          case "prerender-client":
+          case "validation-client":
+          case "generate-static-params":
+          case void 0:
+            ownerStack = innerOwnerStack;
+            break;
+          default:
+            workUnitStore;
+        }
+        if (ownerStack) {
+          let stack = ownerStack;
+          if (error.stack) {
+            const frames = [];
+            for (const frame of error.stack.split("\n").slice(1)) {
+              if (frame.includes("react_stack_bottom_frame")) {
+                break;
+              }
+              frames.push(frame);
+            }
+            stack = "\n" + frames.join("\n") + stack;
+          }
+          error.stack = error.name + ": " + error.message + stack;
+        }
       }
-      return _stagedrendering.RenderStage.Runtime;
-    }
-    function delayUntilRuntimeStage(prerenderStore, result) {
-      const { stagedRendering } = prerenderStore;
-      if (!stagedRendering) {
-        return result;
-      }
-      return stagedRendering.waitForStage(getRuntimeStage(stagedRendering)).then(() => result);
+      return error;
     }
   }
 });
@@ -45078,6 +45141,293 @@ var require_bailout_to_csr = __commonJS({
   }
 });
 
+// node_modules/next/dist/server/app-render/blocking-route-messages.js
+var require_blocking_route_messages = __commonJS({
+  "node_modules/next/dist/server/app-render/blocking-route-messages.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", {
+      value: true
+    });
+    function _export(target, all) {
+      for (var name in all) Object.defineProperty(target, name, {
+        enumerable: true,
+        get: all[name]
+      });
+    }
+    _export(exports2, {
+      createDynamicBodyError: function() {
+        return createDynamicBodyError;
+      },
+      createDynamicBodyErrorInNavigation: function() {
+        return createDynamicBodyErrorInNavigation;
+      },
+      createDynamicMetadataError: function() {
+        return createDynamicMetadataError;
+      },
+      createDynamicOrRuntimeBodyError: function() {
+        return createDynamicOrRuntimeBodyError;
+      },
+      createDynamicOrRuntimeMetadataError: function() {
+        return createDynamicOrRuntimeMetadataError;
+      },
+      createDynamicOrRuntimeViewportError: function() {
+        return createDynamicOrRuntimeViewportError;
+      },
+      createDynamicViewportError: function() {
+        return createDynamicViewportError;
+      },
+      createLinkBodyErrorInNavigation: function() {
+        return createLinkBodyErrorInNavigation;
+      },
+      createLinkMetadataError: function() {
+        return createLinkMetadataError;
+      },
+      createLinkViewportError: function() {
+        return createLinkViewportError;
+      },
+      createRuntimeBodyError: function() {
+        return createRuntimeBodyError;
+      },
+      createRuntimeBodyErrorInNavigation: function() {
+        return createRuntimeBodyErrorInNavigation;
+      },
+      createRuntimeMetadataError: function() {
+        return createRuntimeMetadataError;
+      },
+      createRuntimeViewportError: function() {
+        return createRuntimeViewportError;
+      },
+      logBuildDebugHint: function() {
+        return logBuildDebugHint;
+      }
+    });
+    function createRuntimeBodyError(route) {
+      return Object.defineProperty(new Error(`Route "${route}": Next.js encountered runtime data during prerendering.
+
+\`cookies()\`, \`headers()\`, \`params\`, or \`searchParams\` accessed outside of \`<Suspense>\` prevents the route from being prerendered, blocking the page load and leading to a slower user experience.
+
+Ways to fix this:
+  - [stream] Provide a placeholder with \`<Suspense fallback={...}>\` around the data access
+  - [block] Set \`export const instant = false\` to allow a blocking route
+
+Learn more: https://nextjs.org/docs/messages/blocking-prerender-runtime`), "__NEXT_ERROR_CODE", {
+        value: "E1427",
+        enumerable: false,
+        configurable: true
+      });
+    }
+    function createDynamicBodyError(route) {
+      return Object.defineProperty(new Error(`Route "${route}": Next.js encountered uncached data during prerendering.
+
+\`fetch(...)\` or \`connection()\` accessed outside of \`<Suspense>\` prevents the route from being prerendered, blocking the page load and leading to a slower user experience.
+
+Ways to fix this:
+  - [stream] Provide a placeholder with \`<Suspense fallback={...}>\` around the data access
+  - [cache] Cache the data access with \`"use cache"\` (does not apply to \`connection()\`)
+  - [block] Set \`export const instant = false\` to allow a blocking route
+
+Learn more: https://nextjs.org/docs/messages/blocking-prerender-dynamic`), "__NEXT_ERROR_CODE", {
+        value: "E1440",
+        enumerable: false,
+        configurable: true
+      });
+    }
+    function createRuntimeBodyErrorInNavigation(route) {
+      return Object.defineProperty(new Error(`Route "${route}": Next.js encountered runtime data during prerendering or a navigation.
+
+\`cookies()\`, \`headers()\`, \`params\`, or \`searchParams\` accessed outside of \`<Suspense>\` prevents the route from being prerendered or the navigation from being instant, leading to a slower user experience.
+
+Ways to fix this:
+  - [stream] Provide a placeholder with \`<Suspense fallback={...}>\` around the data access
+  - [block] Set \`export const instant = false\` to allow a blocking route
+
+Learn more: https://nextjs.org/docs/messages/blocking-prerender-runtime`), "__NEXT_ERROR_CODE", {
+        value: "E1430",
+        enumerable: false,
+        configurable: true
+      });
+    }
+    function createLinkBodyErrorInNavigation(route) {
+      return Object.defineProperty(new Error(`Route "${route}": Next.js encountered URL data during prerendering or a navigation.
+
+\`params\` or \`searchParams\` accessed outside of \`<Suspense>\` may prevent the navigation from being instant, leading to a slower user experience.
+
+Ways to fix this:
+  - [stream] Provide a placeholder with \`<Suspense fallback={...}>\` around the data access
+  - [block] Set \`export const instant = false\` to allow a blocking route
+
+Learn more: https://nextjs.org/docs/messages/instant-shell-url-data`), "__NEXT_ERROR_CODE", {
+        value: "E1439",
+        enumerable: false,
+        configurable: true
+      });
+    }
+    function createDynamicBodyErrorInNavigation(route) {
+      return Object.defineProperty(new Error(`Route "${route}": Next.js encountered uncached data during prerendering or a navigation.
+
+\`fetch(...)\` or \`connection()\` accessed outside of \`<Suspense>\` prevents the route from being prerendered or the navigation from being instant, leading to a slower user experience.
+
+Ways to fix this:
+  - [stream] Provide a placeholder with \`<Suspense fallback={...}>\` around the data access
+  - [cache] Cache the data access with \`"use cache"\` (does not apply to \`connection()\`)
+  - [block] Set \`export const instant = false\` to allow a blocking route
+
+Learn more: https://nextjs.org/docs/messages/blocking-prerender-dynamic`), "__NEXT_ERROR_CODE", {
+        value: "E1437",
+        enumerable: false,
+        configurable: true
+      });
+    }
+    function createDynamicOrRuntimeBodyError(route) {
+      return Object.defineProperty(new Error(`Route "${route}": Next.js encountered uncached or runtime data during prerendering.
+
+\`fetch(...)\`, \`cookies()\`, \`headers()\`, \`params\`, \`searchParams\`, or \`connection()\` accessed outside of \`<Suspense>\` prevents the route from being prerendered, blocking the page load and leading to a slower user experience.
+
+Ways to fix this:
+  - [stream] Provide a placeholder with \`<Suspense fallback={...}>\` around the data access
+  - [cache] For uncached data (\`fetch\`, database calls): cache the access with \`"use cache"\` (does not apply to \`connection()\`)
+  - [block] Set \`export const instant = false\` to allow a blocking route
+
+Learn more: https://nextjs.org/docs/messages/blocking-prerender-dynamic`), "__NEXT_ERROR_CODE", {
+        value: "E1428",
+        enumerable: false,
+        configurable: true
+      });
+    }
+    function createLinkMetadataError(route) {
+      return Object.defineProperty(new Error(`Route "${route}": Next.js encountered URL data in \`generateMetadata()\`.
+
+This route's metadata is blocked, but the rest of its content can be prefetched. \`params\` or \`searchParams\` accessed in \`generateMetadata()\` prevent it from being prefetched.
+
+Ways to fix this:
+  - [static] Use a static metadata export instead of \`generateMetadata()\`
+  - [dynamic] Render a marker component that calls \`await connection()\` inside \`<Suspense>\` on the page
+
+Learn more: https://nextjs.org/docs/messages/blocking-prerender-metadata-runtime`), "__NEXT_ERROR_CODE", {
+        value: "E1429",
+        enumerable: false,
+        configurable: true
+      });
+    }
+    function createRuntimeMetadataError(route) {
+      return Object.defineProperty(new Error(`Route "${route}": Next.js encountered runtime data in \`generateMetadata()\`.
+
+This route's metadata is blocked, but the rest of its content can be prerendered. \`cookies()\`, \`headers()\`, \`params\`, or \`searchParams\` accessed in \`generateMetadata()\` cause it to run dynamically.
+
+Ways to fix this:
+  - [static] Use a static metadata export instead of \`generateMetadata()\`
+  - [dynamic] Render a marker component that calls \`await connection()\` inside \`<Suspense>\` on the page
+
+Learn more: https://nextjs.org/docs/messages/blocking-prerender-metadata-runtime`), "__NEXT_ERROR_CODE", {
+        value: "E1423",
+        enumerable: false,
+        configurable: true
+      });
+    }
+    function createDynamicMetadataError(route) {
+      return Object.defineProperty(new Error(`Route "${route}": Next.js encountered uncached data in \`generateMetadata()\`.
+
+This route's metadata is blocked, but the rest of its content can be prerendered. \`fetch(...)\` or \`connection()\` accessed in \`generateMetadata()\` cause it to run dynamically.
+
+Ways to fix this:
+  - [cache] Cache the metadata with \`"use cache"\` in \`generateMetadata()\` (does not apply to \`connection()\`)
+  - [dynamic] Render a marker component that calls \`await connection()\` inside \`<Suspense>\` on the page
+
+Learn more: https://nextjs.org/docs/messages/blocking-prerender-metadata-dynamic`), "__NEXT_ERROR_CODE", {
+        value: "E1425",
+        enumerable: false,
+        configurable: true
+      });
+    }
+    function createLinkViewportError(route) {
+      return Object.defineProperty(new Error(`Route "${route}": Next.js encountered URL data in \`generateViewport()\`.
+
+\`params\` or \`searchParams\` in \`generateViewport()\` prevents the page from being prerendered, leading to a slower user experience.
+
+Ways to fix this:
+  - [static] Use a static viewport export instead of \`generateViewport()\`
+  - [block] Set \`export const instant = false\` to allow a blocking route
+
+Learn more: https://nextjs.org/docs/messages/blocking-prerender-viewport-runtime`), "__NEXT_ERROR_CODE", {
+        value: "E1431",
+        enumerable: false,
+        configurable: true
+      });
+    }
+    function createRuntimeViewportError(route) {
+      return Object.defineProperty(new Error(`Route "${route}": Next.js encountered runtime data in \`generateViewport()\`.
+
+\`cookies()\`, \`headers()\`, \`params\`, or \`searchParams\` in \`generateViewport()\` prevents the page from being prerendered, leading to a slower user experience.
+
+Ways to fix this:
+  - [static] Use a static viewport export instead of \`generateViewport()\`
+  - [block] Set \`export const instant = false\` to allow a blocking route
+
+Learn more: https://nextjs.org/docs/messages/blocking-prerender-viewport-runtime`), "__NEXT_ERROR_CODE", {
+        value: "E1424",
+        enumerable: false,
+        configurable: true
+      });
+    }
+    function createDynamicViewportError(route) {
+      return Object.defineProperty(new Error(`Route "${route}": Next.js encountered uncached data in \`generateViewport()\`.
+
+\`fetch(...)\` or \`connection()\` in \`generateViewport()\` prevents the page from being prerendered, leading to a slower user experience.
+
+Ways to fix this:
+  - [cache] Cache the viewport data with \`"use cache"\` in \`generateViewport()\` (does not apply to \`connection()\`)
+  - [block] Set \`export const instant = false\` to allow a blocking route
+
+Learn more: https://nextjs.org/docs/messages/blocking-prerender-viewport-dynamic`), "__NEXT_ERROR_CODE", {
+        value: "E1438",
+        enumerable: false,
+        configurable: true
+      });
+    }
+    function createDynamicOrRuntimeViewportError(route) {
+      return Object.defineProperty(new Error(`Route "${route}": Next.js encountered uncached or runtime data in \`generateViewport()\`.
+
+This prevents the page from being prerendered, leading to a slower user experience. Unlike metadata, viewport cannot be streamed behind \`<Suspense>\` because it affects the initial page load.
+
+Ways to fix this:
+  - [static] Use a static viewport export instead of \`generateViewport()\`
+  - [cache] For uncached data (\`fetch\`, database calls): cache the viewport with \`"use cache"\` in \`generateViewport()\` (does not apply to \`connection()\`)
+  - [block] Set \`export const instant = false\` to allow a blocking route
+
+Learn more: https://nextjs.org/docs/messages/blocking-prerender-viewport-runtime`), "__NEXT_ERROR_CODE", {
+        value: "E1436",
+        enumerable: false,
+        configurable: true
+      });
+    }
+    function createDynamicOrRuntimeMetadataError(route) {
+      return Object.defineProperty(new Error(`Route "${route}": Next.js encountered uncached or runtime data in \`generateMetadata()\`.
+
+This route's metadata is blocked, but the rest of its content can be prerendered.
+
+Ways to fix this:
+  - [static] Use a static metadata export instead of \`generateMetadata()\`
+  - [cache] Cache the metadata with \`"use cache"\` in \`generateMetadata()\` (does not apply to \`connection()\`)
+  - [dynamic] Render a marker component that calls \`await connection()\` inside \`<Suspense>\` on the page
+
+Learn more: https://nextjs.org/docs/messages/blocking-prerender-metadata-runtime`), "__NEXT_ERROR_CODE", {
+        value: "E1426",
+        enumerable: false,
+        configurable: true
+      });
+    }
+    function logBuildDebugHint(route) {
+      if (process.env.NODE_ENV !== "development") {
+        console.error(`To get a more detailed stack trace and pinpoint the issue, try one of the following:
+  - Start the app in development mode by running \`next dev\`, then open "${route}" in your browser to investigate the error.
+  - Rerun the production build with \`next build --debug-prerender\` to generate better stack traces.`);
+      } else if (!process.env.__NEXT_DEV_SERVER) {
+        console.error(`To debug the issue, start the app in development mode by running \`next dev\`, then open "${route}" in your browser to investigate the error.`);
+      }
+    }
+  }
+});
+
 // node_modules/next/dist/server/app-render/instant-validation/boundary-constants.js
 var require_boundary_constants2 = __commonJS({
   "node_modules/next/dist/server/app-render/instant-validation/boundary-constants.js"(exports2) {
@@ -45085,13 +45435,127 @@ var require_boundary_constants2 = __commonJS({
     Object.defineProperty(exports2, "__esModule", {
       value: true
     });
-    Object.defineProperty(exports2, "INSTANT_VALIDATION_BOUNDARY_NAME", {
-      enumerable: true,
-      get: function() {
+    function _export(target, all) {
+      for (var name in all) Object.defineProperty(target, name, {
+        enumerable: true,
+        get: all[name]
+      });
+    }
+    _export(exports2, {
+      INSTANT_SLOT_MARKER_PREFIX: function() {
+        return INSTANT_SLOT_MARKER_PREFIX;
+      },
+      INSTANT_SLOT_MARKER_SUFFIX: function() {
+        return INSTANT_SLOT_MARKER_SUFFIX;
+      },
+      INSTANT_VALIDATION_BOUNDARY_NAME: function() {
         return INSTANT_VALIDATION_BOUNDARY_NAME;
       }
     });
     var INSTANT_VALIDATION_BOUNDARY_NAME = "__next_instant_validation_boundary__";
+    var INSTANT_SLOT_MARKER_PREFIX = "__next_instant_slot_";
+    var INSTANT_SLOT_MARKER_SUFFIX = "__";
+  }
+});
+
+// node_modules/next/dist/server/app-render/instant-validation/boundary-tracking.js
+var require_boundary_tracking = __commonJS({
+  "node_modules/next/dist/server/app-render/instant-validation/boundary-tracking.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", {
+      value: true
+    });
+    function _export(target, all) {
+      for (var name in all) Object.defineProperty(target, name, {
+        enumerable: true,
+        get: all[name]
+      });
+    }
+    _export(exports2, {
+      allRequiredBoundariesRendered: function() {
+        return allRequiredBoundariesRendered;
+      },
+      createValidationBoundaryTracking: function() {
+        return createValidationBoundaryTracking;
+      }
+    });
+    function createValidationBoundaryTracking() {
+      return {
+        requiredIds: /* @__PURE__ */ new Map(),
+        renderedIds: /* @__PURE__ */ new Set()
+      };
+    }
+    function allRequiredBoundariesRendered(state) {
+      for (const id of state.requiredIds.keys()) {
+        if (!state.renderedIds.has(id)) {
+          return false;
+        }
+      }
+      return true;
+    }
+  }
+});
+
+// node_modules/next/dist/shared/lib/instant-messages.js
+var require_instant_messages = __commonJS({
+  "node_modules/next/dist/shared/lib/instant-messages.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", {
+      value: true
+    });
+    function _export(target, all) {
+      for (var name in all) Object.defineProperty(target, name, {
+        enumerable: true,
+        get: all[name]
+      });
+    }
+    _export(exports2, {
+      createLinkPrefetchPartialError: function() {
+        return createLinkPrefetchPartialError;
+      },
+      createUnrenderedSegmentError: function() {
+        return createUnrenderedSegmentError;
+      }
+    });
+    function createUnrenderedSegmentError(route, missingFiles) {
+      let message = `Route "${route}": Could not validate that a segment in your UI has instant navigation.`;
+      if (missingFiles.length > 0) {
+        const label = missingFiles.length === 1 ? "Dropped segment" : "Dropped segments";
+        message += `
+
+This segment was dropped from rendering. Issues that would prevent instant navigation will go undetected.
+
+${label}:
+${missingFiles.map((p) => `  ${p}`).join("\n")}
+
+Ways to fix this:
+  - [render] Render the dropped segment
+  - [ignore] Set \`export const instant = false\` to opt the dropped segment out of instant-navigation validation
+
+Learn more: https://nextjs.org/docs/messages/instant-unrendered-segment`;
+      }
+      return Object.defineProperty(new Error(message), "__NEXT_ERROR_CODE", {
+        value: "E1286",
+        enumerable: false,
+        configurable: true
+      });
+    }
+    function createLinkPrefetchPartialError(pathname) {
+      return Object.defineProperty(new Error(`Next.js encountered dynamic data during prefetching for "${pathname}".
+
+This will lead to slower, more expensive prefetches.
+
+Ways to fix this:
+  - [upgrade] Opt into Partial Prefetching by exporting \`const prefetch = 'partial'\` from the page or layout, or by setting \`partialPrefetching: true\` in next.config to opt the whole app in
+  - [disable] Remove \`prefetch={true}\` from the <Link> to use the default prefetch
+  - [ignore] Set \`export const instant = false\` to opt the route out of instant-navigation validation
+
+Learn more: https://nextjs.org/docs/messages/instant-link-prefetch-partial`), "__NEXT_ERROR_CODE", {
+        value: "E1435",
+        enumerable: false,
+        configurable: true
+      });
+    }
   }
 });
 
@@ -45178,6 +45642,9 @@ var require_dynamic_rendering = __commonJS({
       throwIfDisallowedDynamic: function() {
         return throwIfDisallowedDynamic;
       },
+      throwIfSyncIOUsed: function() {
+        return throwIfSyncIOUsed;
+      },
       throwToInterruptStaticGeneration: function() {
         return throwToInterruptStaticGeneration;
       },
@@ -45215,8 +45682,11 @@ var require_dynamic_rendering = __commonJS({
     var _boundaryconstants = require_boundary_constants();
     var _scheduler = require_scheduler();
     var _bailouttocsr = require_bailout_to_csr();
+    var _blockingroutemessages = require_blocking_route_messages();
     var _invarianterror = require_invariant_error();
     var _boundaryconstants1 = require_boundary_constants2();
+    var _boundarytracking = require_boundary_tracking();
+    var _instantmessages = require_instant_messages();
     function _interop_require_default(obj) {
       return obj && obj.__esModule ? obj : {
         default: obj
@@ -45227,7 +45697,8 @@ var require_dynamic_rendering = __commonJS({
       return {
         isDebugDynamicAccesses,
         dynamicAccesses: [],
-        syncDynamicErrorWithStack: null
+        syncDynamicErrorWithStack: null,
+        syncDynamicErrorWithStackPostMicrotask: false
       };
     }
     function createDynamicValidationState() {
@@ -45239,6 +45710,9 @@ var require_dynamic_rendering = __commonJS({
         hasAllowedDynamic: false,
         dynamicErrors: []
       };
+    }
+    function getPendingClientSyncDynamicError(clientDynamic) {
+      return clientDynamic.syncDynamicErrorWithStackPostMicrotask ? null : clientDynamic.syncDynamicErrorWithStack;
     }
     function getFirstDynamicReason(trackingState) {
       var _trackingState_dynamicAccesses_;
@@ -45346,14 +45820,16 @@ var require_dynamic_rendering = __commonJS({
     }
     function abortOnSynchronousPlatformIOAccess(route, expression, errorWithStack, prerenderStore) {
       const dynamicTracking = prerenderStore.dynamicTracking;
-      abortOnSynchronousDynamicDataAccess(route, expression, prerenderStore);
-      if (dynamicTracking) {
-        if (dynamicTracking.syncDynamicErrorWithStack === null) {
-          dynamicTracking.syncDynamicErrorWithStack = errorWithStack;
-        }
+      if (dynamicTracking && dynamicTracking.syncDynamicErrorWithStack === null) {
+        dynamicTracking.syncDynamicErrorWithStack = errorWithStack;
+        queueMicrotask(() => {
+          dynamicTracking.syncDynamicErrorWithStackPostMicrotask = true;
+        });
       }
+      abortOnSynchronousDynamicDataAccess(route, expression, prerenderStore);
     }
     function abortAndThrowOnSynchronousRequestDataAccess(route, expression, errorWithStack, prerenderStore) {
+      (0, _dynamicrenderingutils.trackRuntimeDataAccessed)(prerenderStore);
       const prerenderSignal = prerenderStore.controller.signal;
       if (prerenderSignal.aborted === false) {
         abortOnSynchronousDynamicDataAccess(route, expression, prerenderStore);
@@ -45468,12 +45944,9 @@ ${stack}`;
               controller.abort();
             });
           } else {
-            if (
-              // eslint-disable-next-line no-restricted-syntax -- We are discriminating between two different refined types and don't need an addition exhaustive switch here
-              workUnitStore.type === "prerender-runtime" && workUnitStore.stagedRendering
-            ) {
-              const { stagedRendering } = workUnitStore;
-              stagedRendering.waitForStage((0, _dynamicrenderingutils.getRuntimeStage)(stagedRendering)).then(() => (0, _scheduler.scheduleOnNextTick)(() => controller.abort()));
+            const stagedRendering = (0, _workunitasyncstorageexternal.getStagedRenderingController)(workUnitStore);
+            if (stagedRendering && stagedRendering.finalStage !== null) {
+              stagedRendering.waitForStage(stagedRendering.finalStage).then(() => (0, _scheduler.scheduleOnNextTick)(() => controller.abort()), noop);
             } else {
               (0, _scheduler.scheduleOnNextTick)(() => controller.abort());
             }
@@ -45493,6 +45966,8 @@ ${stack}`;
           workUnitStore;
       }
     }
+    function noop() {
+    }
     function annotateDynamicAccess(expression, prerenderStore) {
       const dynamicTracking = prerenderStore.dynamicTracking;
       if (dynamicTracking) {
@@ -45507,14 +45982,19 @@ ${stack}`;
       const workUnitStore = _workunitasyncstorageexternal.workUnitAsyncStorage.getStore();
       if (workStore && workUnitStore) {
         switch (workUnitStore.type) {
-          case "prerender-client":
-          case "prerender": {
+          case "prerender-client": {
             const fallbackParams = workUnitStore.fallbackRouteParams;
             if (fallbackParams && fallbackParams.size > 0) {
-              _react.default.use((0, _dynamicrenderingutils.makeHangingPromise)(workUnitStore.renderSignal, workStore.route, expression));
+              _react.default.use((0, _dynamicrenderingutils.makeClientHookHangingPromise)(workUnitStore.renderSignal, new _dynamicrenderingutils.ClientHookDynamicError(workStore.route, expression)));
             }
             break;
           }
+          case "prerender":
+            throw Object.defineProperty(new _invarianterror.InvariantError(`\`${expression}\` was called from a Server Component. Next.js should be preventing ${expression} from being included in server components statically, but did not in this case.`), "__NEXT_ERROR_CODE", {
+              value: "E795",
+              enumerable: false,
+              configurable: true
+            });
           case "prerender-ppr": {
             const fallbackParams = workUnitStore.fallbackRouteParams;
             if (fallbackParams && fallbackParams.size > 0) {
@@ -45566,7 +46046,7 @@ ${stack}`;
         case "validation-client":
           return;
         case "prerender-client": {
-          _react.default.use((0, _dynamicrenderingutils.makeHangingPromise)(workUnitStore.renderSignal, workStore.route, expression));
+          _react.default.use((0, _dynamicrenderingutils.makeClientHookHangingPromise)(workUnitStore.renderSignal, new _dynamicrenderingutils.ClientHookDynamicError(workStore.route, expression)));
           break;
         }
         case "prerender-legacy":
@@ -45614,8 +46094,30 @@ ${stack}`;
     var hasViewportRegex = new RegExp(`\\n\\s+at ${_boundaryconstants.VIEWPORT_BOUNDARY_NAME}[\\n\\s]`);
     var hasOutletRegex = new RegExp(`\\n\\s+at ${_boundaryconstants.OUTLET_BOUNDARY_NAME}[\\n\\s]`);
     var hasInstantValidationBoundaryRegex = new RegExp(`\\n\\s+at ${_boundaryconstants1.INSTANT_VALIDATION_BOUNDARY_NAME}[\\n\\s]`);
-    function trackAllowedDynamicAccess(workStore, componentStack, dynamicValidation, clientDynamic) {
+    var slotMarkerRegex = new RegExp(`\\n\\s+at ${_boundaryconstants1.INSTANT_SLOT_MARKER_PREFIX}(\\d+)${_boundaryconstants1.INSTANT_SLOT_MARKER_SUFFIX}[\\n\\s]`);
+    function resolveInstantStack(componentStack, dynamicValidation) {
+      const { slotStacks } = dynamicValidation;
+      if (slotStacks.length > 1) {
+        const match = slotMarkerRegex.exec(componentStack);
+        if (match) {
+          const slotIndex = parseInt(match[1], 10) + 1;
+          const slotStack = slotStacks[slotIndex];
+          if (slotStack != null) {
+            return slotStack;
+          }
+        }
+      }
+      return slotStacks[0] ?? null;
+    }
+    function trackOutletSuspenseAboveBody(componentStack, dynamicValidation) {
+      if (hasSuspenseBeforeRootLayoutWithoutBodyOrImplicitBodyRegex.test(componentStack)) {
+        dynamicValidation.hasSuspenseAboveBody = true;
+      }
+    }
+    function trackAllowedDynamicAccess(dynamicReason, workStore, componentStack, dynamicValidation, clientDynamic) {
+      const syncDynamicError = getPendingClientSyncDynamicError(clientDynamic);
       if (hasOutletRegex.test(componentStack)) {
+        trackOutletSuspenseAboveBody(componentStack, dynamicValidation);
         return;
       } else if (hasMetadataRegex.test(componentStack)) {
         dynamicValidation.hasDynamicMetadata = true;
@@ -45630,26 +46132,25 @@ ${stack}`;
       } else if (hasSuspenseRegex.test(componentStack)) {
         dynamicValidation.hasAllowedDynamic = true;
         return;
-      } else if (clientDynamic.syncDynamicErrorWithStack) {
-        dynamicValidation.dynamicErrors.push(clientDynamic.syncDynamicErrorWithStack);
-        return;
-      } else {
-        const message = `Route "${workStore.route}": Uncached data was accessed outside of <Suspense>. This delays the entire page from rendering, resulting in a slow user experience. Learn more: https://nextjs.org/docs/messages/blocking-route`;
-        const error = addErrorContext(Object.defineProperty(new Error(message), "__NEXT_ERROR_CODE", {
-          value: "E1079",
-          enumerable: false,
-          configurable: true
-        }), componentStack, null);
-        dynamicValidation.dynamicErrors.push(error);
+      } else if (syncDynamicError) {
+        dynamicValidation.dynamicErrors.push(syncDynamicError);
         return;
       }
+      if ((0, _dynamicrenderingutils.isClientHookDynamicError)(dynamicReason)) {
+        dynamicValidation.dynamicErrors.push(addErrorContext(dynamicReason, componentStack, null));
+        return;
+      }
+      const error = addErrorContext((0, _blockingroutemessages.createDynamicOrRuntimeBodyError)(workStore.route), componentStack, null);
+      dynamicValidation.dynamicErrors.push(error);
+      return;
     }
     var DynamicHoleKind = /* @__PURE__ */ (function(DynamicHoleKind2) {
-      DynamicHoleKind2[DynamicHoleKind2["Runtime"] = 1] = "Runtime";
-      DynamicHoleKind2[DynamicHoleKind2["Dynamic"] = 2] = "Dynamic";
+      DynamicHoleKind2[DynamicHoleKind2["Link"] = 1] = "Link";
+      DynamicHoleKind2[DynamicHoleKind2["Runtime"] = 2] = "Runtime";
+      DynamicHoleKind2[DynamicHoleKind2["Dynamic"] = 3] = "Dynamic";
       return DynamicHoleKind2;
     })({});
-    function createInstantValidationState(createInstantStack) {
+    function createInstantValidationState(slotStacks) {
       return {
         hasDynamicMetadata: false,
         hasAllowedClientDynamicAboveBoundary: false,
@@ -45659,48 +46160,38 @@ ${stack}`;
         dynamicErrors: [],
         validationPreventingErrors: [],
         thrownErrorsOutsideBoundary: [],
-        createInstantStack
+        slotStacks
       };
     }
-    function trackDynamicHoleInNavigation(workStore, componentStack, dynamicValidation, clientDynamic, kind, boundaryState) {
+    function trackDynamicHoleInNavigation(dynamicReason, workStore, componentStack, dynamicValidation, clientDynamic, kind, boundaryState) {
+      const syncDynamicError = getPendingClientSyncDynamicError(clientDynamic);
       if (hasOutletRegex.test(componentStack)) {
         return;
       }
+      const effectiveCreateInstantStack = resolveInstantStack(componentStack, dynamicValidation);
       if (hasMetadataRegex.test(componentStack)) {
-        const usageDescription2 = kind === 1 ? `Runtime data such as \`cookies()\`, \`headers()\`, \`params\`, or \`searchParams\` was accessed inside \`generateMetadata\` or you have file-based metadata such as icons that depend on dynamic params segments.` : `Uncached data or \`connection()\` was accessed inside \`generateMetadata\`.`;
-        const message2 = `Route "${workStore.route}": ${usageDescription2} Except for this instance, the page would have been entirely prerenderable which may have been the intended behavior. See more info here: https://nextjs.org/docs/messages/next-prerender-dynamic-metadata`;
-        const error2 = addErrorContext(Object.defineProperty(new Error(message2), "__NEXT_ERROR_CODE", {
-          value: "E1076",
-          enumerable: false,
-          configurable: true
-        }), componentStack, dynamicValidation.createInstantStack);
+        const error2 = addErrorContext(kind === 1 ? (0, _blockingroutemessages.createLinkMetadataError)(workStore.route) : kind === 2 ? (0, _blockingroutemessages.createRuntimeMetadataError)(workStore.route) : (0, _blockingroutemessages.createDynamicMetadataError)(workStore.route), componentStack, effectiveCreateInstantStack);
         dynamicValidation.dynamicMetadata = error2;
         return;
       }
       if (hasViewportRegex.test(componentStack)) {
-        const usageDescription2 = kind === 1 ? `Runtime data such as \`cookies()\`, \`headers()\`, \`params\`, or \`searchParams\` was accessed inside \`generateViewport\`.` : `Uncached data or \`connection()\` was accessed inside \`generateViewport\`.`;
-        const message2 = `Route "${workStore.route}": ${usageDescription2} This delays the entire page from rendering, resulting in a slow user experience. Learn more: https://nextjs.org/docs/messages/next-prerender-dynamic-viewport`;
-        const error2 = addErrorContext(Object.defineProperty(new Error(message2), "__NEXT_ERROR_CODE", {
-          value: "E1086",
-          enumerable: false,
-          configurable: true
-        }), componentStack, dynamicValidation.createInstantStack);
+        const error2 = addErrorContext(kind === 1 ? (0, _blockingroutemessages.createLinkViewportError)(workStore.route) : kind === 2 ? (0, _blockingroutemessages.createRuntimeViewportError)(workStore.route) : (0, _blockingroutemessages.createDynamicViewportError)(workStore.route), componentStack, effectiveCreateInstantStack);
         dynamicValidation.dynamicErrors.push(error2);
         return;
       }
       const boundaryLocation = hasInstantValidationBoundaryRegex.exec(componentStack);
       if (!boundaryLocation) {
-        if (boundaryState.expectedIds.size === boundaryState.renderedIds.size) {
+        if ((0, _boundarytracking.allRequiredBoundariesRendered)(boundaryState)) {
           dynamicValidation.hasAllowedClientDynamicAboveBoundary = true;
           dynamicValidation.hasAllowedDynamic = true;
           return;
         } else {
-          const message2 = `Route "${workStore.route}": Could not validate \`unstable_instant\` because a Client Component in a parent segment prevented the page from rendering.`;
-          const error2 = addErrorContext(Object.defineProperty(new Error(message2), "__NEXT_ERROR_CODE", {
-            value: "E1082",
+          const message = `Route "${workStore.route}": Could not validate \`instant\` because a Client Component in a parent segment prevented the page from rendering.`;
+          const error2 = addErrorContext(Object.defineProperty(new Error(message), "__NEXT_ERROR_CODE", {
+            value: "E1331",
             enumerable: false,
             configurable: true
-          }), componentStack, dynamicValidation.createInstantStack);
+          }), componentStack, effectiveCreateInstantStack);
           dynamicValidation.validationPreventingErrors.push(error2);
           return;
         }
@@ -45714,21 +46205,18 @@ ${stack}`;
           }
         }
       }
-      if (clientDynamic.syncDynamicErrorWithStack) {
-        const syncError = clientDynamic.syncDynamicErrorWithStack;
-        if (dynamicValidation.createInstantStack !== null && syncError.cause === void 0) {
-          syncError.cause = dynamicValidation.createInstantStack();
+      if (syncDynamicError) {
+        if (effectiveCreateInstantStack !== null && syncDynamicError.cause === void 0) {
+          syncDynamicError.cause = effectiveCreateInstantStack();
         }
-        dynamicValidation.dynamicErrors.push(syncError);
+        dynamicValidation.dynamicErrors.push(syncDynamicError);
         return;
       }
-      const usageDescription = kind === 1 ? `Runtime data such as \`cookies()\`, \`headers()\`, \`params\`, or \`searchParams\` was accessed outside of \`<Suspense>\`.` : `Uncached data or \`connection()\` was accessed outside of \`<Suspense>\`.`;
-      const message = `Route "${workStore.route}": ${usageDescription} This delays the entire page from rendering, resulting in a slow user experience. Learn more: https://nextjs.org/docs/messages/blocking-route`;
-      const error = addErrorContext(Object.defineProperty(new Error(message), "__NEXT_ERROR_CODE", {
-        value: "E1078",
-        enumerable: false,
-        configurable: true
-      }), componentStack, dynamicValidation.createInstantStack);
+      if ((0, _dynamicrenderingutils.isClientHookDynamicError)(dynamicReason)) {
+        dynamicValidation.dynamicErrors.push(addErrorContext(dynamicReason, componentStack, effectiveCreateInstantStack));
+        return;
+      }
+      const error = addErrorContext(kind === 1 ? (0, _blockingroutemessages.createLinkBodyErrorInNavigation)(workStore.route) : kind === 2 ? (0, _blockingroutemessages.createRuntimeBodyErrorInNavigation)(workStore.route) : (0, _blockingroutemessages.createDynamicBodyErrorInNavigation)(workStore.route), componentStack, effectiveCreateInstantStack);
       dynamicValidation.dynamicErrors.push(error);
       return;
     }
@@ -45751,12 +46239,12 @@ ${stack}`;
           } else {
           }
         }
-        const message = `Route "${workStore.route}": Could not validate \`unstable_instant\` because an error prevented the target segment from rendering.`;
+        const message = `Route "${workStore.route}": Could not validate \`instant\` because an error prevented the target segment from rendering.`;
         const error = addErrorContext(
           Object.defineProperty(new Error(message, {
             cause: thrownValue
           }), "__NEXT_ERROR_CODE", {
-            value: "E1112",
+            value: "E1338",
             enumerable: false,
             configurable: true
           }),
@@ -45767,25 +46255,17 @@ ${stack}`;
         dynamicValidation.validationPreventingErrors.push(error);
       }
     }
-    function trackDynamicHoleInRuntimeShell(workStore, componentStack, dynamicValidation, clientDynamic) {
+    function trackDynamicHoleInRuntimeShell(dynamicReason, workStore, componentStack, dynamicValidation, clientDynamic) {
+      const syncDynamicError = getPendingClientSyncDynamicError(clientDynamic);
       if (hasOutletRegex.test(componentStack)) {
+        trackOutletSuspenseAboveBody(componentStack, dynamicValidation);
         return;
       } else if (hasMetadataRegex.test(componentStack)) {
-        const message2 = `Route "${workStore.route}": Uncached data or \`connection()\` was accessed inside \`generateMetadata\`. Except for this instance, the page would have been entirely prerenderable which may have been the intended behavior. See more info here: https://nextjs.org/docs/messages/next-prerender-dynamic-metadata`;
-        const error2 = addErrorContext(Object.defineProperty(new Error(message2), "__NEXT_ERROR_CODE", {
-          value: "E1080",
-          enumerable: false,
-          configurable: true
-        }), componentStack, null);
+        const error2 = addErrorContext((0, _blockingroutemessages.createDynamicMetadataError)(workStore.route), componentStack, null);
         dynamicValidation.dynamicMetadata = error2;
         return;
       } else if (hasViewportRegex.test(componentStack)) {
-        const message2 = `Route "${workStore.route}": Uncached data or \`connection()\` was accessed inside \`generateViewport\`. This delays the entire page from rendering, resulting in a slow user experience. Learn more: https://nextjs.org/docs/messages/next-prerender-dynamic-viewport`;
-        const error2 = addErrorContext(Object.defineProperty(new Error(message2), "__NEXT_ERROR_CODE", {
-          value: "E1077",
-          enumerable: false,
-          configurable: true
-        }), componentStack, null);
+        const error2 = addErrorContext((0, _blockingroutemessages.createDynamicViewportError)(workStore.route), componentStack, null);
         dynamicValidation.dynamicErrors.push(error2);
         return;
       } else if (hasSuspenseBeforeRootLayoutWithoutBodyOrImplicitBodyRegex.test(componentStack)) {
@@ -45795,39 +46275,30 @@ ${stack}`;
       } else if (hasSuspenseRegex.test(componentStack)) {
         dynamicValidation.hasAllowedDynamic = true;
         return;
-      } else if (clientDynamic.syncDynamicErrorWithStack) {
-        dynamicValidation.dynamicErrors.push(clientDynamic.syncDynamicErrorWithStack);
+      } else if (syncDynamicError) {
+        dynamicValidation.dynamicErrors.push(syncDynamicError);
         return;
       }
-      const message = `Route "${workStore.route}": Uncached data or \`connection()\` was accessed outside of \`<Suspense>\`. This delays the entire page from rendering, resulting in a slow user experience. Learn more: https://nextjs.org/docs/messages/blocking-route`;
-      const error = addErrorContext(Object.defineProperty(new Error(message), "__NEXT_ERROR_CODE", {
-        value: "E1084",
-        enumerable: false,
-        configurable: true
-      }), componentStack, null);
+      if ((0, _dynamicrenderingutils.isClientHookDynamicError)(dynamicReason)) {
+        dynamicValidation.dynamicErrors.push(addErrorContext(dynamicReason, componentStack, null));
+        return;
+      }
+      const error = addErrorContext((0, _blockingroutemessages.createDynamicBodyError)(workStore.route), componentStack, null);
       dynamicValidation.dynamicErrors.push(error);
       return;
     }
-    function trackDynamicHoleInStaticShell(workStore, componentStack, dynamicValidation, clientDynamic) {
+    function trackDynamicHoleInStaticShell(dynamicReason, workStore, componentStack, dynamicValidation, clientDynamic) {
+      const syncDynamicError = getPendingClientSyncDynamicError(clientDynamic);
       if (hasOutletRegex.test(componentStack)) {
+        trackOutletSuspenseAboveBody(componentStack, dynamicValidation);
         return;
       } else if (hasMetadataRegex.test(componentStack)) {
-        const message = `Route "${workStore.route}": Runtime data such as \`cookies()\`, \`headers()\`, \`params\`, or \`searchParams\` was accessed inside \`generateMetadata\` or you have file-based metadata such as icons that depend on dynamic params segments. Except for this instance, the page would have been entirely prerenderable which may have been the intended behavior. See more info here: https://nextjs.org/docs/messages/next-prerender-dynamic-metadata`;
-        const error = addErrorContext(Object.defineProperty(new Error(message), "__NEXT_ERROR_CODE", {
-          value: "E1085",
-          enumerable: false,
-          configurable: true
-        }), componentStack, null);
-        dynamicValidation.dynamicMetadata = error;
+        const error2 = addErrorContext((0, _blockingroutemessages.createRuntimeMetadataError)(workStore.route), componentStack, null);
+        dynamicValidation.dynamicMetadata = error2;
         return;
       } else if (hasViewportRegex.test(componentStack)) {
-        const message = `Route "${workStore.route}": Runtime data such as \`cookies()\`, \`headers()\`, \`params\`, or \`searchParams\` was accessed inside \`generateViewport\`. This delays the entire page from rendering, resulting in a slow user experience. Learn more: https://nextjs.org/docs/messages/next-prerender-dynamic-viewport`;
-        const error = addErrorContext(Object.defineProperty(new Error(message), "__NEXT_ERROR_CODE", {
-          value: "E1081",
-          enumerable: false,
-          configurable: true
-        }), componentStack, null);
-        dynamicValidation.dynamicErrors.push(error);
+        const error2 = addErrorContext((0, _blockingroutemessages.createRuntimeViewportError)(workStore.route), componentStack, null);
+        dynamicValidation.dynamicErrors.push(error2);
         return;
       } else if (hasSuspenseBeforeRootLayoutWithoutBodyOrImplicitBodyRegex.test(componentStack)) {
         dynamicValidation.hasAllowedDynamic = true;
@@ -45836,19 +46307,17 @@ ${stack}`;
       } else if (hasSuspenseRegex.test(componentStack)) {
         dynamicValidation.hasAllowedDynamic = true;
         return;
-      } else if (clientDynamic.syncDynamicErrorWithStack) {
-        dynamicValidation.dynamicErrors.push(clientDynamic.syncDynamicErrorWithStack);
-        return;
-      } else {
-        const message = `Route "${workStore.route}": Runtime data such as \`cookies()\`, \`headers()\`, \`params\`, or \`searchParams\` was accessed outside of \`<Suspense>\`. This delays the entire page from rendering, resulting in a slow user experience. Learn more: https://nextjs.org/docs/messages/blocking-route`;
-        const error = addErrorContext(Object.defineProperty(new Error(message), "__NEXT_ERROR_CODE", {
-          value: "E1083",
-          enumerable: false,
-          configurable: true
-        }), componentStack, null);
-        dynamicValidation.dynamicErrors.push(error);
+      } else if (syncDynamicError) {
+        dynamicValidation.dynamicErrors.push(syncDynamicError);
         return;
       }
+      if ((0, _dynamicrenderingutils.isClientHookDynamicError)(dynamicReason)) {
+        dynamicValidation.dynamicErrors.push(addErrorContext(dynamicReason, componentStack, null));
+        return;
+      }
+      const error = addErrorContext((0, _blockingroutemessages.createRuntimeBodyError)(workStore.route), componentStack, null);
+      dynamicValidation.dynamicErrors.push(error);
+      return;
     }
     function addErrorContext(error, componentStack, createInstantStack) {
       const ownerStack = process.env.NODE_ENV !== "production" && _react.default.captureOwnerStack ? _react.default.captureOwnerStack() : null;
@@ -45866,23 +46335,24 @@ ${stack}`;
     })({});
     function logDisallowedDynamicError(workStore, error) {
       console.error(error);
-      if (process.env.NODE_ENV !== "development") {
-        console.error(`To get a more detailed stack trace and pinpoint the issue, try one of the following:
-  - Start the app in development mode by running \`next dev\`, then open "${workStore.route}" in your browser to investigate the error.
-  - Rerun the production build with \`next build --debug-prerender\` to generate better stack traces.`);
-      } else if (!process.env.__NEXT_DEV_SERVER) {
-        console.error(`To debug the issue, start the app in development mode by running \`next dev\`, then open "${workStore.route}" in your browser to investigate the error.`);
-      }
+      (0, _blockingroutemessages.logBuildDebugHint)(workStore.route);
     }
-    function throwIfDisallowedDynamic(workStore, prelude, dynamicValidation, serverDynamic) {
+    function throwIfSyncIOUsed(workStore, serverDynamic) {
       if (serverDynamic.syncDynamicErrorWithStack) {
         logDisallowedDynamicError(workStore, serverDynamic.syncDynamicErrorWithStack);
         throw new _staticgenerationbailout.StaticGenBailoutError();
       }
+    }
+    function throwIfDisallowedDynamic(workStore, prelude, dynamicValidation, serverDynamic, allowEmptyStaticShell) {
+      throwIfSyncIOUsed(workStore, serverDynamic);
+      if (prelude === 0 && dynamicValidation.hasAllowedDynamic === false && dynamicValidation.hasDynamicMetadata) {
+        console.error((0, _blockingroutemessages.createDynamicOrRuntimeMetadataError)(workStore.route).message);
+        throw new _staticgenerationbailout.StaticGenBailoutError();
+      }
+      if (allowEmptyStaticShell || dynamicValidation.hasSuspenseAboveBody) {
+        return;
+      }
       if (prelude !== 0) {
-        if (dynamicValidation.hasSuspenseAboveBody) {
-          return;
-        }
         const dynamicErrors = dynamicValidation.dynamicErrors;
         if (dynamicErrors.length > 0) {
           for (let i = 0; i < dynamicErrors.length; i++) {
@@ -45891,22 +46361,22 @@ ${stack}`;
           throw new _staticgenerationbailout.StaticGenBailoutError();
         }
         if (dynamicValidation.hasDynamicViewport) {
-          console.error(`Route "${workStore.route}" has a \`generateViewport\` that depends on Request data (\`cookies()\`, etc...) or uncached external data (\`fetch(...)\`, etc...) without explicitly allowing fully dynamic rendering. See more info here: https://nextjs.org/docs/messages/next-prerender-dynamic-viewport`);
+          console.error((0, _blockingroutemessages.createDynamicOrRuntimeViewportError)(workStore.route).message);
           throw new _staticgenerationbailout.StaticGenBailoutError();
         }
         if (prelude === 1) {
           console.error(`Route "${workStore.route}" did not produce a static shell and Next.js was unable to determine a reason. This is a bug in Next.js.`);
           throw new _staticgenerationbailout.StaticGenBailoutError();
         }
-      } else {
-        if (dynamicValidation.hasAllowedDynamic === false && dynamicValidation.hasDynamicMetadata) {
-          console.error(`Route "${workStore.route}" has a \`generateMetadata\` that depends on Request data (\`cookies()\`, etc...) or uncached external data (\`fetch(...)\`, etc...) when the rest of the route does not. See more info here: https://nextjs.org/docs/messages/next-prerender-dynamic-metadata`);
-          throw new _staticgenerationbailout.StaticGenBailoutError();
-        }
       }
     }
-    function getStaticShellDisallowedDynamicReasons(workStore, prelude, dynamicValidation, configAllowsBlocking) {
-      if (configAllowsBlocking || dynamicValidation.hasSuspenseAboveBody) {
+    function getStaticShellDisallowedDynamicReasons(workStore, prelude, dynamicValidation, allowEmptyStaticShell) {
+      if (prelude === 0 && dynamicValidation.hasAllowedDynamic === false && dynamicValidation.dynamicErrors.length === 0 && dynamicValidation.dynamicMetadata) {
+        return [
+          dynamicValidation.dynamicMetadata
+        ];
+      }
+      if (allowEmptyStaticShell || dynamicValidation.hasSuspenseAboveBody) {
         return [];
       }
       if (prelude !== 0) {
@@ -45923,16 +46393,10 @@ ${stack}`;
             })
           ];
         }
-      } else {
-        if (dynamicValidation.hasAllowedDynamic === false && dynamicValidation.dynamicErrors.length === 0 && dynamicValidation.dynamicMetadata) {
-          return [
-            dynamicValidation.dynamicMetadata
-          ];
-        }
       }
       return [];
     }
-    function getNavigationDisallowedDynamicReasons(workStore, prelude, dynamicValidation, validationSampleTracking, boundaryState) {
+    function getNavigationDisallowedDynamicReasons(workStore, prelude, dynamicValidation, validationSampleTracking, boundaryState, devRenderDidError) {
       if (validationSampleTracking) {
         const { missingSampleErrors } = validationSampleTracking;
         if (missingSampleErrors.length > 0) {
@@ -45941,54 +46405,22 @@ ${stack}`;
       }
       const { validationPreventingErrors } = dynamicValidation;
       if (validationPreventingErrors.length > 0) {
-        return validationPreventingErrors;
-      }
-      if (boundaryState.renderedIds.size < boundaryState.expectedIds.size) {
-        const { thrownErrorsOutsideBoundary, createInstantStack } = dynamicValidation;
-        if (thrownErrorsOutsideBoundary.length === 0) {
-          const message = `Route "${workStore.route}": Could not validate \`unstable_instant\` because the target segment was prevented from rendering for an unknown reason.`;
-          const error = createInstantStack !== null ? createInstantStack() : new Error();
-          error.name = "Error";
-          error.message = message;
-          return [
-            error
-          ];
-        } else if (thrownErrorsOutsideBoundary.length === 1) {
-          const message = `Route "${workStore.route}": Could not validate \`unstable_instant\` because the target segment was prevented from rendering, likely due to the following error.`;
-          const error = createInstantStack !== null ? createInstantStack() : new Error();
-          error.name = "Error";
-          error.message = message;
-          return [
-            error,
-            thrownErrorsOutsideBoundary[0]
-          ];
-        } else {
-          const message = `Route "${workStore.route}": Could not validate \`unstable_instant\` because the target segment was prevented from rendering, likely due to one of the following errors.`;
-          const error = createInstantStack !== null ? createInstantStack() : new Error();
-          error.name = "Error";
-          error.message = message;
-          return [
-            error,
-            ...thrownErrorsOutsideBoundary
-          ];
+        if (process.env.__NEXT_DEV_SERVER && devRenderDidError) {
+          return [];
         }
+        return validationPreventingErrors;
       }
       if (prelude !== 0) {
         const dynamicErrors = dynamicValidation.dynamicErrors;
         if (dynamicErrors.length > 0) {
           return dynamicErrors;
         }
-        if (prelude === 1) {
-          if (dynamicValidation.hasAllowedClientDynamicAboveBoundary) {
-            return [];
-          }
-          return [
-            Object.defineProperty(new _invarianterror.InvariantError(`Route "${workStore.route}" failed to render during instant validation and Next.js was unable to determine a reason.`), "__NEXT_ERROR_CODE", {
-              value: "E1055",
-              enumerable: false,
-              configurable: true
-            })
-          ];
+        if (prelude === 1 && !dynamicValidation.hasAllowedClientDynamicAboveBoundary && (0, _boundarytracking.allRequiredBoundariesRendered)(boundaryState)) {
+          return Object.defineProperty(new _invarianterror.InvariantError(`Route "${workStore.route}" failed to render during instant validation and Next.js was unable to determine a reason.`), "__NEXT_ERROR_CODE", {
+            value: "E1055",
+            enumerable: false,
+            configurable: true
+          });
         }
       } else {
         const dynamicErrors = dynamicValidation.dynamicErrors;
@@ -45999,6 +46431,43 @@ ${stack}`;
           return [
             dynamicValidation.dynamicMetadata
           ];
+        }
+      }
+      if (!(0, _boundarytracking.allRequiredBoundariesRendered)(boundaryState)) {
+        const { thrownErrorsOutsideBoundary } = dynamicValidation;
+        const rootInstantStack = dynamicValidation.slotStacks[0];
+        if (thrownErrorsOutsideBoundary.length === 0) {
+          const missingFiles = [];
+          for (const [id, filePaths] of boundaryState.requiredIds) {
+            if (!boundaryState.renderedIds.has(id)) {
+              for (const filePath of filePaths) {
+                let normalized = filePath.replace(/^\[project\][\\/]?/, "").replace(process.cwd() + "/", "").replace(process.cwd() + "\\", "");
+                missingFiles.push(normalized);
+              }
+            }
+          }
+          missingFiles.sort();
+          return (0, _instantmessages.createUnrenderedSegmentError)(workStore.route, missingFiles);
+        } else if (process.env.__NEXT_DEV_SERVER && devRenderDidError) {
+          return [];
+        } else if (thrownErrorsOutsideBoundary.length === 1) {
+          const message = `Route "${workStore.route}": Could not validate \`instant\` because the target segment was prevented from rendering, likely due to the following error.`;
+          const error = rootInstantStack !== null ? rootInstantStack() : new Error();
+          error.name = "Error";
+          error.message = message;
+          return new AggregateError([
+            error,
+            thrownErrorsOutsideBoundary[0]
+          ]);
+        } else {
+          const message = `Route "${workStore.route}": Could not validate \`instant\` because the target segment was prevented from rendering, likely due to one of the following errors.`;
+          const error = rootInstantStack !== null ? rootInstantStack() : new Error();
+          error.name = "Error";
+          error.message = message;
+          return new AggregateError([
+            error,
+            ...thrownErrorsOutsideBoundary
+          ]);
         }
       }
       return [];
@@ -46097,6 +46566,41 @@ var require_create_deduped_by_callsite_server_error_logger = __commonJS({
   }
 });
 
+// node_modules/next/dist/server/app-render/action-async-storage-instance.js
+var require_action_async_storage_instance = __commonJS({
+  "node_modules/next/dist/server/app-render/action-async-storage-instance.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", {
+      value: true
+    });
+    Object.defineProperty(exports2, "actionAsyncStorageInstance", {
+      enumerable: true,
+      get: function() {
+        return actionAsyncStorageInstance;
+      }
+    });
+    var _asynclocalstorage = require_async_local_storage();
+    var actionAsyncStorageInstance = (0, _asynclocalstorage.createAsyncLocalStorage)();
+  }
+});
+
+// node_modules/next/dist/server/app-render/action-async-storage.external.js
+var require_action_async_storage_external = __commonJS({
+  "node_modules/next/dist/server/app-render/action-async-storage.external.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", {
+      value: true
+    });
+    Object.defineProperty(exports2, "actionAsyncStorage", {
+      enumerable: true,
+      get: function() {
+        return _actionasyncstorageinstance.actionAsyncStorageInstance;
+      }
+    });
+    var _actionasyncstorageinstance = require_action_async_storage_instance();
+  }
+});
+
 // node_modules/next/dist/server/app-render/after-task-async-storage-instance.js
 var require_after_task_async_storage_instance = __commonJS({
   "node_modules/next/dist/server/app-render/after-task-async-storage-instance.js"(exports2) {
@@ -46146,8 +46650,8 @@ var require_utils4 = __commonJS({
       });
     }
     _export(exports2, {
-      isRequestAPICallableInsideAfter: function() {
-        return isRequestAPICallableInsideAfter;
+      isRequestApiAllowedInCurrentPhase: function() {
+        return isRequestApiAllowedInCurrentPhase;
       },
       throwForSearchParamsAccessInUseCache: function() {
         return throwForSearchParamsAccessInUseCache;
@@ -46157,6 +46661,7 @@ var require_utils4 = __commonJS({
       }
     });
     var _staticgenerationbailout = require_static_generation_bailout();
+    var _actionasyncstorageexternal = require_action_async_storage_external();
     var _aftertaskasyncstorageexternal = require_after_task_async_storage_external();
     function throwWithStaticGenerationBailoutErrorWithDynamicError(route, expression) {
       throw Object.defineProperty(new _staticgenerationbailout.StaticGenBailoutError(`Route ${route} with \`dynamic = "error"\` couldn't be rendered statically because it used ${expression}. See more info here: https://nextjs.org/docs/app/building-your-application/rendering/static-and-dynamic#dynamic-rendering`), "__NEXT_ERROR_CODE", {
@@ -46175,9 +46680,24 @@ var require_utils4 = __commonJS({
       workStore.invalidDynamicUsageError ??= error;
       throw error;
     }
-    function isRequestAPICallableInsideAfter() {
-      const afterTaskStore = _aftertaskasyncstorageexternal.afterTaskAsyncStorage.getStore();
-      return (afterTaskStore == null ? void 0 : afterTaskStore.rootTaskSpawnPhase) === "action";
+    function isRequestApiAllowedInCurrentPhase(workUnitStore) {
+      switch (workUnitStore.phase) {
+        case "action":
+        case "render": {
+          return true;
+        }
+        case "after": {
+          const actionStore = _actionasyncstorageexternal.actionAsyncStorage.getStore();
+          if (actionStore && (actionStore.isAppRoute || actionStore.isAction)) {
+            return true;
+          }
+          const afterTaskStore = _aftertaskasyncstorageexternal.afterTaskAsyncStorage.getStore();
+          if (afterTaskStore) {
+            return afterTaskStore.rootTaskSpawnPhase === "action";
+          }
+          return false;
+        }
+      }
     }
   }
 });
@@ -46205,18 +46725,14 @@ var require_cookies3 = __commonJS({
     var _creatededupedbycallsiteservererrorlogger = require_create_deduped_by_callsite_server_error_logger();
     var _utils = require_utils4();
     var _invarianterror = require_invariant_error();
-    var _stagedrendering = require_staged_rendering();
     function cookies() {
       const callingExpression = "cookies";
       const workStore = _workasyncstorageexternal.workAsyncStorage.getStore();
       const workUnitStore = _workunitasyncstorageexternal.workUnitAsyncStorage.getStore();
       if (workStore) {
-        if (workUnitStore && workUnitStore.phase === "after" && !(0, _utils.isRequestAPICallableInsideAfter)()) {
-          throw Object.defineProperty(new Error(
-            // TODO(after): clarify that this only applies to pages?
-            `Route ${workStore.route} used \`cookies()\` inside \`after()\`. This is not supported. If you need this data inside an \`after()\` callback, use \`cookies()\` outside of the callback. See more info here: https://nextjs.org/docs/canary/app/api-reference/functions/after`
-          ), "__NEXT_ERROR_CODE", {
-            value: "E843",
+        if (workUnitStore && !(0, _utils.isRequestApiAllowedInCurrentPhase)(workUnitStore)) {
+          throw Object.defineProperty(new Error(`Route ${workStore.route} used \`cookies()\` inside \`after()\` while rendering. This is not supported. If you need this data inside an \`after()\` callback, use \`cookies()\` outside of the callback. See more info here: https://nextjs.org/docs/app/api-reference/functions/after`), "__NEXT_ERROR_CODE", {
+            value: "E1381",
             enumerable: false,
             configurable: true
           });
@@ -46241,6 +46757,7 @@ var require_cookies3 = __commonJS({
                 configurable: true
               });
               Error.captureStackTrace(error, cookies);
+              (0, _dynamicrenderingutils.applyOwnerStack)(error);
               workStore.invalidDynamicUsageError ??= error;
               throw error;
             case "unstable-cache":
@@ -46269,8 +46786,14 @@ var require_cookies3 = __commonJS({
               return (0, _dynamicrendering.postponeWithTracking)(workStore.route, callingExpression, workUnitStore.dynamicTracking);
             case "prerender-legacy":
               return (0, _dynamicrendering.throwToInterruptStaticGeneration)(callingExpression, workStore, workUnitStore);
-            case "prerender-runtime":
-              return (0, _dynamicrenderingutils.delayUntilRuntimeStage)(workUnitStore, makeUntrackedCookies(workUnitStore.cookies));
+            case "prerender-runtime": {
+              const { stagedRendering } = workUnitStore;
+              if (stagedRendering) {
+                return stagedRendering.delayUntilStage(_dynamicrenderingutils.RENDER_STAGES_BY_DATA_KIND.sessionData, "cookies", workUnitStore.cookies);
+              } else {
+                return makeUntrackedCookies(workUnitStore.cookies);
+              }
+            }
             case "private-cache":
               return makeUntrackedCookies(workUnitStore.cookies);
             case "request":
@@ -46284,11 +46807,10 @@ var require_cookies3 = __commonJS({
               if (process.env.NODE_ENV === "development") {
                 return makeUntrackedCookiesWithDevWarnings(workUnitStore, underlyingCookies, workStore == null ? void 0 : workStore.route);
               } else if (workUnitStore.asyncApiPromises) {
-                const early = (0, _workunitasyncstorageexternal.isInEarlyRenderStage)(workUnitStore);
                 if (underlyingCookies === workUnitStore.mutableCookies) {
-                  return early ? workUnitStore.asyncApiPromises.earlyMutableCookies : workUnitStore.asyncApiPromises.mutableCookies;
+                  return workUnitStore.asyncApiPromises.mutableCookies;
                 } else {
-                  return early ? workUnitStore.asyncApiPromises.earlyCookies : workUnitStore.asyncApiPromises.cookies;
+                  return workUnitStore.asyncApiPromises.cookies;
                 }
               } else {
                 return makeUntrackedCookies(underlyingCookies);
@@ -46309,7 +46831,7 @@ var require_cookies3 = __commonJS({
       if (cachedPromise) {
         return cachedPromise;
       }
-      const promise = (0, _dynamicrenderingutils.makeHangingPromise)(prerenderStore.renderSignal, workStore.route, "`cookies()`");
+      const promise = (0, _dynamicrenderingutils.makeRuntimeHangingPromise)(prerenderStore.renderSignal, workStore.route, "`cookies()`", prerenderStore);
       CachedCookies.set(prerenderStore, promise);
       return promise;
     }
@@ -46324,12 +46846,11 @@ var require_cookies3 = __commonJS({
     }
     function makeUntrackedCookiesWithDevWarnings(requestStore, underlyingCookies, route) {
       if (requestStore.asyncApiPromises) {
-        const early = (0, _workunitasyncstorageexternal.isInEarlyRenderStage)(requestStore);
         let promise2;
         if (underlyingCookies === requestStore.mutableCookies) {
-          promise2 = early ? requestStore.asyncApiPromises.earlyMutableCookies : requestStore.asyncApiPromises.mutableCookies;
+          promise2 = requestStore.asyncApiPromises.mutableCookies;
         } else if (underlyingCookies === requestStore.cookies) {
-          promise2 = early ? requestStore.asyncApiPromises.earlyCookies : requestStore.asyncApiPromises.cookies;
+          promise2 = requestStore.asyncApiPromises.cookies;
         } else {
           throw Object.defineProperty(new _invarianterror.InvariantError("Received an underlying cookies object that does not match either `cookies` or `mutableCookies`"), "__NEXT_ERROR_CODE", {
             value: "E890",
@@ -46343,7 +46864,7 @@ var require_cookies3 = __commonJS({
       if (cachedCookies) {
         return cachedCookies;
       }
-      const promise = (0, _dynamicrenderingutils.makeDevtoolsIOAwarePromise)(underlyingCookies, requestStore, _stagedrendering.RenderStage.Runtime);
+      const promise = (0, _dynamicrenderingutils.makeDevtoolsIOAwarePromise)(underlyingCookies, requestStore, _dynamicrenderingutils.RENDER_STAGES_BY_DATA_KIND.sessionData);
       const proxiedPromise = instrumentCookiesPromiseWithDevWarnings(promise, route);
       CachedCookies.set(underlyingCookies, proxiedPromise);
       return proxiedPromise;
@@ -46434,11 +46955,71 @@ var require_headers = __commonJS({
     var ReadonlyHeadersError = class _ReadonlyHeadersError extends Error {
       constructor() {
         super("Headers cannot be modified. Read more: https://nextjs.org/docs/app/api-reference/functions/headers");
+        Object.defineProperty(this, "__NEXT_ERROR_CODE", {
+          value: "E1176",
+          enumerable: false,
+          configurable: true
+        });
       }
       static callable() {
         throw new _ReadonlyHeadersError();
       }
     };
+    function createPassThroughMethods(target, sealed) {
+      return {
+        get: target.get.bind(target),
+        has: target.has.bind(target),
+        getSetCookie: target.getSetCookie.bind(target),
+        keys: target.keys.bind(target),
+        values: target.values.bind(target),
+        entries: target.entries.bind(target),
+        [Symbol.iterator]: target[Symbol.iterator].bind(target),
+        // The native method passes the unsealed target as the callback's `parent`
+        // argument. That is a mutable handle on the underlying headers. Pass the
+        // sealed view instead.
+        forEach(callbackfn, thisArg) {
+          for (const [name, value] of target.entries()) {
+            callbackfn.call(thisArg, value, name, sealed);
+          }
+        }
+      };
+    }
+    function createHidingMethods(target, sealed, isHidden) {
+      function* entries() {
+        for (const entry of target.entries()) {
+          if (!isHidden(entry[0])) {
+            yield entry;
+          }
+        }
+      }
+      return {
+        entries,
+        [Symbol.iterator]: entries,
+        get: (name) => isHidden(name) ? null : target.get(name),
+        has: (name) => isHidden(name) ? false : target.has(name),
+        getSetCookie: () => isHidden("set-cookie") ? [] : target.getSetCookie(),
+        *keys() {
+          for (const name of target.keys()) {
+            if (!isHidden(name)) {
+              yield name;
+            }
+          }
+        },
+        *values() {
+          for (const [, value] of entries()) {
+            yield value;
+          }
+        },
+        // The native method passes the unsealed target as the callback's `parent`
+        // argument. That is a mutable handle on the underlying headers. Pass the
+        // sealed view instead.
+        forEach(callbackfn, thisArg) {
+          for (const [name, value] of entries()) {
+            callbackfn.call(thisArg, value, name, sealed);
+          }
+        }
+      };
+    }
     var HeadersAdapter = class _HeadersAdapter extends Headers {
       constructor(headers2) {
         super();
@@ -46479,18 +47060,51 @@ var require_headers = __commonJS({
       /**
       * Seals a Headers instance to prevent modification by throwing an error when
       * any mutating method is called.
+      *
+      * The sealed view stays live. Later writes to `headers` remain visible
+      * through it.
+      *
+      * `hidden` omits the given header names from every read operation (`get`,
+      * `has`, `getSetCookie`, `forEach`, and iteration). The names must be
+      * lowercase. The underlying headers are neither copied nor mutated, so hidden
+      * headers remain available to the framework.
       */
-      static seal(headers2) {
-        return new Proxy(headers2, {
+      static seal(headers2, hidden) {
+        const isHidden = hidden && hidden.size > 0 ? (name) => hidden.has(name.toLowerCase()) : null;
+        let methods;
+        const sealed = new Proxy(headers2, {
           get(target, prop, receiver) {
             switch (prop) {
               case "append":
               case "delete":
               case "set":
                 return ReadonlyHeadersError.callable;
+              case Symbol.iterator:
+                return methods[Symbol.iterator];
+              case "get":
+              case "has":
+              case "getSetCookie":
+              case "keys":
+              case "values":
+              case "entries":
+              case "forEach":
+                return methods[prop];
               default:
                 return _reflect.ReflectAdapter.get(target, prop, receiver);
             }
+          }
+        });
+        methods = isHidden ? createHidingMethods(headers2, sealed, isHidden) : createPassThroughMethods(headers2, sealed);
+        return sealed;
+      }
+      /**
+      * @param headers
+      * @returns A fresh object identity backed by the original value
+      */
+      static fresh(headers2) {
+        return new Proxy(headers2, {
+          get(target, prop, receiver) {
+            return _reflect.ReflectAdapter.get(target, prop, receiver);
           }
         });
       }
@@ -46598,15 +47212,14 @@ var require_headers2 = __commonJS({
     var _creatededupedbycallsiteservererrorlogger = require_create_deduped_by_callsite_server_error_logger();
     var _utils = require_utils4();
     var _invarianterror = require_invariant_error();
-    var _stagedrendering = require_staged_rendering();
     function headers2() {
       const callingExpression = "headers";
       const workStore = _workasyncstorageexternal.workAsyncStorage.getStore();
       const workUnitStore = _workunitasyncstorageexternal.workUnitAsyncStorage.getStore();
       if (workStore) {
-        if (workUnitStore && workUnitStore.phase === "after" && !(0, _utils.isRequestAPICallableInsideAfter)()) {
-          throw Object.defineProperty(new Error(`Route ${workStore.route} used \`headers()\` inside \`after()\`. This is not supported. If you need this data inside an \`after()\` callback, use \`headers()\` outside of the callback. See more info here: https://nextjs.org/docs/canary/app/api-reference/functions/after`), "__NEXT_ERROR_CODE", {
-            value: "E839",
+        if (workUnitStore && !(0, _utils.isRequestApiAllowedInCurrentPhase)(workUnitStore)) {
+          throw Object.defineProperty(new Error(`Route ${workStore.route} used \`headers()\` inside \`after()\` while rendering. This is not supported. If you need this data inside an \`after()\` callback, use \`headers()\` outside of the callback. See more info here: https://nextjs.org/docs/app/api-reference/functions/after`), "__NEXT_ERROR_CODE", {
+            value: "E1378",
             enumerable: false,
             configurable: true
           });
@@ -46624,6 +47237,7 @@ var require_headers2 = __commonJS({
                 configurable: true
               });
               Error.captureStackTrace(error, headers2);
+              (0, _dynamicrenderingutils.applyOwnerStack)(error);
               workStore.invalidDynamicUsageError ??= error;
               throw error;
             }
@@ -46675,8 +47289,14 @@ var require_headers2 = __commonJS({
               return (0, _dynamicrendering.postponeWithTracking)(workStore.route, callingExpression, workUnitStore.dynamicTracking);
             case "prerender-legacy":
               return (0, _dynamicrendering.throwToInterruptStaticGeneration)(callingExpression, workStore, workUnitStore);
-            case "prerender-runtime":
-              return (0, _dynamicrenderingutils.delayUntilRuntimeStage)(workUnitStore, makeUntrackedHeaders(workUnitStore.headers));
+            case "prerender-runtime": {
+              const { stagedRendering } = workUnitStore;
+              if (stagedRendering) {
+                return stagedRendering.delayUntilStage(_dynamicrenderingutils.RENDER_STAGES_BY_DATA_KIND.sessionData, "headers", workUnitStore.headers);
+              } else {
+                return makeUntrackedHeaders(workUnitStore.headers);
+              }
+            }
             case "private-cache":
               return makeUntrackedHeaders(workUnitStore.headers);
             case "request":
@@ -46684,7 +47304,7 @@ var require_headers2 = __commonJS({
               if (process.env.NODE_ENV === "development") {
                 return makeUntrackedHeadersWithDevWarnings(workUnitStore.headers, workStore == null ? void 0 : workStore.route, workUnitStore);
               } else if (workUnitStore.asyncApiPromises) {
-                return (0, _workunitasyncstorageexternal.isInEarlyRenderStage)(workUnitStore) ? workUnitStore.asyncApiPromises.earlyHeaders : workUnitStore.asyncApiPromises.headers;
+                return workUnitStore.asyncApiPromises.headers;
               } else {
                 return makeUntrackedHeaders(workUnitStore.headers);
               }
@@ -46702,7 +47322,7 @@ var require_headers2 = __commonJS({
       if (cachedHeaders) {
         return cachedHeaders;
       }
-      const promise = (0, _dynamicrenderingutils.makeHangingPromise)(prerenderStore.renderSignal, workStore.route, "`headers()`");
+      const promise = (0, _dynamicrenderingutils.makeRuntimeHangingPromise)(prerenderStore.renderSignal, workStore.route, "`headers()`", prerenderStore);
       CachedHeaders.set(prerenderStore, promise);
       return promise;
     }
@@ -46717,14 +47337,13 @@ var require_headers2 = __commonJS({
     }
     function makeUntrackedHeadersWithDevWarnings(underlyingHeaders, route, requestStore) {
       if (requestStore.asyncApiPromises) {
-        const promise2 = (0, _workunitasyncstorageexternal.isInEarlyRenderStage)(requestStore) ? requestStore.asyncApiPromises.earlyHeaders : requestStore.asyncApiPromises.headers;
-        return instrumentHeadersPromiseWithDevWarnings(promise2, route);
+        return instrumentHeadersPromiseWithDevWarnings(requestStore.asyncApiPromises.headers, route);
       }
       const cachedHeaders = CachedHeaders.get(underlyingHeaders);
       if (cachedHeaders) {
         return cachedHeaders;
       }
-      const promise = (0, _dynamicrenderingutils.makeDevtoolsIOAwarePromise)(underlyingHeaders, requestStore, _stagedrendering.RenderStage.Runtime);
+      const promise = (0, _dynamicrenderingutils.makeDevtoolsIOAwarePromise)(underlyingHeaders, requestStore, _dynamicrenderingutils.RENDER_STAGES_BY_DATA_KIND.sessionData);
       const proxiedPromise = instrumentHeadersPromiseWithDevWarnings(promise, route);
       CachedHeaders.set(underlyingHeaders, proxiedPromise);
       return proxiedPromise;
@@ -46812,8 +47431,8 @@ var require_draft_mode = __commonJS({
     var _staticgenerationbailout = require_static_generation_bailout();
     var _hooksservercontext = require_hooks_server_context();
     var _invarianterror = require_invariant_error();
-    var _dynamicrenderingutils = require_dynamic_rendering_utils();
     var _reflect = require_reflect();
+    var _dynamicrenderingutils = require_dynamic_rendering_utils();
     function draftMode() {
       const callingExpression = "draftMode";
       const workStore = _workasyncstorageexternal.workAsyncStorage.getStore();
@@ -46822,8 +47441,14 @@ var require_draft_mode = __commonJS({
         (0, _workunitasyncstorageexternal.throwForMissingRequestStore)(callingExpression);
       }
       switch (workUnitStore.type) {
-        case "prerender-runtime":
-          return (0, _dynamicrenderingutils.delayUntilRuntimeStage)(workUnitStore, createOrGetCachedDraftMode(workUnitStore.draftMode, workStore));
+        case "prerender-runtime": {
+          const { stagedRendering } = workUnitStore;
+          if (stagedRendering) {
+            return stagedRendering.delayUntilStage(_dynamicrenderingutils.RENDER_STAGES_BY_DATA_KIND.sessionData, "draftMode", new DraftMode(workUnitStore.draftMode));
+          } else {
+            return createOrGetCachedDraftMode(workUnitStore.draftMode, workStore);
+          }
+        }
         case "request":
           return createOrGetCachedDraftMode(workUnitStore.draftMode, workStore);
         case "cache":
@@ -46955,6 +47580,7 @@ var require_draft_mode = __commonJS({
                 configurable: true
               });
               Error.captureStackTrace(error, constructorOpt);
+              (0, _dynamicrenderingutils.applyOwnerStack)(error);
               workStore.invalidDynamicUsageError ??= error;
               throw error;
             }
@@ -52336,7 +52962,7 @@ var require_package2 = __commonJS({
   "node_modules/nodemailer/package.json"(exports2, module2) {
     module2.exports = {
       name: "nodemailer",
-      version: "9.0.1",
+      version: "9.1.1",
       description: "Easy as cake e-mail sending from your Node.js applications",
       main: "lib/nodemailer.js",
       scripts: {
@@ -52363,19 +52989,19 @@ var require_package2 = __commonJS({
       },
       homepage: "https://nodemailer.com/",
       devDependencies: {
-        "@aws-sdk/client-sesv2": "3.1068.0",
+        "@aws-sdk/client-sesv2": "3.1121.0",
         bunyan: "1.8.15",
-        c8: "11.0.0",
-        eslint: "10.5.0",
+        c8: "12.0.0",
+        eslint: "10.9.1",
         "eslint-config-prettier": "10.1.8",
-        globals: "17.6.0",
+        globals: "17.11.0",
         libbase64: "1.3.0",
-        libmime: "5.3.8",
+        libmime: "5.4.2",
         libqp: "2.1.1",
-        prettier: "3.8.4",
+        prettier: "3.9.6",
         proxy: "1.0.2",
         "proxy-test-server": "1.0.0",
-        "smtp-server": "3.19.0"
+        "smtp-server": "3.19.4"
       },
       engines: {
         node: ">=6.0.0"
@@ -52408,6 +53034,7 @@ var require_errors3 = __commonJS({
       EOAUTH2: "OAuth2 token generation or refresh error",
       // Resource errors
       EMAXLIMIT: "Pool resource limit reached (max messages per connection)",
+      EMAXRECIPIENTS: "Recipient count exceeds maxRecipients",
       // Transport-specific errors
       ESENDMAIL: "Sendmail command error",
       ESES: "AWS SES transport error",
@@ -52425,6 +53052,23 @@ var require_errors3 = __commonJS({
   }
 });
 
+// node_modules/nodemailer/lib/shared/objects.js
+var require_objects = __commonJS({
+  "node_modules/nodemailer/lib/shared/objects.js"(exports2, module2) {
+    "use strict";
+    module2.exports.isProtoKey = (key) => key === "__proto__";
+    module2.exports.copyOwnKeys = (target, source, skip) => {
+      Object.keys(source || {}).forEach((key) => {
+        if (module2.exports.isProtoKey(key) || skip && skip(key)) {
+          return;
+        }
+        target[key] = source[key];
+      });
+      return target;
+    };
+  }
+});
+
 // node_modules/nodemailer/lib/fetch/index.js
 var require_fetch = __commonJS({
   "node_modules/nodemailer/lib/fetch/index.js"(exports2, module2) {
@@ -52438,7 +53082,43 @@ var require_fetch = __commonJS({
     var packageData = require_package2();
     var net7 = require("net");
     var errors = require_errors3();
+    var { isProtoKey } = require_objects();
     var MAX_REDIRECTS = 5;
+    var TLS_OPTION_KEYS = [
+      "ALPNProtocols",
+      "ca",
+      "cert",
+      "checkServerIdentity",
+      "ciphers",
+      "crl",
+      "dhparam",
+      "ecdhCurve",
+      "honorCipherOrder",
+      "key",
+      "maxVersion",
+      "minVersion",
+      "passphrase",
+      "pfx",
+      "rejectUnauthorized",
+      "secureContext",
+      "secureOptions",
+      "secureProtocol",
+      "servername",
+      "sessionIdContext",
+      "sigalgs"
+    ];
+    function parseFetchUrl(url) {
+      let parsed;
+      try {
+        parsed = urllib.parse(url);
+      } catch (_err) {
+        return false;
+      }
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        return false;
+      }
+      return parsed;
+    }
     module2.exports = function(url, options) {
       return nmfetch(url, options);
     };
@@ -52449,14 +53129,27 @@ var require_fetch = __commonJS({
       options.cookies = options.cookies || new Cookies();
       options.redirects = options.redirects || 0;
       options.maxRedirects = isNaN(options.maxRedirects) ? MAX_REDIRECTS : options.maxRedirects;
+      const fetchRes = options.fetchRes;
+      const parsed = parseFetchUrl(url);
+      if (!parsed) {
+        if (options.body && typeof options.body.destroy === "function") {
+          options.body.on("error", () => false);
+          options.body.destroy();
+        }
+        setImmediate(() => {
+          const err = new Error("Unsupported protocol for URL " + url);
+          err.code = errors.EFETCH;
+          err.sourceUrl = url;
+          fetchRes.emit("error", err);
+        });
+        return fetchRes;
+      }
       if (options.cookie) {
         [].concat(options.cookie || []).forEach((cookie) => {
           options.cookies.set(cookie, url);
         });
         options.cookie = false;
       }
-      const fetchRes = options.fetchRes;
-      const parsed = urllib.parse(url);
       let method = (options.method || "").toString().trim().toUpperCase() || "GET";
       let finished = false;
       let cookies;
@@ -52467,6 +53160,9 @@ var require_fetch = __commonJS({
         "user-agent": "nodemailer/" + packageData.version
       };
       Object.keys(options.headers || {}).forEach((key) => {
+        if (isProtoKey(key.toLowerCase().trim())) {
+          return;
+        }
         headers2[key.toLowerCase().trim()] = options.headers[key];
       });
       if (options.userAgent) {
@@ -52537,7 +53233,11 @@ var require_fetch = __commonJS({
         agent: false
       };
       if (options.tls) {
-        Object.assign(reqOptions, options.tls);
+        Object.keys(options.tls).forEach((key) => {
+          if (TLS_OPTION_KEYS.includes(key)) {
+            reqOptions[key] = options.tls[key];
+          }
+        });
       }
       if (parsed.protocol === "https:" && parsed.hostname && parsed.hostname !== reqOptions.host && !net7.isIP(parsed.hostname) && !reqOptions.servername) {
         reqOptions.servername = parsed.hostname;
@@ -52604,8 +53304,22 @@ var require_fetch = __commonJS({
           }
           options.method = "GET";
           options.body = false;
-          const redirectUrl = urllib.resolve(url, res.headers.location);
-          const redirectParsed = urllib.parse(redirectUrl);
+          let redirectUrl;
+          try {
+            redirectUrl = urllib.resolve(url, res.headers.location);
+          } catch (_err) {
+            redirectUrl = res.headers.location;
+          }
+          const redirectParsed = parseFetchUrl(redirectUrl);
+          if (!redirectParsed) {
+            finished = true;
+            const err = new Error("Unsupported protocol for URL " + redirectUrl);
+            err.code = errors.EFETCH;
+            err.sourceUrl = redirectUrl;
+            fetchRes.emit("error", err);
+            req.abort();
+            return;
+          }
           const crossHost = redirectParsed.hostname !== parsed.hostname;
           const downgrade = parsed.protocol === "https:" && redirectParsed.protocol === "http:";
           if (options.headers && (crossHost || downgrade)) {
@@ -52686,9 +53400,12 @@ var require_shared = __commonJS({
     var fs3 = require("fs");
     var nmfetch = require_fetch();
     var errors = require_errors3();
+    var objects = require_objects();
     var dns4 = require("dns");
     var net7 = require("net");
     var os3 = require("os");
+    var isProtoKey = module2.exports.isProtoKey = objects.isProtoKey;
+    module2.exports.copyOwnKeys = objects.copyOwnKeys;
     var DNS_TTL = 5 * 60 * 1e3;
     var CACHE_CLEANUP_INTERVAL = 30 * 1e3;
     var MAX_CACHE_SIZE = 1e3;
@@ -52957,7 +53674,7 @@ var require_shared = __commonJS({
         } else if (key.indexOf(".") >= 0) {
           return;
         }
-        if (!(lKey in obj)) {
+        if (!isProtoKey(lKey) && !(lKey in obj)) {
           obj[lKey] = value;
         }
       });
@@ -53031,7 +53748,7 @@ var require_shared = __commonJS({
         if (sepPos > 0) {
           const key = entry.substring(0, sepPos).trim();
           const value = entry.substring(sepPos + 1).trim();
-          if (key) {
+          if (key && !isProtoKey(key)) {
             params[key] = value;
           }
         }
@@ -53091,18 +53808,19 @@ var require_shared = __commonJS({
             }
             callback(null, value);
           });
-        } else if (/^https?:\/\//i.test(content.path || content.href)) {
+        } else if (/^data:/i.test(content.path || content.href)) {
+          const parsedDataUri = module2.exports.parseDataURI(content.path || content.href);
+          return callback(null, parsedDataUri && parsedDataUri.data ? parsedDataUri.data : Buffer.alloc(0));
+        } else if (content.href || /^https?:\/\//i.test(content.path)) {
+          const url = content.href || content.path;
           if (options.disableUrlAccess) {
             return setImmediate(() => {
-              const err = new Error("Url access rejected for " + (content.path || content.href));
+              const err = new Error("Url access rejected for " + url);
               err.code = errors.EURLACCESS;
               callback(err);
             });
           }
-          return resolveStream(nmfetch(content.path || content.href, { headers: content.httpHeaders, tls: content.tls }), callback);
-        } else if (/^data:/i.test(content.path || content.href)) {
-          const parsedDataUri = module2.exports.parseDataURI(content.path || content.href);
-          return callback(null, parsedDataUri && parsedDataUri.data ? parsedDataUri.data : Buffer.alloc(0));
+          return resolveStream(nmfetch(url, { headers: content.httpHeaders, tls: content.tls }), callback);
         } else if (content.path) {
           if (options.disableFileAccess) {
             return setImmediate(() => {
@@ -53124,8 +53842,11 @@ var require_shared = __commonJS({
       const target = args.shift() || {};
       args.forEach((source) => {
         Object.keys(source || {}).forEach((key) => {
+          if (isProtoKey(key)) {
+            return;
+          }
           if (["tls", "auth"].includes(key) && source[key] && typeof source[key] === "object") {
-            target[key] = Object.assign(target[key] || {}, source[key]);
+            target[key] = module2.exports.copyOwnKeys(target[key] || {}, source[key]);
           } else {
             target[key] = source[key];
           }
@@ -55594,16 +56315,35 @@ var require_mime_funcs = __commonJS({
     var base64 = require_base64();
     var qp = require_qp();
     var mimeTypes = require_mime_types();
+    var { isProtoKey } = require_objects();
     module2.exports = {
       /**
        * Checks if a value is plaintext string (uses only printable 7bit chars)
        *
+       * When isParam is set the value is destined for a header parameter, so HT, CR and LF
+       * are not plaintext either: a header parameter has no way to carry them. HT is a valid
+       * fold point, so folding and unfolding a header would rewrite it as a space, and CR/LF
+       * cannot appear in a header value at all. DEL is neither a token character nor qtext,
+       * so it can not be carried bare or quoted. Such values have to go through the rfc2231
+       * parameter continuation encoding instead, the same way a quote already does.
+       *
        * @param {String} value String to be tested
+       * @param {Boolean} [isParam] Set to true if the value is a header parameter value
        * @returns {Boolean} true if it is a plaintext string
        */
       isPlainText(value, isParam) {
-        const re = isParam ? /[\x00-\x08\x0b\x0c\x0e-\x1f"\u0080-\uFFFF]/ : /[\x00-\x08\x0b\x0c\x0e-\x1f\u0080-\uFFFF]/;
+        const re = isParam ? /[\x00-\x1f\x7f"\u0080-\uFFFF]/ : /[\x00-\x08\x0b\x0c\x0e-\x1f\u0080-\uFFFF]/;
         return typeof value === "string" && !re.test(value);
+      },
+      /**
+       * Wraps a value into a quoted-string. Inside one a quote would end the string early
+       * and a backslash would escape whatever follows it, so both go out as quoted-pairs.
+       *
+       * @param {String} value String to be quoted
+       * @returns {String} The value as a quoted-string, quotes included
+       */
+      quoteString(value) {
+        return '"' + (value || "").toString().replace(/["\\]/g, "\\$&") + '"';
       },
       /**
        * Checks if a multi line string containes lines longer than the selected value.
@@ -55658,7 +56398,7 @@ var require_mime_funcs = __commonJS({
             let lpart = "";
             for (let i = 0, len = encodedStr.length; i < len; i++) {
               let chr = encodedStr.charAt(i);
-              if (/[\ud83c\ud83d\ud83e]/.test(chr) && i < len - 1) {
+              if (/[\ud800-\udbff]/.test(chr) && /[\udc00-\udfff]/.test(encodedStr.charAt(i + 1))) {
                 chr += encodedStr.charAt(++i);
               }
               if (Buffer.byteLength(lpart + chr) <= maxLength || i === 0) {
@@ -55719,23 +56459,25 @@ var require_mime_funcs = __commonJS({
        */
       buildHeaderValue(structured) {
         const paramsArray = [];
-        Object.keys(structured.params || {}).forEach((param) => {
-          const value = structured.params[param];
-          if (!this.isPlainText(value, true) || value.length >= 75) {
-            this.buildHeaderParam(param, value, 50).forEach((encodedParam) => {
+        Object.keys(structured.params || {}).forEach((key) => {
+          const value2 = structured.params[key];
+          const param = key.replace(/[\x00-\x1f\x7f]/g, "");
+          if (!this.isPlainText(value2, true) || value2.length >= 75) {
+            this.buildHeaderParam(param, value2, 50).forEach((encodedParam) => {
               if (!/[\s"\\;:/=(),<>@[\]?]|^[-']|'$/.test(encodedParam.value) || encodedParam.key.substr(-1) === "*") {
                 paramsArray.push(encodedParam.key + "=" + encodedParam.value);
               } else {
                 paramsArray.push(encodedParam.key + "=" + JSON.stringify(encodedParam.value));
               }
             });
-          } else if (/[\s'"\\;:/=(),<>@[\]?]|^-/.test(value)) {
-            paramsArray.push(param + "=" + JSON.stringify(value));
+          } else if (/[\s'"\\;:/=(),<>@[\]?]|^-/.test(value2)) {
+            paramsArray.push(param + "=" + JSON.stringify(value2));
           } else {
-            paramsArray.push(param + "=" + value);
+            paramsArray.push(param + "=" + value2);
           }
         });
-        return structured.value + (paramsArray.length ? "; " + paramsArray.join("; ") : "");
+        const value = typeof structured.value === "string" ? structured.value.replace(/[\x00-\x1f\x7f]/g, "") : structured.value;
+        return value + (paramsArray.length ? "; " + paramsArray.join("; ") : "");
       },
       /**
        * Encodes a string or an Buffer to an UTF-8 Parameter Value Continuation encoding (rfc2231)
@@ -55755,7 +56497,7 @@ var require_mime_funcs = __commonJS({
       buildHeaderParam(key, data, maxLength) {
         const list = [];
         let encodedStr = typeof data === "string" ? data : (data || "").toString();
-        let chr, ord;
+        let chr;
         let line;
         let startPos = 0;
         let i, len;
@@ -55785,8 +56527,7 @@ var require_mime_funcs = __commonJS({
             const encodedStrArr = [];
             for (i = 0, len = encodedStr.length; i < len; i++) {
               chr = encodedStr.charAt(i);
-              ord = chr.charCodeAt(0);
-              if (ord >= 55296 && ord <= 56319 && i < len - 1) {
+              if (/[\ud800-\udbff]/.test(chr) && /[\udc00-\udfff]/.test(encodedStr.charAt(i + 1))) {
                 chr += encodedStr.charAt(i + 1);
                 encodedStrArr.push(chr);
                 i++;
@@ -55812,7 +56553,7 @@ var require_mime_funcs = __commonJS({
                     encoded
                   });
                   line = "";
-                  startPos = i - 1;
+                  encoded = true;
                 } else {
                   encoded = true;
                   i = startPos;
@@ -55872,6 +56613,11 @@ var require_mime_funcs = __commonJS({
           value: false,
           params: {}
         };
+        const setParam = (name, value2) => {
+          if (!isProtoKey(name)) {
+            response.params[name] = value2;
+          }
+        };
         let key = false;
         let value = "";
         let type = "value";
@@ -55902,7 +56648,7 @@ var require_mime_funcs = __commonJS({
               if (key === false) {
                 response.value = value.trim();
               } else {
-                response.params[key] = value.trim();
+                setParam(key, value.trim());
               }
               type = "key";
               value = "";
@@ -55916,16 +56662,20 @@ var require_mime_funcs = __commonJS({
           if (key === false) {
             response.value = value.trim();
           } else {
-            response.params[key] = value.trim();
+            setParam(key, value.trim());
           }
         } else if (value.trim()) {
-          response.params[value.trim().toLowerCase()] = "";
+          setParam(value.trim().toLowerCase(), "");
         }
         Object.keys(response.params).forEach((key2) => {
           let actualKey, nr, match, value2;
           if (match = key2.match(/(\*(\d+)|\*(\d+)\*|\*)$/)) {
             actualKey = key2.substr(0, match.index);
             nr = Number(match[2] || match[3]) || 0;
+            if (isProtoKey(actualKey)) {
+              delete response.params[key2];
+              return;
+            }
             if (!response.params[actualKey] || typeof response.params[actualKey] !== "object") {
               response.params[actualKey] = {
                 charset: false,
@@ -56025,15 +56775,16 @@ var require_mime_funcs = __commonJS({
        */
       splitMimeEncodedString: (str, maxlen) => {
         const lines = [];
-        let curLine, match, chr, done;
+        let curLine, fallbackLine, match, chr, done;
         maxlen = Math.max(maxlen || 0, 12);
         while (str.length) {
           curLine = str.substr(0, maxlen);
           if (match = curLine.match(/[=][0-9A-F]?$/i)) {
             curLine = curLine.substr(0, match.index);
           }
+          fallbackLine = curLine.length ? curLine : str.substr(0, maxlen);
           done = false;
-          while (!done) {
+          while (!done && curLine.length) {
             done = true;
             if (match = str.substr(curLine.length).match(/^[=]([0-9A-F]{2})/i)) {
               chr = parseInt(match[1], 16);
@@ -56043,9 +56794,10 @@ var require_mime_funcs = __commonJS({
               }
             }
           }
-          if (curLine.length) {
-            lines.push(curLine);
+          if (!curLine.length) {
+            curLine = fallbackLine;
           }
+          lines.push(curLine);
           str = str.substr(curLine.length);
         }
         return lines;
@@ -56070,7 +56822,7 @@ var require_mime_funcs = __commonJS({
         try {
           str = encodeURIComponent(str);
         } catch (_E) {
-          return str.replace(/[^\x00-\x1F *'()<>@,;:\\"[\]?=\u007F-\uFFFF]+/g, "");
+          str = encodeURIComponent(Buffer.from(str, "utf-8").toString("utf-8"));
         }
         return str.replace(/[\x00-\x1F *'()<>@,;:\\"[\]?=\u007F-\uFFFF]/g, (chr) => this.encodeURICharComponent(chr));
       }
@@ -56082,6 +56834,52 @@ var require_mime_funcs = __commonJS({
 var require_addressparser = __commonJS({
   "node_modules/nodemailer/lib/addressparser/index.js"(exports2, module2) {
     "use strict";
+    function _quoteLocalPart(address) {
+      const lastAt = address.lastIndexOf("@");
+      if (lastAt < 0) {
+        return address;
+      }
+      const user = address.substr(0, lastAt);
+      if (/^[^\s"(),:;<>@[\\\]]+$/.test(user) || /^"(?:[^"\\]|\\[\s\S])*"$/.test(user)) {
+        return address;
+      }
+      return '"' + user.replace(/["\\]/g, "\\$&") + '"@' + address.substr(lastAt + 1);
+    }
+    var HAS_WHITESPACE = /\s/;
+    var QUOTED_LOCAL_ADDR = /^("(?:[^"\\]|\\[\s\S])*"@\S+)(?:\s+([\s\S]+))?$/;
+    var ADDR_SPEC = /^[^@\s]+@[^@\s]+$/;
+    var LOOSE_ADDR_SPEC = /^[^@\s]+@\S+$/;
+    function _recoverAddrSpec(data) {
+      if (!HAS_WHITESPACE.test(data.address)) {
+        return;
+      }
+      let address;
+      let rest;
+      const quoted = data.address.match(QUOTED_LOCAL_ADDR);
+      if (quoted) {
+        if (!quoted[2]) {
+          return;
+        }
+        address = quoted[1];
+        rest = [quoted[2]];
+      } else {
+        if (data.address.indexOf('"') >= 0) {
+          return;
+        }
+        const parts = data.address.split(/\s+/);
+        let addrIndex = parts.findIndex((part) => ADDR_SPEC.test(part));
+        if (addrIndex < 0) {
+          addrIndex = parts.findIndex((part) => LOOSE_ADDR_SPEC.test(part));
+        }
+        if (addrIndex < 0) {
+          return;
+        }
+        address = parts.splice(addrIndex, 1)[0];
+        rest = parts;
+      }
+      data.address = address;
+      data.text = [data.text].concat(rest).filter((part) => part).join(" ");
+    }
     function _handleAddress2(tokens, depth) {
       let isGroup = false;
       let state = "text";
@@ -56125,7 +56923,9 @@ var require_addressparser = __commonJS({
           if (state === "address") {
             token.value = token.value.replace(/^[^<]*<\s*/, "");
           }
-          if (prevToken && prevToken.noBreak && data[state].length) {
+          const parts = data[state];
+          const joins = prevToken && prevToken.noBreak && parts.length && (prevToken.value !== ")" || parts[parts.length - 1].slice(-1) === "@" || token.value.charAt(0) === "@");
+          if (joins) {
             data[state][data[state].length - 1] += token.value;
             if (state === "text" && insideQuotes) {
               data.textWasQuoted[data.textWasQuoted.length - 1] = true;
@@ -56162,7 +56962,7 @@ var require_addressparser = __commonJS({
       } else {
         if (!data.address.length && data.text.length) {
           for (let i = data.text.length - 1; i >= 0; i--) {
-            if (!data.textWasQuoted[i] && /^[^@\s]+@[^@\s]+$/.test(data.text[i])) {
+            if (!data.textWasQuoted[i] && ADDR_SPEC.test(data.text[i])) {
               data.address = data.text.splice(i, 1);
               data.textWasQuoted.splice(i, 1);
               break;
@@ -56194,8 +56994,10 @@ var require_addressparser = __commonJS({
         if (data.address.length > 1) {
           data.text = data.text.concat(data.address.splice(1));
         }
+        const addressFromQuotedText = !data.address.length && data.textWasQuoted.some((wasQuoted) => wasQuoted);
         data.text = data.text.join(" ");
         data.address = data.address.join(" ");
+        _recoverAddrSpec(data);
         const address = {
           address: data.address || data.text || "",
           name: data.text || data.address || ""
@@ -56206,6 +57008,9 @@ var require_addressparser = __commonJS({
           } else {
             address.address = "";
           }
+        }
+        if (addressFromQuotedText && address.address) {
+          address.address = _quoteLocalPart(address.address);
         }
         addresses.push(address);
       }
@@ -56218,6 +57023,7 @@ var require_addressparser = __commonJS({
         this.operatorExpecting = "";
         this.node = null;
         this.escaped = false;
+        this.inDomainLiteral = false;
         this.list = [];
         this.operators = {
           '"': '"',
@@ -56260,6 +57066,13 @@ var require_addressparser = __commonJS({
        * @param {String} chr Character from the address field
        */
       checkChar(chr, nextChr) {
+        if (!this.escaped && !this.operatorExpecting) {
+          if (!this.inDomainLiteral && chr === "[") {
+            this.inDomainLiteral = true;
+          } else if (this.inDomainLiteral && (chr === "]" || chr === "," || chr === ";")) {
+            this.inDomainLiteral = false;
+          }
+        }
         if (this.escaped) {
         } else if (chr === this.operatorExpecting) {
           this.node = {
@@ -56274,7 +57087,7 @@ var require_addressparser = __commonJS({
           this.operatorExpecting = "";
           this.escaped = false;
           return;
-        } else if (!this.operatorExpecting && chr in this.operators) {
+        } else if (!this.operatorExpecting && !this.inDomainLiteral && chr in this.operators) {
           this.node = {
             type: "operator",
             value: chr
@@ -56331,18 +57144,22 @@ var require_addressparser = __commonJS({
       }
       addresses.forEach((addr) => {
         const handled = _handleAddress2(addr, depth);
-        if (handled.length) {
-          parsedAddresses = parsedAddresses.concat(handled);
+        for (let i = 0; i < handled.length; i++) {
+          parsedAddresses.push(handled[i]);
         }
       });
-      for (let i = parsedAddresses.length - 2; i >= 0; i--) {
+      const mergedAddresses = [];
+      for (let i = parsedAddresses.length - 1; i >= 0; i--) {
         const current = parsedAddresses[i];
-        const next = parsedAddresses[i + 1];
-        if (current.address === "" && current.name && !current.group && next.address && next.name) {
+        const next = mergedAddresses.length ? mergedAddresses[mergedAddresses.length - 1] : null;
+        if (next && current.address === "" && current.name && !current.group && next.address && next.name) {
           next.name = current.name + ", " + next.name;
-          parsedAddresses.splice(i, 1);
+        } else {
+          mergedAddresses.push(current);
         }
       }
+      mergedAddresses.reverse();
+      parsedAddresses = mergedAddresses;
       if (options.flatten) {
         const flatAddresses = [];
         const walkAddressList = (list) => {
@@ -56481,6 +57298,7 @@ var require_mime_node = __commonJS({
     var punycode = require_punycode();
     var { PassThrough } = require("stream");
     var shared = require_shared();
+    var urlModule = require("url");
     var mimeFuncs = require_mime_funcs();
     var qp = require_qp();
     var base64 = require_base64();
@@ -56491,6 +57309,21 @@ var require_mime_node = __commonJS({
     var LeWindows = require_le_windows();
     var LeUnix = require_le_unix();
     var FORMATTED_HEADERS = ["From", "Sender", "To", "Cc", "Bcc", "Reply-To", "Date", "References"];
+    var ATEXT = "[A-Za-z0-9!#$%&'*+\\-/=?^_`{|}~\\x80-\\uFFFF]";
+    var DOT_ATOM = new RegExp("^" + ATEXT + "+(?:\\." + ATEXT + "+)*$");
+    var QUOTED_STRING = /^"(?:[^"\\]|\\[\s\S])*"$/;
+    var PLAIN_ADDRESS = /^[^\s"(),:;<>@[\\\]]+@[^\s"(),:;<>@[\\\]]+$/;
+    var URL_PARSER_UNSAFE = /[/\\?#%\x00-\x20\x7F]/;
+    function normalizeDomain(domain, toUnicode) {
+      const mapper = toUnicode ? urlModule.domainToUnicode : urlModule.domainToASCII;
+      if (typeof mapper === "function" && !URL_PARSER_UNSAFE.test(domain)) {
+        const mapped = mapper(domain);
+        if (mapped) {
+          return mapped;
+        }
+      }
+      return toUnicode ? punycode.toUnicode(domain) : punycode.toASCII(domain);
+    }
     var MimeNode2 = class _MimeNode {
       constructor(contentType, options) {
         this.nodeCounter = 0;
@@ -56551,6 +57384,9 @@ var require_mime_node = __commonJS({
        * @return {Object} Appended node object
        */
       appendChild(childNode) {
+        if (childNode.parentNode && childNode.parentNode !== this) {
+          childNode.remove();
+        }
         if (childNode.rootNode !== this.rootNode) {
           childNode.rootNode = this.rootNode;
           childNode._nodeId = ++this.rootNode.nodeCounter;
@@ -56817,11 +57653,7 @@ var require_mime_node = __commonJS({
           const options = {};
           const formattedHeaders = FORMATTED_HEADERS;
           if (value && typeof value === "object" && !formattedHeaders.includes(key)) {
-            Object.keys(value).forEach((key2) => {
-              if (key2 !== "value") {
-                options[key2] = value[key2];
-              }
-            });
+            shared.copyOwnKeys(options, value, (optionKey) => optionKey === "value");
             value = (value.value || "").toString();
             if (!value.trim()) {
               return;
@@ -56845,15 +57677,16 @@ var require_mime_node = __commonJS({
               break;
             case "Content-Type":
               structured = mimeFuncs.parseHeaderValue(value);
+              structured.value = (structured.value || "").toString().replace(/[\x00-\x1f\x7f]/g, "");
               this._handleContentType(structured);
               if (structured.value.match(/^text\/plain\b/) && typeof this.content === "string" && /[\u0080-\uFFFF]/.test(this.content)) {
                 structured.params.charset = "utf-8";
               }
               value = mimeFuncs.buildHeaderValue(structured);
               if (this.filename) {
-                param = this._encodeWords(this.filename);
+                param = /[\x00-\x1f\x7f]/.test(this.filename) ? mimeFuncs.encodeWord(this.filename, this._getTextEncoding(this.filename), 52) : this._encodeWords(this.filename);
                 if (param !== this.filename || /[\s'"\\;:/=(),<>@[\]?]|^-/.test(param)) {
-                  param = '"' + param + '"';
+                  param = JSON.stringify(param);
                 }
                 value += "; name=" + param;
               }
@@ -56870,8 +57703,9 @@ var require_mime_node = __commonJS({
           }
           if (typeof this.normalizeHeaderKey === "function") {
             const normalized = this.normalizeHeaderKey(key, value);
-            if (normalized && typeof normalized === "string" && normalized.length) {
-              key = normalized;
+            const cleaned = typeof normalized === "string" ? normalized.replace(/[\x00-\x1f\x7f]/g, "") : "";
+            if (cleaned) {
+              key = cleaned;
             }
           }
           headers2.push(mimeFuncs.foldLines(key + ": " + value, 76));
@@ -57072,24 +57906,21 @@ var require_mime_node = __commonJS({
         };
         if (envelope.from) {
           list = [];
-          this._convertAddresses(this._parseAddresses(envelope.from), list);
+          this._convertAddresses(this._parseEnvelopeAddresses(envelope.from), list);
           list = list.filter((address) => address && address.address);
           if (list.length && list[0]) {
             this._envelope.from = list[0].address;
           }
         }
+        const seenRecipients = /* @__PURE__ */ new Set();
         ["to", "cc", "bcc"].forEach((key) => {
           if (envelope[key]) {
-            this._convertAddresses(this._parseAddresses(envelope[key]), this._envelope.to);
+            this._convertAddresses(this._parseEnvelopeAddresses(envelope[key]), this._envelope.to, seenRecipients);
           }
         });
         this._envelope.to = this._envelope.to.map((to) => to.address).filter((address) => address);
         const standardFields = ["to", "cc", "bcc", "from"];
-        Object.keys(envelope).forEach((key) => {
-          if (!standardFields.includes(key)) {
-            this._envelope[key] = envelope[key];
-          }
-        });
+        shared.copyOwnKeys(this._envelope, envelope, (key) => standardFields.includes(key));
         return this;
       }
       /**
@@ -57099,13 +57930,15 @@ var require_mime_node = __commonJS({
        */
       getAddresses() {
         const addresses = {};
+        const seenByKey = /* @__PURE__ */ new Map();
         this._headers.forEach((header) => {
           const key = header.key.toLowerCase();
           if (["from", "sender", "reply-to", "to", "cc", "bcc"].includes(key)) {
             if (!Array.isArray(addresses[key])) {
               addresses[key] = [];
+              seenByKey.set(key, /* @__PURE__ */ new Set());
             }
-            this._convertAddresses(this._parseAddresses(header.value), addresses[key]);
+            this._convertAddresses(this._parseAddresses(header.value), addresses[key], seenByKey.get(key));
           }
         });
         return addresses;
@@ -57123,6 +57956,7 @@ var require_mime_node = __commonJS({
           from: false,
           to: []
         };
+        const seenRecipients = /* @__PURE__ */ new Set();
         this._headers.forEach((header) => {
           const list = [];
           if (header.key === "From" || !envelope.from && ["Reply-To", "Sender"].includes(header.key)) {
@@ -57131,7 +57965,7 @@ var require_mime_node = __commonJS({
               envelope.from = list[0].address;
             }
           } else if (["To", "Cc", "Bcc"].includes(header.key)) {
-            this._convertAddresses(this._parseAddresses(header.value), envelope.to);
+            this._convertAddresses(this._parseAddresses(header.value), envelope.to, seenRecipients);
           }
         });
         envelope.to = envelope.to.map((to) => to.address);
@@ -57168,6 +58002,25 @@ var require_mime_node = __commonJS({
       }
       /////// PRIVATE METHODS
       /**
+       * Checks an access policy flag for this node and every node above it. The flags are set
+       * from the options the node was built with, and createChild only ever sees the options
+       * the caller passed, so a child of a closed tree starts out open. Reading the answer off
+       * the parent chain keeps it right whatever order the tree was assembled in.
+       *
+       * @param {String} flag Either 'disableFileAccess' or 'disableUrlAccess'
+       * @return {Boolean} true if this node or an ancestor closed that access
+       */
+      _accessDisabled(flag) {
+        let node = this;
+        while (node) {
+          if (node[flag]) {
+            return true;
+          }
+          node = node.parentNode;
+        }
+        return false;
+      }
+      /**
        * Detects and returns handle to a stream related with the content.
        *
        * @param {Mixed} content Node content
@@ -57190,7 +58043,7 @@ var require_mime_node = __commonJS({
           return content;
         }
         if (content && typeof content.path === "string" && !content.href) {
-          if (this.disableFileAccess) {
+          if (this._accessDisabled("disableFileAccess")) {
             contentStream = new PassThrough();
             setImmediate(() => {
               const err = new Error("File access rejected for " + content.path);
@@ -57202,7 +58055,7 @@ var require_mime_node = __commonJS({
           return fs3.createReadStream(content.path);
         }
         if (content && typeof content.href === "string") {
-          if (this.disableUrlAccess) {
+          if (this._accessDisabled("disableUrlAccess")) {
             contentStream = new PassThrough();
             setImmediate(() => {
               const err = new Error("Url access rejected for " + content.href);
@@ -57231,17 +58084,65 @@ var require_mime_node = __commonJS({
        * @return {Array} An array of address objects
        */
       _parseAddresses(addresses) {
-        return [].concat.apply(
-          [],
-          [].concat(addresses).map((address) => {
-            if (address && address.address) {
-              address.address = this._normalizeAddress(address.address);
-              address.name = address.name || "";
-              return [address];
+        const flattened = [];
+        [].concat(addresses).forEach((address) => {
+          if (address && address.address) {
+            const normalized = this._normalizeAddress(address.address);
+            if (normalized === address.address && typeof address.name === "string") {
+              flattened.push(address);
+              return;
             }
-            return addressparser(address);
-          })
-        );
+            const copy = shared.copyOwnKeys({}, address);
+            copy.address = normalized;
+            copy.name = address.name || "";
+            flattened.push(copy);
+            return;
+          }
+          const parsed = this._normalizeParsedAddresses(addressparser(address));
+          for (let i = 0; i < parsed.length; i++) {
+            flattened.push(parsed[i]);
+          }
+        });
+        return flattened;
+      }
+      /**
+       * Normalizes the addresses of a freshly parsed address list, groups included.
+       *
+       * Everything this method returns carries a normalized address, whether it arrived as an
+       * object or was parsed out of a header value. Without this the two shapes disagree, and
+       * a consumer reading the parsed form back is handed the ambiguous
+       * 'user@evil.com@good.com' that the header and the envelope no longer carry.
+       *
+       * @param {Array} parsed An array of address objects, as returned by addressparser
+       * @return {Array} The same array, with every address normalized
+       */
+      _normalizeParsedAddresses(parsed) {
+        parsed.forEach((entry) => {
+          if (entry.address) {
+            entry.address = this._normalizeAddress(entry.address);
+          } else if (entry.group) {
+            this._normalizeParsedAddresses(entry.group);
+          }
+        });
+        return parsed;
+      }
+      /**
+       * Parses the addresses of an explicitly set envelope.
+       *
+       * An envelope value is an addr-spec and never a display name, so a bare local username
+       * such as 'root' is the address here. Header parsing has to read the same value as a
+       * display name, as a value with no '@' in it can not be an addr-spec in a header.
+       *
+       * @param {Mixed} addresses Addresses to be parsed
+       * @return {Array} An array of address objects
+       */
+      _parseEnvelopeAddresses(addresses) {
+        return this._parseAddresses(addresses).map((entry) => {
+          if (entry.address || entry.group || !entry.name || /[\s@]/.test(entry.name)) {
+            return entry;
+          }
+          return { address: this._normalizeAddress(entry.name), name: "" };
+        });
       }
       /**
        * Normalizes a header key, uses Camel-Case form, except for uppercase MIME-
@@ -57250,7 +58151,7 @@ var require_mime_node = __commonJS({
        * @return {String} key in Camel-Case form
        */
       _normalizeHeaderKey(key) {
-        key = (key || "").toString().replace(/\r?\n|\r/g, " ").trim().toLowerCase().replace(/^X-SMTPAPI$|^(MIME|DKIM|ARC|BIMI)\b|^[a-z]|-(SPF|FBL|ID|MD5)$|-[a-z]/gi, (c) => c.toUpperCase()).replace(/^Content-Features$/i, "Content-features");
+        key = (key || "").toString().replace(/\r?\n|\r/g, " ").replace(/[\x00-\x1f\x7f]/g, "").trim().toLowerCase().replace(/^X-SMTPAPI$|^(MIME|DKIM|ARC|BIMI)\b|^[a-z]|-(SPF|FBL|ID|MD5)$|-[a-z]/gi, (c) => c.toUpperCase()).replace(/^Content-Features$/i, "Content-features");
         return key;
       }
       /**
@@ -57297,7 +58198,7 @@ var require_mime_node = __commonJS({
           case "Message-ID":
           case "In-Reply-To":
           case "Content-Id":
-            value = (value || "").toString().replace(/\r?\n|\r/g, " ");
+            value = (value || "").toString().replace(/\r?\n|\r/g, " ").replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, "");
             if (value.charAt(0) !== "<") {
               value = "<" + value;
             }
@@ -57310,7 +58211,7 @@ var require_mime_node = __commonJS({
             value = [].concat.apply(
               [],
               [].concat(value || "").map((elm) => {
-                elm = (elm || "").toString().replace(/\r?\n|\r/g, " ").trim();
+                elm = (elm || "").toString().replace(/\r?\n|\r/g, " ").replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, "").trim();
                 return elm.replace(/<[^>]*>/g, (str) => str.replace(/\s/g, "")).split(/\s+/);
               })
             ).map((elm) => {
@@ -57328,13 +58229,13 @@ var require_mime_node = __commonJS({
               return value.toUTCString().replace(/GMT/, "+0000");
             }
             value = (value || "").toString().replace(/\r?\n|\r/g, " ");
-            return this._encodeWords(value);
+            return this._encodeHeaderText(value);
           case "Content-Type":
           case "Content-Disposition":
             return (value || "").toString().replace(/\r?\n|\r/g, " ");
           default:
             value = (value || "").toString().replace(/\r?\n|\r/g, " ");
-            return this._encodeWords(value);
+            return this._encodeHeaderText(value);
         }
       }
       /**
@@ -57344,22 +58245,29 @@ var require_mime_node = __commonJS({
        * @param {Array} [uniqueList] An array to be populated with addresses
        * @return {String} address string
        */
-      _convertAddresses(addresses, uniqueList) {
+      _convertAddresses(addresses, uniqueList, seenAddresses) {
         const values = [];
         uniqueList = uniqueList || [];
+        if (!seenAddresses) {
+          seenAddresses = /* @__PURE__ */ new Set();
+          for (let i = 0; i < uniqueList.length; i++) {
+            seenAddresses.add(uniqueList[i].address);
+          }
+        }
         [].concat(addresses || []).forEach((address) => {
           if (address.address) {
             address.address = this._normalizeAddress(address.address);
             if (!address.name) {
-              values.push(address.address.indexOf(" ") >= 0 ? `<${address.address}>` : `${address.address}`);
+              values.push(PLAIN_ADDRESS.test(address.address) ? address.address : `<${address.address}>`);
             } else {
               values.push(`${this._encodeAddressName(address.name)} <${address.address}>`);
             }
-            if (!uniqueList.some((a) => a.address === address.address)) {
+            if (!seenAddresses.has(address.address)) {
+              seenAddresses.add(address.address);
               uniqueList.push(address);
             }
           } else if (address.group) {
-            const groupListAddresses = (address.group.length ? this._convertAddresses(address.group, uniqueList) : "").trim();
+            const groupListAddresses = (address.group.length ? this._convertAddresses(address.group, uniqueList, seenAddresses) : "").trim();
             values.push(`${this._encodeAddressName(address.name)}:${groupListAddresses};`);
           }
         });
@@ -57372,31 +58280,41 @@ var require_mime_node = __commonJS({
        * @return {String} address string
        */
       _normalizeAddress(address) {
-        address = (address || "").toString().replace(/[\x00-\x1F<>]+/g, " ").trim();
-        const lastAt = address.lastIndexOf("@");
-        if (lastAt < 0) {
+        address = (address || "").toString().replace(/[\x00-\x1F\x7F<>]+/g, " ").trim();
+        if (!address) {
           return address;
         }
-        let user = address.substr(0, lastAt);
+        const lastAt = address.lastIndexOf("@");
+        if (lastAt < 0) {
+          return this._normalizeLocalPart(address);
+        }
+        const user = address.substr(0, lastAt);
         const domain = address.substr(lastAt + 1);
         let encodedDomain = domain;
+        const smtputf8 = /[\x80-\uFFFF]/.test(user);
         try {
-          if (/[\x80-\uFFFF]/.test(user)) {
-            encodedDomain = punycode.toUnicode(domain.toLowerCase());
-          } else {
-            encodedDomain = punycode.toASCII(domain.toLowerCase());
-          }
+          encodedDomain = normalizeDomain(domain.toLowerCase(), smtputf8);
         } catch (_err) {
         }
-        if (user.indexOf(" ") >= 0) {
-          if (user.charAt(0) !== '"') {
-            user = '"' + user;
-          }
-          if (user.substr(-1) !== '"') {
-            user = user + '"';
-          }
+        return `${this._normalizeLocalPart(user)}@${encodedDomain}`;
+      }
+      /**
+       * Normalizes the local part of an address into a form that can be emitted as is.
+       *
+       * A local part is either a dot-atom or a quoted-string, anything else is not a valid
+       * addr-spec. The quotes of a quoted local part get lost along the way, and a bare
+       * 'user@evil.com@good.com' leaves it to the receiver which '@' splits the domain off,
+       * while the split here is always at the last one. So whatever is not already one of
+       * the two valid forms goes back out as a quoted-string.
+       *
+       * @param {String} user Local part of an address
+       * @return {String} Local part as a dot-atom or as a quoted-string
+       */
+      _normalizeLocalPart(user) {
+        if (DOT_ATOM.test(user) || QUOTED_STRING.test(user)) {
+          return user;
         }
-        return `${user}@${encodedDomain}`;
+        return mimeFuncs.quoteString(user);
       }
       /**
        * If needed, mime encodes the name part
@@ -57407,12 +58325,26 @@ var require_mime_node = __commonJS({
       _encodeAddressName(name) {
         if (!/^[\w ]*$/.test(name)) {
           if (/^[\x20-\x7e]*$/.test(name)) {
-            return '"' + name.replace(/([\\"])/g, "\\$1") + '"';
+            return mimeFuncs.quoteString(name);
           } else {
             return mimeFuncs.encodeWord(name, this._getTextEncoding(name), 52);
           }
         }
         return name;
+      }
+      /**
+       * Encodes an unstructured header value. Such a value can only carry VCHAR and WSP, so a
+       * control char or DEL has to be forced into the mime encoded word that a non-ascii value
+       * would get anyway. HT stays as it is, it is valid folding whitespace here.
+       *
+       * @param {String} value Header value to encode
+       * @returns {String} Mime word encoded string if needed
+       */
+      _encodeHeaderText(value) {
+        return /[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(value) ? mimeFuncs.encodeWord(value, this._getTextEncoding(value), 52) : (
+          // encodeWords only encodes if needed, otherwise the original string is returned
+          this._encodeWords(value)
+        );
       }
       /**
        * If needed, mime encodes the name part
@@ -57470,7 +58402,7 @@ var require_mail_composer = __commonJS({
     "use strict";
     var MimeNode2 = require_mime_node();
     var mimeFuncs = require_mime_funcs();
-    var { parseDataURI } = require_shared();
+    var { parseDataURI, copyOwnKeys } = require_shared();
     var MailComposer = class {
       constructor(mail) {
         this.mail = mail || {};
@@ -57623,7 +58555,7 @@ var require_mail_composer = __commonJS({
         if (!this._icalEvent) {
           let icalEvent;
           if (typeof this.mail.icalEvent === "object" && (this.mail.icalEvent.content || this.mail.icalEvent.path || this.mail.icalEvent.href || this.mail.icalEvent.raw)) {
-            icalEvent = Object.assign({}, this.mail.icalEvent);
+            icalEvent = copyOwnKeys({}, this.mail.icalEvent);
           } else {
             icalEvent = {
               content: this.mail.icalEvent
@@ -57920,7 +58852,7 @@ var require_mail_composer = __commonJS({
               detectedType = parts[0].trim();
             }
           }
-          return Object.assign({}, element, {
+          return Object.assign(copyOwnKeys({}, element), {
             path: false,
             href: false,
             content: Buffer.alloc(0),
@@ -58092,7 +59024,7 @@ var require_relaxed_body = __commonJS({
         options = options || {};
         this.chunkBuffer = [];
         this.chunkBufferLen = 0;
-        this.bodyHash = crypto9.createHash(options.hashAlgo || "sha1");
+        this.bodyHash = crypto9.createHash(options.hashAlgo || "sha256");
         this.remainder = "";
         this.byteLength = 0;
         this.debug = options.debug;
@@ -58215,15 +59147,16 @@ var require_sign = __commonJS({
     };
     module2.exports.relaxedHeaders = relaxedHeaders;
     function generateDKIMHeader(domainName, keySelector, fieldNames, hashAlgo, bodyHash) {
+      const cleanTagValue = (value) => (value || "").toString().replace(/[\x00-\x1f\x7f;=]/g, "");
       const dkim = [
         "v=1",
         "a=rsa-" + hashAlgo,
         "c=relaxed/relaxed",
-        "d=" + punycode.toASCII(domainName),
+        "d=" + punycode.toASCII(cleanTagValue(domainName)),
         "q=dns/txt",
-        "s=" + keySelector,
+        "s=" + cleanTagValue(keySelector),
         "bh=" + bodyHash,
-        "h=" + fieldNames
+        "h=" + cleanTagValue(fieldNames)
       ].join("; ");
       return mimeFuncs.foldLines("DKIM-Signature: " + dkim, 76) + ";\r\n b=";
     }
@@ -58273,6 +59206,7 @@ var require_dkim = __commonJS({
     var fs3 = require("fs");
     var path3 = require("path");
     var crypto9 = require("crypto");
+    var { copyOwnKeys } = require_objects();
     var DKIM_ALGO = "sha256";
     var MAX_MESSAGE_SIZE = 2 * 1024 * 1024;
     var DKIMSigner = class {
@@ -58439,7 +59373,8 @@ var require_dkim = __commonJS({
         }
         let options = this.options;
         if (extraOptions && Object.keys(extraOptions).length) {
-          options = Object.assign({}, extraOptions, this.options);
+          options = copyOwnKeys({}, extraOptions);
+          copyOwnKeys(options, this.options);
         }
         const signer = new DKIMSigner(options, this.keys, inputStream, output);
         setImmediate(() => {
@@ -58465,12 +59400,19 @@ var require_http_proxy_client = __commonJS({
     var tls4 = require("tls");
     var urllib = require_url();
     var errors = require_errors3();
+    var MAX_RESPONSE_HEADER_BYTES = 64 * 1024;
     function httpProxyClient(proxyUrl, destinationPort, destinationHost, tlsOptions, callback) {
       if (typeof tlsOptions === "function") {
         callback = tlsOptions;
         tlsOptions = {};
       }
       tlsOptions = tlsOptions || {};
+      destinationPort = Number(destinationPort) || 0;
+      if (!destinationPort || /[\r\n]/.test(destinationHost)) {
+        const err = new Error("Invalid proxy destination");
+        err.code = errors.EPROXY;
+        return setImmediate(() => callback(err));
+      }
       const proxy = urllib.parse(proxyUrl);
       const connectOptions = {
         host: proxy.hostname,
@@ -58549,6 +59491,12 @@ var require_http_proxy_client = __commonJS({
             socket.setTimeout(0);
             return callback(null, socket);
           }
+          if (headers2.length > MAX_RESPONSE_HEADER_BYTES) {
+            socket.removeListener("data", onSocketData);
+            const err = new Error("Proxy response headers too large");
+            err.code = errors.EPROXY;
+            return tempSocketErr(err);
+          }
         };
         socket.on("data", onSocketData);
       });
@@ -58567,6 +59515,7 @@ var require_mail_message = __commonJS({
     var shared = require_shared();
     var MimeNode2 = require_mime_node();
     var mimeFuncs = require_mime_funcs();
+    var hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
     var MailMessage = class {
       constructor(mailer, data) {
         this.mailer = mailer;
@@ -58575,27 +59524,32 @@ var require_mail_message = __commonJS({
         data = data || {};
         const options = mailer.options || {};
         const defaults = mailer._defaults || {};
-        Object.assign(this.data, data);
+        shared.copyOwnKeys(this.data, data);
         this.data.headers = this.data.headers || {};
-        Object.keys(defaults).forEach((key) => {
-          if (!(key in this.data)) {
-            this.data[key] = defaults[key];
-          } else if (key === "headers") {
-            Object.keys(defaults.headers).forEach((key2) => {
-              if (!(key2 in this.data.headers)) {
-                this.data.headers[key2] = defaults.headers[key2];
-              }
-            });
-          }
-        });
-        ["disableFileAccess", "disableUrlAccess", "normalizeHeaderKey"].forEach((key) => {
+        shared.copyOwnKeys(this.data, defaults, (key) => hasOwn(this.data, key));
+        shared.copyOwnKeys(this.data.headers, defaults.headers, (key) => hasOwn(this.data.headers, key));
+        ["disableFileAccess", "disableUrlAccess", "normalizeHeaderKey", "maxRecipients"].forEach((key) => {
           if (key in options) {
             this.data[key] = options[key];
           }
         });
+        ["disableFileAccess", "disableUrlAccess"].forEach((key) => {
+          if (!(key in options) && hasOwn(defaults, key)) {
+            this.data[key] = this.data[key] || defaults[key];
+          }
+        });
       }
-      resolveContent(...args) {
-        return shared.resolveContent(...args);
+      resolveContent(data, key, options, callback) {
+        if (!callback && typeof options === "function") {
+          callback = options;
+          options = false;
+        }
+        options = options || {};
+        const policy = {
+          disableFileAccess: this.data.disableFileAccess || options.disableFileAccess,
+          disableUrlAccess: this.data.disableUrlAccess || options.disableUrlAccess
+        };
+        return shared.resolveContent(data, key, policy, callback);
       }
       resolveAll(callback) {
         const keys = [
@@ -58665,11 +59619,7 @@ var require_mail_message = __commonJS({
                 content: value
               };
               if (args[0][args[1]] && typeof args[0][args[1]] === "object" && !Buffer.isBuffer(args[0][args[1]])) {
-                Object.keys(args[0][args[1]]).forEach((key) => {
-                  if (!(key in node) && !["content", "path", "href", "raw"].includes(key)) {
-                    node[key] = args[0][args[1]][key];
-                  }
-                });
+                shared.copyOwnKeys(node, args[0][args[1]], (key) => key in node || ["content", "path", "href", "raw"].includes(key));
               }
               args[0][args[1]] = node;
               resolveNext();
@@ -58679,7 +59629,7 @@ var require_mail_message = __commonJS({
         setImmediate(() => resolveNext());
       }
       normalize(callback) {
-        const envelope = this.data.envelope || this.message.getEnvelope();
+        const envelope = this.message.getEnvelope();
         const messageId = this.message.messageId();
         this.resolveAll((err, data) => {
           if (err) {
@@ -58718,6 +59668,9 @@ var require_mail_message = __commonJS({
           }
           data.normalizedHeaders = {};
           Object.keys(data.headers || {}).forEach((key) => {
+            if (shared.isProtoKey(key)) {
+              return;
+            }
             let value = [].concat(data.headers[key] || []).shift();
             value = value && value.value || value;
             if (value) {
@@ -58789,19 +59742,13 @@ var require_mail_message = __commonJS({
                 };
               }
               if (value2 && value2.url) {
-                if (key.toLowerCase().trim() === "id") {
-                  let comment2 = (value2.comment || "").toString().replace(/\r?\n|\r/g, " ");
-                  if (mimeFuncs.isPlainText(comment2)) {
-                    comment2 = '"' + comment2 + '"';
-                  } else {
-                    comment2 = mimeFuncs.encodeWord(comment2);
-                  }
-                  return (value2.comment ? comment2 + " " : "") + this._formatListUrl(value2.url).replace(/^<[^:]+:\/{0,2}/, "<");
-                }
                 let comment = (value2.comment || "").toString().replace(/\r?\n|\r/g, " ");
-                if (!mimeFuncs.isPlainText(comment)) {
-                  comment = mimeFuncs.encodeWord(comment);
+                const needsEncoding = !mimeFuncs.isPlainText(comment) || /\x7f/.test(comment);
+                if (key.toLowerCase().trim() === "id") {
+                  comment = needsEncoding ? mimeFuncs.encodeWord(comment) : mimeFuncs.quoteString(comment);
+                  return (value2.comment ? comment + " " : "") + this._formatListUrl(value2.url).replace(/^<[^:]+:\/{0,2}/, "<");
                 }
+                comment = needsEncoding ? mimeFuncs.encodeWord(comment) : comment.replace(/[()\\]/g, "\\$&");
                 return this._formatListUrl(value2.url) + (value2.comment ? " (" + comment + ")" : "");
               }
               return "";
@@ -58810,7 +59757,7 @@ var require_mail_message = __commonJS({
         }));
       }
       _formatListUrl(url) {
-        url = url.replace(/[\s<]+|[\s>]+/g, "");
+        url = url.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, "").replace(/[\s<]+|[\s>]+/g, "");
         if (/^(https?|mailto|ftp):/.test(url)) {
           return "<" + url + ">";
         }
@@ -58842,6 +59789,7 @@ var require_mailer = __commonJS({
     var net7 = require("net");
     var dns4 = require("dns");
     var crypto9 = require("crypto");
+    var DEFAULT_MAX_RECIPIENTS = 1e5;
     var Mail = class extends EventEmitter {
       constructor(transporter, options, defaults) {
         super();
@@ -58977,6 +59925,24 @@ var require_mailer = __commonJS({
           mail.setMailerHeader();
           mail.setPriorityHeaders();
           mail.setListHeaders();
+          const maxRecipients = mail.data.maxRecipients === void 0 ? DEFAULT_MAX_RECIPIENTS : mail.data.maxRecipients;
+          const recipientCount = mail.message.getEnvelope().to.length;
+          if (maxRecipients && recipientCount > maxRecipients) {
+            const err2 = new Error(
+              `Message has ${recipientCount} recipients, which is over the ${maxRecipients} allowed by maxRecipients`
+            );
+            err2.code = errors.EMAXRECIPIENTS;
+            this.logger.error(
+              {
+                err: err2,
+                tnx: "transport",
+                action: "send"
+              },
+              "Send Error: %s",
+              err2.message
+            );
+            return callback(err2);
+          }
           this._processPlugins("stream", mail, (err2) => {
             if (err2) {
               this.logger.error(
@@ -59435,6 +60401,15 @@ var require_smtp_connection = __commonJS({
             try {
               this._socket.connect(this.port, this.host, () => {
                 this._socket.setKeepAlive(true);
+                if (this.secureConnection && !this.alreadySecured) {
+                  return this._upgradeConnection((err) => {
+                    if (err) {
+                      this._onError(new Error("Error initiating TLS - " + (err.message || err)), "ETLS", false, "CONN");
+                      return;
+                    }
+                    this._onConnect();
+                  });
+                }
                 this._onConnect();
               });
               this._setupConnectionHandlers();
@@ -59495,6 +60470,9 @@ var require_smtp_connection = __commonJS({
        * @param {Boolean} secure Whether to use TLS
        */
       _connectToHost(opts, secure) {
+        if (this._destroyed || this._closing) {
+          return;
+        }
         this._connectionAttemptId++;
         const currentAttemptId = this._connectionAttemptId;
         const connectFn = secure ? tls4.connect : net7.connect;
@@ -59548,6 +60526,7 @@ var require_smtp_connection = __commonJS({
         if (this._socket) {
           try {
             this._socket.removeListener("error", this._onConnectionSocketError);
+            this._socket.on("error", TEARDOWN_NOOP);
             this._socket.destroy();
           } catch (_E) {
           }
@@ -59811,6 +60790,10 @@ var require_smtp_connection = __commonJS({
        * @param {Function} callback Callback to return once connection is reset
        */
       reset(callback) {
+        const isDestroyedMessage = this._isDestroyedMessage("reset");
+        if (isDestroyedMessage) {
+          return callback(this._formatError(isDestroyedMessage, "ECONNECTION", false, "API"));
+        }
         this._sendCommand("RSET");
         this._responseActions.push((str) => {
           if (str.charAt(0) !== "2") {
@@ -59851,6 +60834,7 @@ var require_smtp_connection = __commonJS({
         this._socket.removeListener("close", this._onSocketClose);
         this._socket.removeListener("end", this._onSocketEnd);
         this._socket.removeListener("error", this._onConnectionSocketError);
+        this._socket.removeListener("error", this._onSocketError);
         this._socket.on("error", this._onSocketError);
         this._socket.on("data", this._onSocketData);
         this._socket.once("close", this._onSocketClose);
@@ -60002,6 +60986,7 @@ var require_smtp_connection = __commonJS({
           return;
         }
         this._destroyed = true;
+        this.destroyed = true;
         this.emit("end");
       }
       /**
@@ -60011,6 +60996,8 @@ var require_smtp_connection = __commonJS({
        *        has been secured
        */
       _upgradeConnection(callback) {
+        this._remainder = "";
+        this._responseQueue = [];
         this._socket.removeListener("data", this._onSocketData);
         this._socket.removeListener("timeout", this._onSocketTimeout);
         const socketPlain = this._socket;
@@ -60028,6 +61015,7 @@ var require_smtp_connection = __commonJS({
           socketPlain.removeListener("close", this._onSocketClose);
           socketPlain.removeListener("end", this._onSocketEnd);
           socketPlain.removeListener("error", this._onSocketError);
+          socketPlain.removeListener("error", this._onConnectionSocketError);
         };
         this.upgrading = true;
         try {
@@ -60051,15 +61039,19 @@ var require_smtp_connection = __commonJS({
       }
       /**
        * Processes queued responses from the server
-       *
-       * @param {Boolean} force If true, ignores _processing flag
        */
       _processResponse() {
         if (!this._responseQueue.length) {
           return false;
         }
-        let str = this.lastServerResponse = decodeServerResponse((this._responseQueue.shift() || "").toString());
+        const raw = (this._responseQueue.shift() || "").toString();
+        if (!raw.trim()) {
+          setImmediate(() => this._processResponse());
+          return;
+        }
+        let str = this.lastServerResponse = decodeServerResponse(raw);
         if (/^\d+-/.test(str.split("\n").pop())) {
+          this._responseQueue.unshift(raw);
           return;
         }
         if (this.options.debug || this.options.transactionLog) {
@@ -60069,9 +61061,6 @@ var require_smtp_connection = __commonJS({
             },
             str.replace(/\r?\n$/, "")
           );
-        }
-        if (!str.trim()) {
-          setImmediate(() => this._processResponse());
         }
         const action = this._responseActions.shift();
         if (typeof action === "function") {
@@ -60147,6 +61136,18 @@ var require_smtp_connection = __commonJS({
             return callback(this._formatError("Invalid DSN " + err.message, "EENVELOPE", false, "API"));
           }
         }
+        if (this._envelope.requireTLSExtensionEnabled) {
+          if (!this.secure) {
+            return callback(
+              this._formatError("REQUIRETLS can only be used over TLS connections (RFC 8689)", "EREQUIRETLS", false, "MAIL FROM")
+            );
+          }
+          if (!this._supportedExtensions.includes("REQUIRETLS")) {
+            return callback(
+              this._formatError("Server does not support REQUIRETLS extension (RFC 8689)", "EREQUIRETLS", false, "MAIL FROM")
+            );
+          }
+        }
         this._responseActions.push((str) => {
           this._actionMAIL(str, callback);
         });
@@ -60173,16 +61174,6 @@ var require_smtp_connection = __commonJS({
           }
         }
         if (this._envelope.requireTLSExtensionEnabled) {
-          if (!this.secure) {
-            return callback(
-              this._formatError("REQUIRETLS can only be used over TLS connections (RFC 8689)", "EREQUIRETLS", false, "MAIL FROM")
-            );
-          }
-          if (!this._supportedExtensions.includes("REQUIRETLS")) {
-            return callback(
-              this._formatError("Server does not support REQUIRETLS extension (RFC 8689)", "EREQUIRETLS", false, "MAIL FROM")
-            );
-          }
           args.push("REQUIRETLS");
         }
         this._sendCommand("MAIL FROM:<" + this._envelope.from + ">" + (args.length ? " " + args.join(" ") : ""));
@@ -61860,6 +62851,18 @@ var require_services = __commonJS({
         host: "smtp.tipimail.com",
         port: 587
       },
+      TurboSMTP: {
+        description: "TurboSMTP",
+        host: "pro.turbo-smtp.com",
+        port: 465,
+        secure: true
+      },
+      "TurboSMTP-EU": {
+        description: "TurboSMTP (EU region)",
+        host: "pro.eu.turbo-smtp.com",
+        port: 465,
+        secure: true
+      },
       Tutanota: {
         description: "Tutanota (Tuta Mail)",
         domains: ["tutanota.com", "tuta.com", "tutanota.de", "tuta.io"],
@@ -62885,10 +63888,10 @@ var require_sendmail_transport = __commonJS({
        */
       send(mail, done) {
         mail.message.keepBcc = true;
-        const envelope = mail.data.envelope || mail.message.getEnvelope();
+        const envelope = mail.message.getEnvelope();
         const messageId = mail.message.messageId();
         let returned;
-        const hasInvalidAddresses = [].concat(envelope.from || []).concat(envelope.to || []).some((addr) => /^-/.test(addr));
+        const hasInvalidAddresses = [].concat(envelope.from || []).concat(envelope.to || []).some((addr) => /^"?-/.test(addr));
         if (hasInvalidAddresses) {
           const err = new Error("Can not send mail. Invalid envelope addresses.");
           err.code = errors.ESENDMAIL;
@@ -63046,7 +64049,7 @@ var require_stream_transport = __commonJS({
        */
       send(mail, done) {
         mail.message.keepBcc = true;
-        const envelope = mail.data.envelope || mail.message.getEnvelope();
+        const envelope = mail.message.getEnvelope();
         const messageId = mail.message.messageId();
         const recipients = [].concat(envelope.to || []);
         if (recipients.length > 3) {
@@ -63164,7 +64167,7 @@ var require_json_transport = __commonJS({
        */
       send(mail, done) {
         mail.message.keepBcc = true;
-        const envelope = mail.data.envelope || mail.message.getEnvelope();
+        const envelope = mail.message.getEnvelope();
         const messageId = mail.message.messageId();
         const recipients = [].concat(envelope.to || []);
         if (recipients.length > 3) {
@@ -63239,7 +64242,10 @@ var require_ses_transport = __commonJS({
       }
       getRegion(cb) {
         if (this.ses.sesClient.config && typeof this.ses.sesClient.config.region === "function") {
-          return this.ses.sesClient.config.region().then((region) => cb(null, region)).catch((err) => cb(err));
+          return this.ses.sesClient.config.region().then(
+            (region) => cb(null, region),
+            (err) => cb(err)
+          );
         }
         return cb(null, false);
       }
@@ -63255,7 +64261,7 @@ var require_ses_transport = __commonJS({
           const mimeNode = new MimeNode2("text/plain");
           fromHeader = mimeNode._convertAddresses(mimeNode._parseAddresses(fromHeader.value));
         }
-        const envelope = mail.data.envelope || mail.message.getEnvelope();
+        const envelope = mail.message.getEnvelope();
         const messageId = mail.message.messageId();
         const recipients = [].concat(envelope.to || []);
         if (recipients.length > 3) {
@@ -63309,7 +64315,7 @@ var require_ses_transport = __commonJS({
               );
               return callback(err);
             }
-            const sesMessage = Object.assign(
+            const sesMessage = shared.copyOwnKeys(
               {
                 Content: {
                   Raw: {
@@ -63323,19 +64329,35 @@ var require_ses_transport = __commonJS({
                   ToAddresses: envelope.to
                 }
               },
-              mail.data.ses || {}
+              mail.data.ses
             );
             this.getRegion((err2, region) => {
               if (err2 || !region) {
                 region = "us-east-1";
               }
-              const command = new this.ses.SendEmailCommand(sesMessage);
-              const sendPromise = this.ses.sesClient.send(command);
+              let sendPromise;
+              try {
+                const command = new this.ses.SendEmailCommand(sesMessage);
+                sendPromise = this.ses.sesClient.send(command);
+              } catch (err3) {
+                tagSesError(err3);
+                this.logger.error(
+                  {
+                    err: err3,
+                    tnx: "send"
+                  },
+                  "Send error for %s: %s",
+                  messageId,
+                  err3.message
+                );
+                setImmediate(() => callback(err3));
+                return;
+              }
               sendPromise.then((data) => {
                 if (region === "us-east-1") {
                   region = "email";
                 }
-                callback(null, {
+                const info = {
                   envelope: {
                     from: envelope.from,
                     to: envelope.to
@@ -63343,7 +64365,8 @@ var require_ses_transport = __commonJS({
                   messageId: "<" + data.MessageId + (!/@/.test(data.MessageId) ? "@" + region + ".amazonses.com" : "") + ">",
                   response: data.MessageId,
                   raw
-                });
+                };
+                setImmediate(() => callback(null, info));
               }).catch((err3) => {
                 tagSesError(err3);
                 this.logger.error(
@@ -63355,7 +64378,7 @@ var require_ses_transport = __commonJS({
                   messageId,
                   err3.message
                 );
-                callback(err3);
+                setImmediate(() => callback(err3));
               });
             });
           })
@@ -63391,9 +64414,15 @@ var require_ses_transport = __commonJS({
           }
         };
         this.getRegion(() => {
-          const command = new this.ses.SendEmailCommand(sesMessage);
-          const sendPromise = this.ses.sesClient.send(command);
-          sendPromise.then(() => cb(null)).catch((err) => cb(err));
+          let sendPromise;
+          try {
+            const command = new this.ses.SendEmailCommand(sesMessage);
+            sendPromise = this.ses.sesClient.send(command);
+          } catch (err) {
+            setImmediate(() => cb(err));
+            return;
+          }
+          sendPromise.then(() => setImmediate(() => cb(null))).catch((err) => setImmediate(() => cb(err)));
         });
         return promise;
       }
@@ -95175,6 +96204,33 @@ var init_notifications = __esm({
   }
 });
 
+// node_modules/next/dist/client/request/io.browser.js
+var require_io_browser = __commonJS({
+  "node_modules/next/dist/client/request/io.browser.js"(exports2, module2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", {
+      value: true
+    });
+    Object.defineProperty(exports2, "io", {
+      enumerable: true,
+      get: function() {
+        return io;
+      }
+    });
+    var resolvedIOPromise = Promise.resolve(void 0);
+    resolvedIOPromise.status = "fulfilled";
+    resolvedIOPromise.value = void 0;
+    function io() {
+      return resolvedIOPromise;
+    }
+    if ((typeof exports2.default === "function" || typeof exports2.default === "object" && exports2.default !== null) && typeof exports2.default.__esModule === "undefined") {
+      Object.defineProperty(exports2.default, "__esModule", { value: true });
+      Object.assign(exports2.default, exports2);
+      module2.exports = exports2.default;
+    }
+  }
+});
+
 // node_modules/next/dist/lib/constants.js
 var require_constants11 = __commonJS({
   "node_modules/next/dist/lib/constants.js"(exports2) {
@@ -95681,6 +96737,11 @@ var require_constants12 = __commonJS({
       AppRenderSpan2["renderToReadableStream"] = "AppRender.renderToReadableStream";
       AppRenderSpan2["getBodyResult"] = "AppRender.getBodyResult";
       AppRenderSpan2["fetch"] = "AppRender.fetch";
+      AppRenderSpan2["waitShellReady"] = "AppRender.waitShellReady";
+      AppRenderSpan2["renderToNodeFizzStream"] = "AppRender.renderToNodeFizzStream";
+      AppRenderSpan2["instantInsights"] = "AppRender.instantInsights";
+      AppRenderSpan2["instantInsightsPrepareValidation"] = "AppRender.instantInsights.prepareValidation";
+      AppRenderSpan2["instantInsightsRunValidation"] = "AppRender.instantInsights.runValidation";
       return AppRenderSpan2;
     })(AppRenderSpan || {});
     var RouterSpan = /* @__PURE__ */ (function(RouterSpan2) {
@@ -95730,6 +96791,443 @@ var require_constants12 = __commonJS({
   }
 });
 
+// node_modules/next/dist/shared/lib/request-insights.js
+var require_request_insights = __commonJS({
+  "node_modules/next/dist/shared/lib/request-insights.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", {
+      value: true
+    });
+    function _export(target, all) {
+      for (var name in all) Object.defineProperty(target, name, {
+        enumerable: true,
+        get: all[name]
+      });
+    }
+    _export(exports2, {
+      getRequestInsightKey: function() {
+        return getRequestInsightKey;
+      },
+      getRequestInsightKind: function() {
+        return getRequestInsightKind;
+      }
+    });
+    function getRequestInsightKind(insight) {
+      return insight.kind ?? "request";
+    }
+    function getRequestInsightKey(insight) {
+      return `${getRequestInsightKind(insight)}:${insight.requestId}`;
+    }
+  }
+});
+
+// node_modules/next/dist/server/lib/trace/span-store.js
+var require_span_store = __commonJS({
+  "node_modules/next/dist/server/lib/trace/span-store.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", {
+      value: true
+    });
+    function _export(target, all) {
+      for (var name in all) Object.defineProperty(target, name, {
+        enumerable: true,
+        get: all[name]
+      });
+    }
+    _export(exports2, {
+      isLocalSpanRecordingEnabled: function() {
+        return isLocalSpanRecordingEnabled;
+      },
+      isRequestInsightsEnabled: function() {
+        return isRequestInsightsEnabled;
+      },
+      recordSpan: function() {
+        return recordSpan;
+      },
+      setSpanRecorderForTest: function() {
+        return setSpanRecorderForTest;
+      }
+    });
+    var spanRecorderForTest;
+    function recordSpan(record) {
+      if (!isLocalSpanRecordingEnabled()) {
+        return;
+      }
+      const spanRecord = {
+        timestamp: getCurrentTimestamp(),
+        ...record
+      };
+      spanRecorderForTest == null ? void 0 : spanRecorderForTest(spanRecord);
+      if (isRequestInsightsEnabled() && spanRecord.requestId) {
+        const { recordRequestInsightSpan } = require_request_insights2();
+        recordRequestInsightSpan(spanRecord);
+      }
+    }
+    function setSpanRecorderForTest(recorder) {
+      spanRecorderForTest = recorder;
+    }
+    function isLocalSpanRecordingEnabled() {
+      if (!process.env.__NEXT_DEV_SERVER) {
+        return false;
+      }
+      return spanRecorderForTest !== void 0 || isRequestInsightsEnabled();
+    }
+    function isRequestInsightsEnabled() {
+      if (!process.env.__NEXT_DEV_SERVER) {
+        return false;
+      }
+      const value = process.env.__NEXT_REQUEST_INSIGHTS;
+      return isEnabledEnvValue(value);
+    }
+    function isEnabledEnvValue(value) {
+      return value === "1" || value === "true" || value === true;
+    }
+    function getCurrentTimestamp() {
+      return performance.timeOrigin + performance.now();
+    }
+  }
+});
+
+// node_modules/next/dist/server/lib/trace/request-insights.js
+var require_request_insights2 = __commonJS({
+  "node_modules/next/dist/server/lib/trace/request-insights.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", {
+      value: true
+    });
+    function _export(target, all) {
+      for (var name in all) Object.defineProperty(target, name, {
+        enumerable: true,
+        get: all[name]
+      });
+    }
+    _export(exports2, {
+      clearRequestInsightsForTest: function() {
+        return clearRequestInsightsForTest;
+      },
+      getRequestInsightsSnapshot: function() {
+        return getRequestInsightsSnapshot;
+      },
+      isRequestInsightsEnabled: function() {
+        return _spanstore.isRequestInsightsEnabled;
+      },
+      recordRequestInsightFetch: function() {
+        return recordRequestInsightFetch;
+      },
+      recordRequestInsightSpan: function() {
+        return recordRequestInsightSpan;
+      },
+      subscribeRequestInsights: function() {
+        return subscribeRequestInsights;
+      }
+    });
+    var _requestinsights = require_request_insights();
+    var _spanstore = require_span_store();
+    var MAX_REQUEST_INSIGHTS = 100;
+    var REQUEST_INSIGHTS_STORE_KEY = /* @__PURE__ */ Symbol.for("@next/request-insights-store");
+    var CLIENT_COMPONENT_LOADING_SPAN_TYPE = "NextNodeServer.clientComponentLoading";
+    var REDACTED_VALUE = "redacted";
+    var SAFE_SPAN_ATTRIBUTE_KEYS = /* @__PURE__ */ new Set([
+      "http.method",
+      "http.route",
+      "http.status_code",
+      "http.url",
+      "net.peer.name",
+      "net.peer.port",
+      "next.fetch.cache_reason",
+      "next.fetch.cache_status",
+      "next.fetch.idx",
+      "next.route",
+      "next.rsc",
+      "next.segment",
+      "next.span_category",
+      "next.span_name",
+      "next.span_type"
+    ]);
+    var SENSITIVE_PARAM_NAME_RE = /(?:^|[_-])(?:access[_-]?token|api[_-]?key|auth|authorization|code|cookie|credential|id[_-]?token|jwt|key|password|secret|session|signature|sig|token)(?:$|[_-])/i;
+    var InMemoryRequestInsightsStore = class {
+      recordSpan(span) {
+        var _span_attributes;
+        if (!span.requestId) {
+          return;
+        }
+        const insight = this.getOrCreateRequest({
+          requestId: span.requestId,
+          kind: span.requestInsightKind,
+          htmlRequestId: span.htmlRequestId,
+          route: span.route,
+          url: span.url
+        }, span.startTime ?? span.timestamp);
+        const spanStartTime = span.startTime ?? span.timestamp;
+        insight.htmlRequestId = span.htmlRequestId ?? insight.htmlRequestId;
+        insight.route = insight.route ?? span.route;
+        insight.url = insight.url ?? sanitizeUrl(span.url);
+        this.updateTiming(insight, spanStartTime, span.durationMs, ((_span_attributes = span.attributes) == null ? void 0 : _span_attributes["next.span_type"]) === "BaseServer.handleRequest");
+        insight.status = insight.status === "error" || span.status === "error" ? "error" : span.status === "ok" ? "ok" : insight.status;
+        insight.spans.push({
+          name: span.name,
+          startTime: spanStartTime,
+          durationMs: span.durationMs,
+          status: span.status,
+          traceId: span.traceId,
+          spanId: span.spanId,
+          parentSpanId: span.parentSpanId,
+          attributes: sanitizeSpanAttributes(span.attributes),
+          links: sanitizeSpanLinks(span.links),
+          events: sanitizeSpanEvents(span.events),
+          error: span.error
+        });
+        const fetch3 = getFetchInsight(span);
+        if (fetch3) {
+          this.recordFetchForInsight(insight, fetch3);
+        }
+        this.notify(insight);
+      }
+      recordFetch(identity, fetch3) {
+        if (!identity.requestId) {
+          return;
+        }
+        const fetchStartTime = fetch3.startTime ?? getCurrentTimestamp();
+        const insight = this.getOrCreateRequest(identity, fetchStartTime);
+        this.updateTiming(insight, fetchStartTime, fetch3.durationMs, false);
+        this.recordFetchForInsight(insight, sanitizeFetchInsight(fetch3));
+        this.notify(insight);
+      }
+      getSnapshot() {
+        return {
+          requests: this.requestOrder.map((insightKey) => this.requests.get(insightKey)).filter((request) => request !== void 0)
+        };
+      }
+      subscribe(listener) {
+        this.listeners.add(listener);
+        return () => {
+          this.listeners.delete(listener);
+        };
+      }
+      clear() {
+        this.requests.clear();
+        this.requestTimings.clear();
+        this.requestOrder.length = 0;
+      }
+      updateTiming(insight, startTime, durationMs, isRequestSpan) {
+        const insightKey = (0, _requestinsights.getRequestInsightKey)(insight);
+        if (isRequestSpan && durationMs !== void 0) {
+          const requestTiming2 = {
+            startTime,
+            durationMs
+          };
+          this.requestTimings.set(insightKey, requestTiming2);
+          insight.startTime = requestTiming2.startTime;
+          insight.durationMs = requestTiming2.durationMs;
+          return;
+        }
+        const requestTiming = this.requestTimings.get(insightKey);
+        if (requestTiming) {
+          insight.startTime = requestTiming.startTime;
+          insight.durationMs = requestTiming.durationMs;
+          return;
+        }
+        const endTime = startTime + (durationMs ?? 0);
+        const requestEndTime = insight.startTime + (insight.durationMs ?? 0);
+        insight.startTime = Math.min(insight.startTime, startTime);
+        insight.durationMs = Math.max(requestEndTime, endTime) - insight.startTime;
+      }
+      notify(insight) {
+        for (const listener of this.listeners) {
+          listener(insight);
+        }
+      }
+      getOrCreateRequest(identity, startTime) {
+        const requestId = identity.requestId;
+        const insightKey = (0, _requestinsights.getRequestInsightKey)({
+          requestId,
+          kind: identity.kind
+        });
+        let insight = this.requests.get(insightKey);
+        if (!insight) {
+          insight = {
+            requestId,
+            kind: (0, _requestinsights.getRequestInsightKind)(identity),
+            htmlRequestId: identity.htmlRequestId ?? requestId,
+            route: identity.route,
+            url: sanitizeUrl(identity.url),
+            startTime,
+            status: "pending",
+            spans: [],
+            fetches: []
+          };
+          this.requests.set(insightKey, insight);
+          this.requestOrder.push(insightKey);
+          this.trim();
+        }
+        insight.htmlRequestId = identity.htmlRequestId ?? insight.htmlRequestId;
+        insight.route = insight.route ?? identity.route;
+        insight.url = insight.url ?? sanitizeUrl(identity.url);
+        insight.startTime = Math.min(insight.startTime, startTime);
+        return insight;
+      }
+      recordFetchForInsight(insight, fetch3) {
+        if (insight.fetches.some((existingFetch) => existingFetch.url === fetch3.url && (existingFetch.index !== void 0 && fetch3.index !== void 0 ? existingFetch.index === fetch3.index : existingFetch.startTime === fetch3.startTime))) {
+          return;
+        }
+        insight.fetches.push(sanitizeFetchInsight(fetch3));
+      }
+      trim() {
+        while (this.requestOrder.length > MAX_REQUEST_INSIGHTS) {
+          const insightKey = this.requestOrder.shift();
+          if (insightKey) {
+            this.requests.delete(insightKey);
+            this.requestTimings.delete(insightKey);
+          }
+        }
+      }
+      constructor() {
+        this.requests = /* @__PURE__ */ new Map();
+        this.requestTimings = /* @__PURE__ */ new Map();
+        this.requestOrder = [];
+        this.listeners = /* @__PURE__ */ new Set();
+      }
+    };
+    function recordRequestInsightSpan(span) {
+      var _span_attributes;
+      if (((_span_attributes = span.attributes) == null ? void 0 : _span_attributes["next.span_type"]) === CLIENT_COMPONENT_LOADING_SPAN_TYPE) {
+        return;
+      }
+      getRequestInsightsStore().recordSpan(span);
+    }
+    function recordRequestInsightFetch(identity, fetch3) {
+      getRequestInsightsStore().recordFetch(identity, fetch3);
+    }
+    function getRequestInsightsSnapshot() {
+      return getRequestInsightsStore().getSnapshot();
+    }
+    function subscribeRequestInsights(listener) {
+      return getRequestInsightsStore().subscribe(listener);
+    }
+    function clearRequestInsightsForTest() {
+      getRequestInsightsStore().clear();
+    }
+    function getRequestInsightsStore() {
+      const globalStore = globalThis;
+      return globalStore[REQUEST_INSIGHTS_STORE_KEY] ??= new InMemoryRequestInsightsStore();
+    }
+    function getFetchInsight(span) {
+      const attributes = span.attributes;
+      if (!attributes || attributes["next.span_type"] !== "AppRender.fetch") {
+        return null;
+      }
+      return {
+        url: sanitizeUrl(getStringAttribute(attributes["http.url"]) ?? span.url),
+        method: getStringAttribute(attributes["http.method"]),
+        statusCode: getNumberAttribute(attributes["http.status_code"]),
+        startTime: span.startTime ?? span.timestamp,
+        durationMs: span.durationMs,
+        cacheStatus: getStringAttribute(attributes["next.fetch.cache_status"]),
+        cacheReason: getStringAttribute(attributes["next.fetch.cache_reason"]),
+        index: getNumberAttribute(attributes["next.fetch.idx"])
+      };
+    }
+    function sanitizeFetchInsight(fetch3) {
+      return {
+        ...fetch3,
+        url: sanitizeUrl(fetch3.url)
+      };
+    }
+    function getCurrentTimestamp() {
+      return performance.timeOrigin + performance.now();
+    }
+    function sanitizeSpanAttributes(attributes) {
+      if (!attributes) {
+        return void 0;
+      }
+      const sanitized = {};
+      for (const [key, value] of Object.entries(attributes)) {
+        if (!SAFE_SPAN_ATTRIBUTE_KEYS.has(key)) {
+          continue;
+        }
+        sanitized[key] = key === "http.url" ? sanitizeUrlAttribute(value) : value;
+      }
+      return Object.keys(sanitized).length > 0 ? sanitized : void 0;
+    }
+    function sanitizeSpanEvents(events) {
+      return events == null ? void 0 : events.map((event) => ({
+        ...event,
+        attributes: sanitizeSpanAttributes(event.attributes)
+      }));
+    }
+    function sanitizeSpanLinks(links) {
+      return links == null ? void 0 : links.map((link) => ({
+        ...link,
+        attributes: sanitizeSpanAttributes(link.attributes)
+      }));
+    }
+    function sanitizeUrlAttribute(value) {
+      return typeof value === "string" ? sanitizeUrl(value) ?? "" : value;
+    }
+    function sanitizeUrl(value) {
+      if (!value) {
+        return value;
+      }
+      const isRelativeUrl = value.startsWith("/");
+      try {
+        const url = isRelativeUrl ? new URL(value, "http://n") : new URL(value);
+        url.username = "";
+        url.password = "";
+        for (const name of Array.from(url.searchParams.keys())) {
+          if (SENSITIVE_PARAM_NAME_RE.test(name)) {
+            url.searchParams.set(name, REDACTED_VALUE);
+          }
+        }
+        return isRelativeUrl ? `${url.pathname}${url.search}${url.hash}` : url.href;
+      } catch {
+        return value;
+      }
+    }
+    function getStringAttribute(value) {
+      return typeof value === "string" ? value : void 0;
+    }
+    function getNumberAttribute(value) {
+      return typeof value === "number" ? value : void 0;
+    }
+  }
+});
+
+// node_modules/next/dist/server/lib/trace/request-insights-identity.js
+var require_request_insights_identity = __commonJS({
+  "node_modules/next/dist/server/lib/trace/request-insights-identity.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", {
+      value: true
+    });
+    function _export(target, all) {
+      for (var name in all) Object.defineProperty(target, name, {
+        enumerable: true,
+        get: all[name]
+      });
+    }
+    _export(exports2, {
+      getRequestInsightsIdentity: function() {
+        return getRequestInsightsIdentity;
+      },
+      runWithRequestInsightsIdentity: function() {
+        return runWithRequestInsightsIdentity;
+      }
+    });
+    var _asynclocalstorage = require_async_local_storage();
+    var REQUEST_INSIGHTS_IDENTITY_STORAGE_KEY = /* @__PURE__ */ Symbol.for("@next/request-insights-identity-storage");
+    function getRequestInsightsIdentityStorage() {
+      const globalStore = globalThis;
+      return globalStore[REQUEST_INSIGHTS_IDENTITY_STORAGE_KEY] ??= (0, _asynclocalstorage.createAsyncLocalStorage)();
+    }
+    function runWithRequestInsightsIdentity(identity, fn) {
+      return getRequestInsightsIdentityStorage().run(identity, fn);
+    }
+    function getRequestInsightsIdentity() {
+      return getRequestInsightsIdentityStorage().getStore();
+    }
+  }
+});
+
 // node_modules/next/dist/shared/lib/is-thenable.js
 var require_is_thenable = __commonJS({
   "node_modules/next/dist/shared/lib/is-thenable.js"(exports2) {
@@ -95754,12 +97252,12 @@ var require_api2 = __commonJS({
   "node_modules/next/dist/compiled/@opentelemetry/api/index.js"(exports2, module2) {
     (() => {
       "use strict";
-      var e = { 491: (e2, t2, r2) => {
+      var e = { 912: (e2, t2, r2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.ContextAPI = void 0;
-        const n = r2(223);
-        const a = r2(172);
-        const o = r2(930);
+        const n = r2(108);
+        const a = r2(221);
+        const o = r2(44);
         const i = "context";
         const c = new n.NoopContextManager();
         class ContextAPI {
@@ -95792,13 +97290,13 @@ var require_api2 = __commonJS({
           }
         }
         t2.ContextAPI = ContextAPI;
-      }, 930: (e2, t2, r2) => {
+      }, 44: (e2, t2, r2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.DiagAPI = void 0;
-        const n = r2(56);
-        const a = r2(912);
-        const o = r2(957);
-        const i = r2(172);
+        const n = r2(757);
+        const a = r2(412);
+        const o = r2(711);
+        const i = r2(221);
         const c = "diag";
         class DiagAPI {
           constructor() {
@@ -95848,12 +97346,12 @@ var require_api2 = __commonJS({
           }
         }
         t2.DiagAPI = DiagAPI;
-      }, 653: (e2, t2, r2) => {
+      }, 262: (e2, t2, r2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.MetricsAPI = void 0;
-        const n = r2(660);
-        const a = r2(172);
-        const o = r2(930);
+        const n = r2(586);
+        const a = r2(221);
+        const o = r2(44);
         const i = "metrics";
         class MetricsAPI {
           constructor() {
@@ -95878,15 +97376,15 @@ var require_api2 = __commonJS({
           }
         }
         t2.MetricsAPI = MetricsAPI;
-      }, 181: (e2, t2, r2) => {
+      }, 25: (e2, t2, r2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.PropagationAPI = void 0;
-        const n = r2(172);
-        const a = r2(874);
-        const o = r2(194);
-        const i = r2(277);
-        const c = r2(369);
-        const s = r2(930);
+        const n = r2(221);
+        const a = r2(19);
+        const o = r2(92);
+        const i = r2(398);
+        const c = r2(504);
+        const s = r2(44);
         const u = "propagation";
         const l = new a.NoopTextMapPropagator();
         class PropagationAPI {
@@ -95923,14 +97421,14 @@ var require_api2 = __commonJS({
           }
         }
         t2.PropagationAPI = PropagationAPI;
-      }, 997: (e2, t2, r2) => {
+      }, 397: (e2, t2, r2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.TraceAPI = void 0;
-        const n = r2(172);
-        const a = r2(846);
-        const o = r2(139);
-        const i = r2(607);
-        const c = r2(930);
+        const n = r2(221);
+        const a = r2(498);
+        const o = r2(477);
+        const i = r2(793);
+        const c = r2(44);
         const s = "trace";
         class TraceAPI {
           constructor() {
@@ -95969,11 +97467,11 @@ var require_api2 = __commonJS({
           }
         }
         t2.TraceAPI = TraceAPI;
-      }, 277: (e2, t2, r2) => {
+      }, 398: (e2, t2, r2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.deleteBaggage = t2.setBaggage = t2.getActiveBaggage = t2.getBaggage = void 0;
-        const n = r2(491);
-        const a = r2(780);
+        const n = r2(912);
+        const a = r2(23);
         const o = (0, a.createContextKey)("OpenTelemetry Baggage Key");
         function getBaggage(e3) {
           return e3.getValue(o) || void 0;
@@ -95991,7 +97489,7 @@ var require_api2 = __commonJS({
           return e3.deleteValue(o);
         }
         t2.deleteBaggage = deleteBaggage;
-      }, 993: (e2, t2) => {
+      }, 152: (e2, t2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.BaggageImpl = void 0;
         class BaggageImpl {
@@ -96030,16 +97528,16 @@ var require_api2 = __commonJS({
           }
         }
         t2.BaggageImpl = BaggageImpl;
-      }, 830: (e2, t2) => {
+      }, 647: (e2, t2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.baggageEntryMetadataSymbol = void 0;
         t2.baggageEntryMetadataSymbol = /* @__PURE__ */ Symbol("BaggageEntryMetadata");
-      }, 369: (e2, t2, r2) => {
+      }, 504: (e2, t2, r2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.baggageEntryMetadataFromString = t2.createBaggage = void 0;
-        const n = r2(930);
-        const a = r2(993);
-        const o = r2(830);
+        const n = r2(44);
+        const a = r2(152);
+        const o = r2(647);
         const i = n.DiagAPI.instance();
         function createBaggage(e3 = {}) {
           return new a.BaggageImpl(new Map(Object.entries(e3)));
@@ -96055,15 +97553,15 @@ var require_api2 = __commonJS({
           } };
         }
         t2.baggageEntryMetadataFromString = baggageEntryMetadataFromString;
-      }, 67: (e2, t2, r2) => {
+      }, 778: (e2, t2, r2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.context = void 0;
-        const n = r2(491);
+        const n = r2(912);
         t2.context = n.ContextAPI.getInstance();
-      }, 223: (e2, t2, r2) => {
+      }, 108: (e2, t2, r2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.NoopContextManager = void 0;
-        const n = r2(780);
+        const n = r2(23);
         class NoopContextManager {
           active() {
             return n.ROOT_CONTEXT;
@@ -96082,7 +97580,7 @@ var require_api2 = __commonJS({
           }
         }
         t2.NoopContextManager = NoopContextManager;
-      }, 780: (e2, t2) => {
+      }, 23: (e2, t2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.ROOT_CONTEXT = t2.createContextKey = void 0;
         function createContextKey(e3) {
@@ -96107,15 +97605,15 @@ var require_api2 = __commonJS({
           }
         }
         t2.ROOT_CONTEXT = new BaseContext();
-      }, 506: (e2, t2, r2) => {
+      }, 304: (e2, t2, r2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.diag = void 0;
-        const n = r2(930);
+        const n = r2(44);
         t2.diag = n.DiagAPI.instance();
-      }, 56: (e2, t2, r2) => {
+      }, 757: (e2, t2, r2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.DiagComponentLogger = void 0;
-        const n = r2(172);
+        const n = r2(221);
         class DiagComponentLogger {
           constructor(e3) {
             this._namespace = e3.namespace || "DiagComponentLogger";
@@ -96145,7 +97643,7 @@ var require_api2 = __commonJS({
           r3.unshift(t3);
           return a[e3](...r3);
         }
-      }, 972: (e2, t2) => {
+      }, 83: (e2, t2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.DiagConsoleLogger = void 0;
         const r2 = [{ n: "error", c: "error" }, { n: "warn", c: "warn" }, { n: "info", c: "info" }, { n: "debug", c: "debug" }, { n: "verbose", c: "trace" }];
@@ -96170,10 +97668,10 @@ var require_api2 = __commonJS({
           }
         }
         t2.DiagConsoleLogger = DiagConsoleLogger;
-      }, 912: (e2, t2, r2) => {
+      }, 412: (e2, t2, r2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.createLogLevelDiagLogger = void 0;
-        const n = r2(957);
+        const n = r2(711);
         function createLogLevelDiagLogger(e3, t3) {
           if (e3 < n.DiagLogLevel.NONE) {
             e3 = n.DiagLogLevel.NONE;
@@ -96192,7 +97690,7 @@ var require_api2 = __commonJS({
           return { error: _filterFunc("error", n.DiagLogLevel.ERROR), warn: _filterFunc("warn", n.DiagLogLevel.WARN), info: _filterFunc("info", n.DiagLogLevel.INFO), debug: _filterFunc("debug", n.DiagLogLevel.DEBUG), verbose: _filterFunc("verbose", n.DiagLogLevel.VERBOSE) };
         }
         t2.createLogLevelDiagLogger = createLogLevelDiagLogger;
-      }, 957: (e2, t2) => {
+      }, 711: (e2, t2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.DiagLogLevel = void 0;
         var r2;
@@ -96205,12 +97703,12 @@ var require_api2 = __commonJS({
           e3[e3["VERBOSE"] = 80] = "VERBOSE";
           e3[e3["ALL"] = 9999] = "ALL";
         })(r2 = t2.DiagLogLevel || (t2.DiagLogLevel = {}));
-      }, 172: (e2, t2, r2) => {
+      }, 221: (e2, t2, r2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.unregisterGlobal = t2.getGlobal = t2.registerGlobal = void 0;
-        const n = r2(200);
-        const a = r2(521);
-        const o = r2(130);
+        const n = r2(678);
+        const a = r2(652);
+        const o = r2(662);
         const i = a.VERSION.split(".")[0];
         const c = /* @__PURE__ */ Symbol.for(`opentelemetry.js.api.${i}`);
         const s = n._globalThis;
@@ -96249,10 +97747,10 @@ var require_api2 = __commonJS({
           }
         }
         t2.unregisterGlobal = unregisterGlobal;
-      }, 130: (e2, t2, r2) => {
+      }, 662: (e2, t2, r2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.isCompatible = t2._makeCompatibilityCheck = void 0;
-        const n = r2(521);
+        const n = r2(652);
         const a = /^(\d+)\.(\d+)\.(\d+)(-(.+))?$/;
         function _makeCompatibilityCheck(e3) {
           const t3 = /* @__PURE__ */ new Set([e3]);
@@ -96307,12 +97805,12 @@ var require_api2 = __commonJS({
         }
         t2._makeCompatibilityCheck = _makeCompatibilityCheck;
         t2.isCompatible = _makeCompatibilityCheck(n.VERSION);
-      }, 886: (e2, t2, r2) => {
+      }, 120: (e2, t2, r2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.metrics = void 0;
-        const n = r2(653);
+        const n = r2(262);
         t2.metrics = n.MetricsAPI.getInstance();
-      }, 901: (e2, t2) => {
+      }, 532: (e2, t2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.ValueType = void 0;
         var r2;
@@ -96320,7 +97818,7 @@ var require_api2 = __commonJS({
           e3[e3["INT"] = 0] = "INT";
           e3[e3["DOUBLE"] = 1] = "DOUBLE";
         })(r2 = t2.ValueType || (t2.ValueType = {}));
-      }, 102: (e2, t2) => {
+      }, 440: (e2, t2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.createNoopMeter = t2.NOOP_OBSERVABLE_UP_DOWN_COUNTER_METRIC = t2.NOOP_OBSERVABLE_GAUGE_METRIC = t2.NOOP_OBSERVABLE_COUNTER_METRIC = t2.NOOP_UP_DOWN_COUNTER_METRIC = t2.NOOP_HISTOGRAM_METRIC = t2.NOOP_COUNTER_METRIC = t2.NOOP_METER = t2.NoopObservableUpDownCounterMetric = t2.NoopObservableGaugeMetric = t2.NoopObservableCounterMetric = t2.NoopObservableMetric = t2.NoopHistogramMetric = t2.NoopUpDownCounterMetric = t2.NoopCounterMetric = t2.NoopMetric = t2.NoopMeter = void 0;
         class NoopMeter {
@@ -96395,10 +97893,10 @@ var require_api2 = __commonJS({
           return t2.NOOP_METER;
         }
         t2.createNoopMeter = createNoopMeter;
-      }, 660: (e2, t2, r2) => {
+      }, 586: (e2, t2, r2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.NOOP_METER_PROVIDER = t2.NoopMeterProvider = void 0;
-        const n = r2(102);
+        const n = r2(440);
         class NoopMeterProvider {
           getMeter(e3, t3, r3) {
             return n.NOOP_METER;
@@ -96406,7 +97904,7 @@ var require_api2 = __commonJS({
         }
         t2.NoopMeterProvider = NoopMeterProvider;
         t2.NOOP_METER_PROVIDER = new NoopMeterProvider();
-      }, 200: function(e2, t2, r2) {
+      }, 678: function(e2, t2, r2) {
         var n = this && this.__createBinding || (Object.create ? function(e3, t3, r3, n2) {
           if (n2 === void 0) n2 = r3;
           Object.defineProperty(e3, n2, { enumerable: true, get: function() {
@@ -96420,12 +97918,12 @@ var require_api2 = __commonJS({
           for (var r3 in e3) if (r3 !== "default" && !Object.prototype.hasOwnProperty.call(t3, r3)) n(t3, e3, r3);
         };
         Object.defineProperty(t2, "__esModule", { value: true });
-        a(r2(46), t2);
-      }, 651: (e2, t2) => {
+        a(r2(59), t2);
+      }, 460: (e2, t2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2._globalThis = void 0;
         t2._globalThis = typeof globalThis === "object" ? globalThis : global;
-      }, 46: function(e2, t2, r2) {
+      }, 59: function(e2, t2, r2) {
         var n = this && this.__createBinding || (Object.create ? function(e3, t3, r3, n2) {
           if (n2 === void 0) n2 = r3;
           Object.defineProperty(e3, n2, { enumerable: true, get: function() {
@@ -96439,13 +97937,13 @@ var require_api2 = __commonJS({
           for (var r3 in e3) if (r3 !== "default" && !Object.prototype.hasOwnProperty.call(t3, r3)) n(t3, e3, r3);
         };
         Object.defineProperty(t2, "__esModule", { value: true });
-        a(r2(651), t2);
-      }, 939: (e2, t2, r2) => {
+        a(r2(460), t2);
+      }, 27: (e2, t2, r2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.propagation = void 0;
-        const n = r2(181);
+        const n = r2(25);
         t2.propagation = n.PropagationAPI.getInstance();
-      }, 874: (e2, t2) => {
+      }, 19: (e2, t2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.NoopTextMapPropagator = void 0;
         class NoopTextMapPropagator {
@@ -96459,7 +97957,7 @@ var require_api2 = __commonJS({
           }
         }
         t2.NoopTextMapPropagator = NoopTextMapPropagator;
-      }, 194: (e2, t2) => {
+      }, 92: (e2, t2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.defaultTextMapSetter = t2.defaultTextMapGetter = void 0;
         t2.defaultTextMapGetter = { get(e3, t3) {
@@ -96479,15 +97977,15 @@ var require_api2 = __commonJS({
           }
           e3[t3] = r2;
         } };
-      }, 845: (e2, t2, r2) => {
+      }, 816: (e2, t2, r2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.trace = void 0;
-        const n = r2(997);
+        const n = r2(397);
         t2.trace = n.TraceAPI.getInstance();
-      }, 403: (e2, t2, r2) => {
+      }, 374: (e2, t2, r2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.NonRecordingSpan = void 0;
-        const n = r2(476);
+        const n = r2(546);
         class NonRecordingSpan {
           constructor(e3 = n.INVALID_SPAN_CONTEXT) {
             this._spanContext = e3;
@@ -96519,13 +98017,13 @@ var require_api2 = __commonJS({
           }
         }
         t2.NonRecordingSpan = NonRecordingSpan;
-      }, 614: (e2, t2, r2) => {
+      }, 637: (e2, t2, r2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.NoopTracer = void 0;
-        const n = r2(491);
-        const a = r2(607);
-        const o = r2(403);
-        const i = r2(139);
+        const n = r2(912);
+        const a = r2(793);
+        const o = r2(374);
+        const i = r2(477);
         const c = n.ContextAPI.getInstance();
         class NoopTracer {
           startSpan(e3, t3, r3 = c.active()) {
@@ -96566,20 +98064,20 @@ var require_api2 = __commonJS({
         function isSpanContext(e3) {
           return typeof e3 === "object" && typeof e3["spanId"] === "string" && typeof e3["traceId"] === "string" && typeof e3["traceFlags"] === "number";
         }
-      }, 124: (e2, t2, r2) => {
+      }, 76: (e2, t2, r2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.NoopTracerProvider = void 0;
-        const n = r2(614);
+        const n = r2(637);
         class NoopTracerProvider {
           getTracer(e3, t3, r3) {
             return new n.NoopTracer();
           }
         }
         t2.NoopTracerProvider = NoopTracerProvider;
-      }, 125: (e2, t2, r2) => {
+      }, 779: (e2, t2, r2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.ProxyTracer = void 0;
-        const n = r2(614);
+        const n = r2(637);
         const a = new n.NoopTracer();
         class ProxyTracer {
           constructor(e3, t3, r3, n2) {
@@ -96608,11 +98106,11 @@ var require_api2 = __commonJS({
           }
         }
         t2.ProxyTracer = ProxyTracer;
-      }, 846: (e2, t2, r2) => {
+      }, 498: (e2, t2, r2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.ProxyTracerProvider = void 0;
-        const n = r2(125);
-        const a = r2(124);
+        const n = r2(779);
+        const a = r2(76);
         const o = new a.NoopTracerProvider();
         class ProxyTracerProvider {
           getTracer(e3, t3, r3) {
@@ -96632,7 +98130,7 @@ var require_api2 = __commonJS({
           }
         }
         t2.ProxyTracerProvider = ProxyTracerProvider;
-      }, 996: (e2, t2) => {
+      }, 312: (e2, t2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.SamplingDecision = void 0;
         var r2;
@@ -96641,12 +98139,12 @@ var require_api2 = __commonJS({
           e3[e3["RECORD"] = 1] = "RECORD";
           e3[e3["RECORD_AND_SAMPLED"] = 2] = "RECORD_AND_SAMPLED";
         })(r2 = t2.SamplingDecision || (t2.SamplingDecision = {}));
-      }, 607: (e2, t2, r2) => {
+      }, 793: (e2, t2, r2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.getSpanContext = t2.setSpanContext = t2.deleteSpan = t2.setSpan = t2.getActiveSpan = t2.getSpan = void 0;
-        const n = r2(780);
-        const a = r2(403);
-        const o = r2(491);
+        const n = r2(23);
+        const a = r2(374);
+        const o = r2(912);
         const i = (0, n.createContextKey)("OpenTelemetry Context Key SPAN");
         function getSpan(e3) {
           return e3.getValue(i) || void 0;
@@ -96673,10 +98171,10 @@ var require_api2 = __commonJS({
           return (t3 = getSpan(e3)) === null || t3 === void 0 ? void 0 : t3.spanContext();
         }
         t2.getSpanContext = getSpanContext;
-      }, 325: (e2, t2, r2) => {
+      }, 285: (e2, t2, r2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.TraceStateImpl = void 0;
-        const n = r2(564);
+        const n = r2(240);
         const a = 32;
         const o = 512;
         const i = ",";
@@ -96737,7 +98235,7 @@ var require_api2 = __commonJS({
           }
         }
         t2.TraceStateImpl = TraceStateImpl;
-      }, 564: (e2, t2) => {
+      }, 240: (e2, t2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.validateValue = t2.validateKey = void 0;
         const r2 = "[_0-9a-z-*/]";
@@ -96754,22 +98252,22 @@ var require_api2 = __commonJS({
           return i.test(e3) && !c.test(e3);
         }
         t2.validateValue = validateValue;
-      }, 98: (e2, t2, r2) => {
+      }, 87: (e2, t2, r2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.createTraceState = void 0;
-        const n = r2(325);
+        const n = r2(285);
         function createTraceState(e3) {
           return new n.TraceStateImpl(e3);
         }
         t2.createTraceState = createTraceState;
-      }, 476: (e2, t2, r2) => {
+      }, 546: (e2, t2, r2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.INVALID_SPAN_CONTEXT = t2.INVALID_TRACEID = t2.INVALID_SPANID = void 0;
-        const n = r2(475);
+        const n = r2(731);
         t2.INVALID_SPANID = "0000000000000000";
         t2.INVALID_TRACEID = "00000000000000000000000000000000";
         t2.INVALID_SPAN_CONTEXT = { traceId: t2.INVALID_TRACEID, spanId: t2.INVALID_SPANID, traceFlags: n.TraceFlags.NONE };
-      }, 357: (e2, t2) => {
+      }, 613: (e2, t2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.SpanKind = void 0;
         var r2;
@@ -96780,11 +98278,11 @@ var require_api2 = __commonJS({
           e3[e3["PRODUCER"] = 3] = "PRODUCER";
           e3[e3["CONSUMER"] = 4] = "CONSUMER";
         })(r2 = t2.SpanKind || (t2.SpanKind = {}));
-      }, 139: (e2, t2, r2) => {
+      }, 477: (e2, t2, r2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.wrapSpanContext = t2.isSpanContextValid = t2.isValidSpanId = t2.isValidTraceId = void 0;
-        const n = r2(476);
-        const a = r2(403);
+        const n = r2(546);
+        const a = r2(374);
         const o = /^([0-9a-f]{32})$/i;
         const i = /^[0-9a-f]{16}$/i;
         function isValidTraceId(e3) {
@@ -96803,7 +98301,7 @@ var require_api2 = __commonJS({
           return new a.NonRecordingSpan(e3);
         }
         t2.wrapSpanContext = wrapSpanContext;
-      }, 847: (e2, t2) => {
+      }, 854: (e2, t2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.SpanStatusCode = void 0;
         var r2;
@@ -96812,7 +98310,7 @@ var require_api2 = __commonJS({
           e3[e3["OK"] = 1] = "OK";
           e3[e3["ERROR"] = 2] = "ERROR";
         })(r2 = t2.SpanStatusCode || (t2.SpanStatusCode = {}));
-      }, 475: (e2, t2) => {
+      }, 731: (e2, t2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.TraceFlags = void 0;
         var r2;
@@ -96820,7 +98318,7 @@ var require_api2 = __commonJS({
           e3[e3["NONE"] = 0] = "NONE";
           e3[e3["SAMPLED"] = 1] = "SAMPLED";
         })(r2 = t2.TraceFlags || (t2.TraceFlags = {}));
-      }, 521: (e2, t2) => {
+      }, 652: (e2, t2) => {
         Object.defineProperty(t2, "__esModule", { value: true });
         t2.VERSION = void 0;
         t2.VERSION = "1.6.0";
@@ -96847,69 +98345,69 @@ var require_api2 = __commonJS({
         var e2 = r;
         Object.defineProperty(e2, "__esModule", { value: true });
         e2.trace = e2.propagation = e2.metrics = e2.diag = e2.context = e2.INVALID_SPAN_CONTEXT = e2.INVALID_TRACEID = e2.INVALID_SPANID = e2.isValidSpanId = e2.isValidTraceId = e2.isSpanContextValid = e2.createTraceState = e2.TraceFlags = e2.SpanStatusCode = e2.SpanKind = e2.SamplingDecision = e2.ProxyTracerProvider = e2.ProxyTracer = e2.defaultTextMapSetter = e2.defaultTextMapGetter = e2.ValueType = e2.createNoopMeter = e2.DiagLogLevel = e2.DiagConsoleLogger = e2.ROOT_CONTEXT = e2.createContextKey = e2.baggageEntryMetadataFromString = void 0;
-        var t2 = __nccwpck_require__(369);
+        var t2 = __nccwpck_require__(504);
         Object.defineProperty(e2, "baggageEntryMetadataFromString", { enumerable: true, get: function() {
           return t2.baggageEntryMetadataFromString;
         } });
-        var n = __nccwpck_require__(780);
+        var n = __nccwpck_require__(23);
         Object.defineProperty(e2, "createContextKey", { enumerable: true, get: function() {
           return n.createContextKey;
         } });
         Object.defineProperty(e2, "ROOT_CONTEXT", { enumerable: true, get: function() {
           return n.ROOT_CONTEXT;
         } });
-        var a = __nccwpck_require__(972);
+        var a = __nccwpck_require__(83);
         Object.defineProperty(e2, "DiagConsoleLogger", { enumerable: true, get: function() {
           return a.DiagConsoleLogger;
         } });
-        var o = __nccwpck_require__(957);
+        var o = __nccwpck_require__(711);
         Object.defineProperty(e2, "DiagLogLevel", { enumerable: true, get: function() {
           return o.DiagLogLevel;
         } });
-        var i = __nccwpck_require__(102);
+        var i = __nccwpck_require__(440);
         Object.defineProperty(e2, "createNoopMeter", { enumerable: true, get: function() {
           return i.createNoopMeter;
         } });
-        var c = __nccwpck_require__(901);
+        var c = __nccwpck_require__(532);
         Object.defineProperty(e2, "ValueType", { enumerable: true, get: function() {
           return c.ValueType;
         } });
-        var s = __nccwpck_require__(194);
+        var s = __nccwpck_require__(92);
         Object.defineProperty(e2, "defaultTextMapGetter", { enumerable: true, get: function() {
           return s.defaultTextMapGetter;
         } });
         Object.defineProperty(e2, "defaultTextMapSetter", { enumerable: true, get: function() {
           return s.defaultTextMapSetter;
         } });
-        var u = __nccwpck_require__(125);
+        var u = __nccwpck_require__(779);
         Object.defineProperty(e2, "ProxyTracer", { enumerable: true, get: function() {
           return u.ProxyTracer;
         } });
-        var l = __nccwpck_require__(846);
+        var l = __nccwpck_require__(498);
         Object.defineProperty(e2, "ProxyTracerProvider", { enumerable: true, get: function() {
           return l.ProxyTracerProvider;
         } });
-        var g = __nccwpck_require__(996);
+        var g = __nccwpck_require__(312);
         Object.defineProperty(e2, "SamplingDecision", { enumerable: true, get: function() {
           return g.SamplingDecision;
         } });
-        var p = __nccwpck_require__(357);
+        var p = __nccwpck_require__(613);
         Object.defineProperty(e2, "SpanKind", { enumerable: true, get: function() {
           return p.SpanKind;
         } });
-        var d = __nccwpck_require__(847);
+        var d = __nccwpck_require__(854);
         Object.defineProperty(e2, "SpanStatusCode", { enumerable: true, get: function() {
           return d.SpanStatusCode;
         } });
-        var _ = __nccwpck_require__(475);
+        var _ = __nccwpck_require__(731);
         Object.defineProperty(e2, "TraceFlags", { enumerable: true, get: function() {
           return _.TraceFlags;
         } });
-        var f = __nccwpck_require__(98);
+        var f = __nccwpck_require__(87);
         Object.defineProperty(e2, "createTraceState", { enumerable: true, get: function() {
           return f.createTraceState;
         } });
-        var b = __nccwpck_require__(139);
+        var b = __nccwpck_require__(477);
         Object.defineProperty(e2, "isSpanContextValid", { enumerable: true, get: function() {
           return b.isSpanContextValid;
         } });
@@ -96919,7 +98417,7 @@ var require_api2 = __commonJS({
         Object.defineProperty(e2, "isValidSpanId", { enumerable: true, get: function() {
           return b.isValidSpanId;
         } });
-        var v = __nccwpck_require__(476);
+        var v = __nccwpck_require__(546);
         Object.defineProperty(e2, "INVALID_SPANID", { enumerable: true, get: function() {
           return v.INVALID_SPANID;
         } });
@@ -96929,23 +98427,23 @@ var require_api2 = __commonJS({
         Object.defineProperty(e2, "INVALID_SPAN_CONTEXT", { enumerable: true, get: function() {
           return v.INVALID_SPAN_CONTEXT;
         } });
-        const O = __nccwpck_require__(67);
+        const O = __nccwpck_require__(778);
         Object.defineProperty(e2, "context", { enumerable: true, get: function() {
           return O.context;
         } });
-        const P = __nccwpck_require__(506);
+        const P = __nccwpck_require__(304);
         Object.defineProperty(e2, "diag", { enumerable: true, get: function() {
           return P.diag;
         } });
-        const N = __nccwpck_require__(886);
+        const N = __nccwpck_require__(120);
         Object.defineProperty(e2, "metrics", { enumerable: true, get: function() {
           return N.metrics;
         } });
-        const S = __nccwpck_require__(939);
+        const S = __nccwpck_require__(27);
         Object.defineProperty(e2, "propagation", { enumerable: true, get: function() {
           return S.propagation;
         } });
-        const C = __nccwpck_require__(845);
+        const C = __nccwpck_require__(816);
         Object.defineProperty(e2, "trace", { enumerable: true, get: function() {
           return C.trace;
         } });
@@ -96989,7 +98487,15 @@ var require_tracer = __commonJS({
     var _constants = require_constants12();
     var _isthenable = require_is_thenable();
     var NEXT_OTEL_PERFORMANCE_PREFIX = process.env.NEXT_OTEL_PERFORMANCE_PREFIX;
+    var LOCAL_SPAN_RECORDER_KEY = /* @__PURE__ */ Symbol.for("@next/local-span-recorder");
     var api;
+    function getLocalSpanRecorder() {
+      if (process.env.__NEXT_DEV_SERVER) {
+        return globalThis[LOCAL_SPAN_RECORDER_KEY];
+      } else {
+        return void 0;
+      }
+    }
     if (process.env.NEXT_RUNTIME === "edge") {
       api = require("@opentelemetry/api");
     } else {
@@ -97045,6 +98551,18 @@ var require_tracer = __commonJS({
       getTracerInstance() {
         return trace.getTracer("next.js", "0.0.1");
       }
+      isOpenTelemetryEnabled() {
+        var _tracerProvider_getDelegate_constructor, _tracerProvider_getDelegate;
+        const activeSpan = trace.getSpan(context.active());
+        if (activeSpan == null ? void 0 : activeSpan.isRecording()) {
+          return true;
+        }
+        const tracerProvider = trace.getTracerProvider();
+        if (!("getDelegate" in tracerProvider)) {
+          return true;
+        }
+        return (tracerProvider.getDelegate == null ? void 0 : (_tracerProvider_getDelegate = tracerProvider.getDelegate.call(tracerProvider)) == null ? void 0 : (_tracerProvider_getDelegate_constructor = _tracerProvider_getDelegate.constructor) == null ? void 0 : _tracerProvider_getDelegate_constructor.name) !== "NoopTracerProvider";
+      }
       getContext() {
         return context;
       }
@@ -97055,10 +98573,34 @@ var require_tracer = __commonJS({
         return entries;
       }
       getActiveScopeSpan() {
-        return trace.getSpan(context == null ? void 0 : context.active());
+        const localSpanRecorder = getLocalSpanRecorder();
+        const activeLocalSpan = localSpanRecorder == null ? void 0 : localSpanRecorder.getActiveLocalSpan();
+        if (activeLocalSpan && (localSpanRecorder == null ? void 0 : localSpanRecorder.isOpenTelemetryIsolatedSpan(activeLocalSpan))) {
+          return activeLocalSpan;
+        }
+        const activeSpan = trace.getSpan(context.active());
+        if (activeSpan || !process.env.__NEXT_DEV_SERVER) {
+          return activeSpan;
+        }
+        return activeLocalSpan;
+      }
+      /**
+      * Run `fn` with the active span cleared, so spans created inside become new
+      * roots (or parent to incoming propagated context). Used for in-process
+      * Node.js middleware so its span is a sibling of the request span, matching
+      * edge middleware which runs in a detached sandbox.
+      */
+      runWithDetachedContext(fn) {
+        if (!NEXT_OTEL_PERFORMANCE_PREFIX && !this.isOpenTelemetryEnabled()) {
+          return fn();
+        }
+        return context.with(ROOT_CONTEXT, fn);
       }
       withPropagatedContext(carrier, fn, getter, force = false) {
         const activeContext = context.active();
+        if (!NEXT_OTEL_PERFORMANCE_PREFIX && !this.isOpenTelemetryEnabled() && !trace.getSpanContext(activeContext)) {
+          return fn();
+        }
         if (force) {
           const remoteContext2 = propagation.extract(ROOT_CONTEXT, carrier, getter);
           if (trace.getSpanContext(remoteContext2)) {
@@ -97075,6 +98617,12 @@ var require_tracer = __commonJS({
       }
       trace(...args) {
         const [type, fnOrOptions, fnOrEmpty] = args;
+        const tracingEnabled = Boolean(NEXT_OTEL_PERFORMANCE_PREFIX) || this.isOpenTelemetryEnabled();
+        const localSpanRecorder = getLocalSpanRecorder();
+        const localSpanRecordingEnabled = (localSpanRecorder == null ? void 0 : localSpanRecorder.isLocalSpanRecordingEnabled()) ?? false;
+        if (!tracingEnabled && !localSpanRecordingEnabled) {
+          return typeof fnOrOptions === "function" ? fnOrOptions() : fnOrEmpty();
+        }
         const { fn, options } = typeof fnOrOptions === "function" ? {
           fn: fnOrOptions,
           options: {}
@@ -97085,10 +98633,14 @@ var require_tracer = __commonJS({
           }
         };
         const spanName = options.spanName ?? type;
-        if (!_constants.NextVanillaSpanAllowlist.has(type) && process.env.NEXT_OTEL_VERBOSE !== "1" || options.hideSpan) {
+        const parentSpan = options.parentSpan ?? this.getActiveScopeSpan();
+        const isolatedParentSpan = parentSpan && (localSpanRecorder == null ? void 0 : localSpanRecorder.isOpenTelemetryIsolatedSpan(parentSpan)) ? parentSpan : void 0;
+        const shouldDelegateSpan = !isolatedParentSpan && (_constants.NextVanillaSpanAllowlist.has(type) || process.env.NEXT_OTEL_VERBOSE === "1");
+        const shouldTraceSpan = shouldDelegateSpan || ((localSpanRecorder == null ? void 0 : localSpanRecorder.isRequestInsightsEnabled()) ?? false);
+        if (!shouldTraceSpan || options.hideSpan) {
           return fn();
         }
-        let spanContext = this.getSpanContext((options == null ? void 0 : options.parentSpan) ?? this.getActiveScopeSpan());
+        let spanContext = isolatedParentSpan ? context.active() : this.getSpanContext(parentSpan);
         if (!spanContext) {
           spanContext = (context == null ? void 0 : context.active()) ?? ROOT_CONTEXT;
         }
@@ -97096,11 +98648,12 @@ var require_tracer = __commonJS({
         const isRootSpan = typeof existingRootSpanId !== "number" || !rootSpanAttributesStore.has(existingRootSpanId);
         const spanId = getSpanId();
         options.attributes = {
+          "next.span_category": "nextjs",
           "next.span_name": spanName,
           "next.span_type": type,
           ...options.attributes
         };
-        return context.with(spanContext.setValue(rootSpanIdKey, spanId), () => this.getTracerInstance().startActiveSpan(spanName, options, (span) => {
+        return context.with(spanContext.setValue(rootSpanIdKey, spanId), () => this.runWithActiveSpan(spanName, options, spanContext, tracingEnabled && shouldDelegateSpan, localSpanRecordingEnabled, isolatedParentSpan, (span) => {
           let startTime;
           if (NEXT_OTEL_PERFORMANCE_PREFIX && type && _constants.LogSpanAllowList.has(type)) {
             startTime = "performance" in globalThis && "measure" in performance ? globalThis.performance.now() : void 0;
@@ -97122,7 +98675,13 @@ var require_tracer = __commonJS({
           }
           if (fn.length > 1) {
             try {
-              return fn(span, (err) => closeSpanWithError(span, err));
+              return fn(span, (err) => {
+                if (err) {
+                  closeSpanWithError(span, err);
+                } else {
+                  span.end();
+                }
+              });
             } catch (err) {
               closeSpanWithError(span, err);
               throw err;
@@ -97152,6 +98711,29 @@ var require_tracer = __commonJS({
           }
         }));
       }
+      runWithActiveSpan(spanName, options, parentContext, tracingEnabled, localSpanRecordingEnabled, isolatedParentSpan, fn) {
+        if (tracingEnabled) {
+          return this.getTracerInstance().startActiveSpan(spanName, options, (span2) => fn(localSpanRecordingEnabled ? this.createLocalRecordingSpan(spanName, options, parentContext, span2, isolatedParentSpan) : span2));
+        }
+        const span = this.createLocalRecordingSpan(spanName, options, parentContext, void 0, isolatedParentSpan);
+        const localSpanRecorder = getLocalSpanRecorder();
+        return localSpanRecorder.withLocalSpan(span, () => localSpanRecorder.isOpenTelemetryIsolatedSpan(span) ? fn(span) : context.with(trace.setSpan(context.active(), span), fn, void 0, span));
+      }
+      createLocalRecordingSpan(name, options, parentContext, delegateSpan, isolatedParentSpan) {
+        const parentSpanContext = (isolatedParentSpan == null ? void 0 : isolatedParentSpan.spanContext()) ?? trace.getSpanContext(parentContext);
+        const delegateSpanContext = delegateSpan == null ? void 0 : delegateSpan.spanContext();
+        return getLocalSpanRecorder().createLocalSpan({
+          name,
+          attributes: options.attributes,
+          links: options.links,
+          startTime: options.startTime,
+          delegateSpan,
+          traceId: (delegateSpanContext == null ? void 0 : delegateSpanContext.traceId) ?? (parentSpanContext == null ? void 0 : parentSpanContext.traceId),
+          spanId: delegateSpanContext == null ? void 0 : delegateSpanContext.spanId,
+          parentSpanId: parentSpanContext == null ? void 0 : parentSpanContext.spanId,
+          isolateOpenTelemetry: isolatedParentSpan !== void 0
+        });
+      }
       wrap(...args) {
         const tracer = this;
         const [name, options, fn] = args.length === 3 ? args : [
@@ -97159,7 +98741,7 @@ var require_tracer = __commonJS({
           {},
           args[1]
         ];
-        if (!_constants.NextVanillaSpanAllowlist.has(name) && process.env.NEXT_OTEL_VERBOSE !== "1") {
+        if (!_constants.NextVanillaSpanAllowlist.has(name) && process.env.NEXT_OTEL_VERBOSE !== "1" && !process.env.__NEXT_DEV_SERVER) {
           return fn;
         }
         return function() {
@@ -97184,9 +98766,28 @@ var require_tracer = __commonJS({
         };
       }
       startSpan(...args) {
-        const [type, options] = args;
-        const spanContext = this.getSpanContext((options == null ? void 0 : options.parentSpan) ?? this.getActiveScopeSpan());
-        return this.getTracerInstance().startSpan(type, options, spanContext);
+        const [type, passedOptions] = args;
+        const options = passedOptions ? {
+          ...passedOptions,
+          attributes: {
+            "next.span_category": "nextjs",
+            ...passedOptions.attributes
+          }
+        } : {
+          attributes: {
+            "next.span_category": "nextjs"
+          }
+        };
+        const localSpanRecorder = getLocalSpanRecorder();
+        const parentSpan = options.parentSpan ?? this.getActiveScopeSpan();
+        const isolatedParentSpan = parentSpan && (localSpanRecorder == null ? void 0 : localSpanRecorder.isOpenTelemetryIsolatedSpan(parentSpan)) ? parentSpan : void 0;
+        const parentContext = (isolatedParentSpan ? void 0 : this.getSpanContext(parentSpan)) ?? context.active();
+        const localSpanRecordingEnabled = (localSpanRecorder == null ? void 0 : localSpanRecorder.isLocalSpanRecordingEnabled()) ?? false;
+        if (!localSpanRecordingEnabled) {
+          return this.getTracerInstance().startSpan(type, options, parentContext);
+        }
+        const delegateSpan = !isolatedParentSpan && this.isOpenTelemetryEnabled() ? this.getTracerInstance().startSpan(type, options, parentContext) : void 0;
+        return this.createLocalRecordingSpan(type, options, parentContext, delegateSpan, isolatedParentSpan);
       }
       getSpanContext(parentSpan) {
         const spanContext = parentSpan ? trace.setSpan(context.active(), parentSpan) : void 0;
@@ -97202,10 +98803,20 @@ var require_tracer = __commonJS({
         if (attributes && !attributes.has(key)) {
           attributes.set(key, value);
         }
+        if (process.env.__NEXT_DEV_SERVER) {
+          var _getLocalSpanRecorder;
+          const localSpan = (_getLocalSpanRecorder = getLocalSpanRecorder()) == null ? void 0 : _getLocalSpanRecorder.getActiveLocalSpan();
+          if (localSpan) {
+            localSpan.setAttribute(key, value);
+          }
+        }
       }
       withSpan(span, fn) {
-        const spanContext = trace.setSpan(context.active(), span);
-        return context.with(spanContext, fn);
+        const recorder = getLocalSpanRecorder();
+        if (recorder == null ? void 0 : recorder.isLocalRecordingSpan(span)) {
+          return recorder.withLocalSpan(span, () => recorder.isOpenTelemetryIsolatedSpan(span) ? fn() : context.with(trace.setSpan(context.active(), span), fn));
+        }
+        return context.with(trace.setSpan(context.active(), span), fn);
       }
     };
     var getTracer = (() => {
@@ -97598,7 +99209,7 @@ var require_lru_cache = __commonJS({
       * - O(k) where k is the number of items evicted (can be O(N) for variable sizes)
       */
       set(key, value) {
-        const size = (this.calculateSize == null ? void 0 : this.calculateSize.call(this, value)) ?? 1;
+        const size = (this.calculateSize == null ? void 0 : this.calculateSize.call(this, value, key)) ?? 1;
         if (size <= 0) {
           throw Object.defineProperty(new Error(`LRUCache: calculateSize returned ${size}, but size must be > 0. Items with size 0 would never be evicted, causing unbounded cache growth.`), "__NEXT_ERROR_CODE", {
             value: "E1045",
@@ -98218,6 +99829,115 @@ var require_constants13 = __commonJS({
   }
 });
 
+// node_modules/next/dist/client/components/app-router-headers.js
+var require_app_router_headers = __commonJS({
+  "node_modules/next/dist/client/components/app-router-headers.js"(exports2, module2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", {
+      value: true
+    });
+    function _export(target, all) {
+      for (var name in all) Object.defineProperty(target, name, {
+        enumerable: true,
+        get: all[name]
+      });
+    }
+    _export(exports2, {
+      ACTION_HEADER: function() {
+        return ACTION_HEADER;
+      },
+      FLIGHT_HEADERS: function() {
+        return FLIGHT_HEADERS;
+      },
+      NEXT_ACTION_NOT_FOUND_HEADER: function() {
+        return NEXT_ACTION_NOT_FOUND_HEADER;
+      },
+      NEXT_ACTION_REVALIDATED_HEADER: function() {
+        return NEXT_ACTION_REVALIDATED_HEADER;
+      },
+      NEXT_DID_POSTPONE_HEADER: function() {
+        return NEXT_DID_POSTPONE_HEADER;
+      },
+      NEXT_HMR_REFRESH_HEADER: function() {
+        return NEXT_HMR_REFRESH_HEADER;
+      },
+      NEXT_HTML_REQUEST_ID_HEADER: function() {
+        return NEXT_HTML_REQUEST_ID_HEADER;
+      },
+      NEXT_INSTANT_TEST_COOKIE: function() {
+        return NEXT_INSTANT_TEST_COOKIE;
+      },
+      NEXT_IS_PRERENDER_HEADER: function() {
+        return NEXT_IS_PRERENDER_HEADER;
+      },
+      NEXT_REQUEST_ID_HEADER: function() {
+        return NEXT_REQUEST_ID_HEADER;
+      },
+      NEXT_REWRITTEN_PATH_HEADER: function() {
+        return NEXT_REWRITTEN_PATH_HEADER;
+      },
+      NEXT_REWRITTEN_QUERY_HEADER: function() {
+        return NEXT_REWRITTEN_QUERY_HEADER;
+      },
+      NEXT_ROUTER_PREFETCH_HEADER: function() {
+        return NEXT_ROUTER_PREFETCH_HEADER;
+      },
+      NEXT_ROUTER_SEGMENT_PREFETCH_HEADER: function() {
+        return NEXT_ROUTER_SEGMENT_PREFETCH_HEADER;
+      },
+      NEXT_ROUTER_STALE_TIME_HEADER: function() {
+        return NEXT_ROUTER_STALE_TIME_HEADER;
+      },
+      NEXT_ROUTER_STATE_TREE_HEADER: function() {
+        return NEXT_ROUTER_STATE_TREE_HEADER;
+      },
+      NEXT_RSC_UNION_QUERY: function() {
+        return NEXT_RSC_UNION_QUERY;
+      },
+      NEXT_URL: function() {
+        return NEXT_URL;
+      },
+      RSC_CONTENT_TYPE_HEADER: function() {
+        return RSC_CONTENT_TYPE_HEADER;
+      },
+      RSC_HEADER: function() {
+        return RSC_HEADER;
+      }
+    });
+    var RSC_HEADER = "rsc";
+    var ACTION_HEADER = "next-action";
+    var NEXT_ROUTER_STATE_TREE_HEADER = "next-router-state-tree";
+    var NEXT_ROUTER_PREFETCH_HEADER = "next-router-prefetch";
+    var NEXT_ROUTER_SEGMENT_PREFETCH_HEADER = "next-router-segment-prefetch";
+    var NEXT_HMR_REFRESH_HEADER = "next-hmr-refresh";
+    var NEXT_URL = "next-url";
+    var RSC_CONTENT_TYPE_HEADER = "text/x-component";
+    var NEXT_INSTANT_TEST_COOKIE = "next-instant-navigation-testing";
+    var FLIGHT_HEADERS = [
+      RSC_HEADER,
+      NEXT_ROUTER_STATE_TREE_HEADER,
+      NEXT_ROUTER_PREFETCH_HEADER,
+      NEXT_HMR_REFRESH_HEADER,
+      NEXT_ROUTER_SEGMENT_PREFETCH_HEADER
+    ];
+    var NEXT_RSC_UNION_QUERY = "_rsc";
+    var NEXT_ROUTER_STALE_TIME_HEADER = "x-nextjs-stale-time";
+    var NEXT_DID_POSTPONE_HEADER = "x-nextjs-postponed";
+    var NEXT_REWRITTEN_PATH_HEADER = "x-nextjs-rewritten-path";
+    var NEXT_REWRITTEN_QUERY_HEADER = "x-nextjs-rewritten-query";
+    var NEXT_IS_PRERENDER_HEADER = "x-nextjs-prerender";
+    var NEXT_ACTION_NOT_FOUND_HEADER = "x-nextjs-action-not-found";
+    var NEXT_REQUEST_ID_HEADER = "x-nextjs-request-id";
+    var NEXT_HTML_REQUEST_ID_HEADER = "x-nextjs-html-request-id";
+    var NEXT_ACTION_REVALIDATED_HEADER = "x-action-revalidated";
+    if ((typeof exports2.default === "function" || typeof exports2.default === "object" && exports2.default !== null) && typeof exports2.default.__esModule === "undefined") {
+      Object.defineProperty(exports2.default, "__esModule", { value: true });
+      Object.assign(exports2.default, exports2);
+      module2.exports = exports2.default;
+    }
+  }
+});
+
 // node_modules/next/dist/shared/lib/hash.js
 var require_hash = __commonJS({
   "node_modules/next/dist/shared/lib/hash.js"(exports2) {
@@ -98336,8 +100056,14 @@ var require_node_web_streams_helper = __commonJS({
       });
     }
     _export(exports2, {
+      CLOSE_TAG: function() {
+        return CLOSE_TAG;
+      },
       chainStreams: function() {
         return chainStreams;
+      },
+      chainTransformers: function() {
+        return chainTransformers;
       },
       continueDynamicHTMLResume: function() {
         return continueDynamicHTMLResume;
@@ -98357,17 +100083,35 @@ var require_node_web_streams_helper = __commonJS({
       createBufferedTransformStream: function() {
         return createBufferedTransformStream;
       },
+      createDeferredSuffixStream: function() {
+        return createDeferredSuffixStream;
+      },
       createDocumentClosingStream: function() {
         return createDocumentClosingStream;
       },
-      createInstantTestScriptInsertionTransformStream: function() {
-        return createInstantTestScriptInsertionTransformStream;
+      createFlightDataInjectionTransformStream: function() {
+        return createFlightDataInjectionTransformStream;
+      },
+      createHeadInsertionTransformStream: function() {
+        return createHeadInsertionTransformStream;
+      },
+      createHtmlDataDplIdTransformStream: function() {
+        return createHtmlDataDplIdTransformStream;
+      },
+      createMetadataTransformStream: function() {
+        return createMetadataTransformStream;
+      },
+      createMoveSuffixStream: function() {
+        return createMoveSuffixStream;
       },
       createRootLayoutValidatorStream: function() {
         return createRootLayoutValidatorStream;
       },
       createRuntimePrefetchTransformStream: function() {
         return createRuntimePrefetchTransformStream;
+      },
+      nodestreamToUint8Array: function() {
+        return nodestreamToUint8Array;
       },
       renderToInitialFizzStream: function() {
         return renderToInitialFizzStream;
@@ -98386,6 +100130,9 @@ var require_node_web_streams_helper = __commonJS({
       },
       streamToUint8Array: function() {
         return streamToUint8Array;
+      },
+      webstreamToUint8Array: function() {
+        return webstreamToUint8Array;
       }
     });
     var _tracer = require_tracer();
@@ -98465,8 +100212,55 @@ var require_node_web_streams_helper = __commonJS({
       }
       return result;
     }
-    async function streamToUint8Array(stream) {
+    async function webstreamToUint8Array(stream) {
       return concatUint8Arrays(await streamToChunks(stream));
+    }
+    function webToReadable(stream) {
+      if (process.env.NEXT_RUNTIME === "edge") {
+        throw Object.defineProperty(new Error("webToReadable cannot be used in the edge runtime"), "__NEXT_ERROR_CODE", {
+          value: "E1148",
+          enumerable: false,
+          configurable: true
+        });
+      } else {
+        let Readable;
+        if (process.env.TURBOPACK) {
+          Readable = require("node:stream").Readable;
+        } else if (process.env.__NEXT_BUNDLER === "Webpack" || process.env.__NEXT_BUNDLER === "Rspack") {
+          Readable = __non_webpack_require__("node:stream").Readable;
+        } else {
+          Readable = require("node:stream").Readable;
+        }
+        if (stream instanceof Readable) {
+          return stream;
+        }
+        return Readable.fromWeb(stream);
+      }
+    }
+    async function nodestreamToUint8Array(stream) {
+      const chunks = [];
+      for await (const chunk of webToReadable(stream)) {
+        chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
+      }
+      return Buffer.concat(chunks);
+    }
+    async function streamToUint8Array(stream) {
+      if (process.env.NEXT_RUNTIME === "edge") {
+        return webstreamToUint8Array(stream);
+      } else {
+        let Readable;
+        if (process.env.TURBOPACK) {
+          Readable = require("node:stream").Readable;
+        } else if (process.env.__NEXT_BUNDLER === "Webpack" || process.env.__NEXT_BUNDLER === "Rspack") {
+          Readable = __non_webpack_require__("node:stream").Readable;
+        } else {
+          Readable = require("node:stream").Readable;
+        }
+        if (stream instanceof Readable) {
+          return nodestreamToUint8Array(stream);
+        }
+        return webstreamToUint8Array(stream);
+      }
     }
     async function streamToBuffer(stream) {
       return Buffer.concat(await streamToChunks(stream));
@@ -98681,43 +100475,6 @@ var require_node_web_streams_helper = __commonJS({
           insertedHeadContent.set(chunk.slice(headClosingTagIndex), headClosingTagIndex + encodedInsertion.length);
           controller.enqueue(insertedHeadContent);
           didAlreadyInsert = true;
-        }
-      });
-    }
-    async function createInstantTestScriptInsertionTransformStream(requestId) {
-      const segmentPath = "/_full";
-      const cacheBustingHeader = await (0, _cachebustingsearchparam.computeCacheBustingSearchParam)("1", segmentPath, void 0, void 0);
-      const searchStr = `${_approuterheaders.NEXT_RSC_UNION_QUERY}=${cacheBustingHeader}`;
-      const requestIdScript = requestId !== null ? `self.__next_r=${JSON.stringify(requestId)};` : "";
-      const INSTANT_TEST_SCRIPT = `<script>${requestIdScript}self.__next_instant_test=fetch(location.pathname+'?${searchStr}',{credentials:'same-origin',headers:{'${_approuterheaders.RSC_HEADER}':'1','${_approuterheaders.NEXT_ROUTER_PREFETCH_HEADER}':'1','${_approuterheaders.NEXT_ROUTER_SEGMENT_PREFETCH_HEADER}':'${segmentPath}','${_approuterheaders.NEXT_INSTANT_PREFETCH_HEADER}':'1'}})</script>`;
-      let didAlreadyInsert = false;
-      return new TransformStream({
-        transform(chunk, controller) {
-          if (didAlreadyInsert) {
-            controller.enqueue(chunk);
-            return;
-          }
-          const headOpenIndex = (0, _uint8arrayhelpers.indexOfUint8Array)(chunk, _encodedtags.ENCODED_TAGS.OPENING.HEAD);
-          if (headOpenIndex === -1) {
-            controller.enqueue(chunk);
-            return;
-          }
-          const headCloseAngle = chunk.indexOf(62, headOpenIndex + _encodedtags.ENCODED_TAGS.OPENING.HEAD.length);
-          if (headCloseAngle === -1) {
-            controller.enqueue(chunk);
-            return;
-          }
-          const encodedInsertion = encoder.encode(INSTANT_TEST_SCRIPT);
-          const insertionPoint = headCloseAngle + 1;
-          const insertedHeadContent = new Uint8Array(chunk.length + encodedInsertion.length);
-          insertedHeadContent.set(chunk.slice(0, insertionPoint));
-          insertedHeadContent.set(encodedInsertion, insertionPoint);
-          insertedHeadContent.set(chunk.slice(insertionPoint), insertionPoint + encodedInsertion.length);
-          controller.enqueue(insertedHeadContent);
-          didAlreadyInsert = true;
-        },
-        flush(controller) {
-          controller.enqueue(_encodedtags.ENCODED_TAGS.CLOSED.BODY_AND_HTML);
         }
       });
     }
@@ -99301,7 +101058,7 @@ var require_remove_trailing_slash = __commonJS({
       }
     });
     function removeTrailingSlash(route) {
-      return route.replace(/\/$/, "") || "/";
+      return route.charCodeAt(route.length - 1) === 47 && route.length > 1 ? route.slice(0, -1) : route;
     }
   }
 });
@@ -99853,6 +101610,11 @@ var require_error = __commonJS({
   
   Read more: https://nextjs.org/docs/messages/middleware-new-signature
   `);
+        Object.defineProperty(this, "__NEXT_ERROR_CODE", {
+          value: "E1177",
+          enumerable: false,
+          configurable: true
+        });
       }
     };
     var RemovedPageError = class extends Error {
@@ -99860,6 +101622,11 @@ var require_error = __commonJS({
         super(`The request.page has been deprecated in favour of \`URLPattern\`.
   Read more: https://nextjs.org/docs/messages/middleware-request-page
   `);
+        Object.defineProperty(this, "__NEXT_ERROR_CODE", {
+          value: "E1178",
+          enumerable: false,
+          configurable: true
+        });
       }
     };
     var RemovedUAError = class extends Error {
@@ -99867,6 +101634,11 @@ var require_error = __commonJS({
         super(`The request.ua has been removed in favour of \`userAgent\` function.
   Read more: https://nextjs.org/docs/messages/middleware-parse-user-agent
   `);
+        Object.defineProperty(this, "__NEXT_ERROR_CODE", {
+          value: "E1172",
+          enumerable: false,
+          configurable: true
+        });
       }
     };
   }
@@ -100160,8 +101932,8 @@ var require_client_component_renderer_logger = __commonJS({
     var clientComponentLoadStart = 0;
     var clientComponentLoadTimes = 0;
     var clientComponentLoadCount = 0;
-    function wrapClientComponentLoader(ComponentMod) {
-      if (!("performance" in globalThis)) {
+    function wrapClientComponentLoader(ComponentMod, isTracingEnabled) {
+      if (!("performance" in globalThis) || !process.env.NEXT_OTEL_PERFORMANCE_PREFIX && !isTracingEnabled) {
         return ComponentMod.__next_app__;
       }
       return {
@@ -100220,6 +101992,9 @@ var require_pipe_readable = __commonJS({
       isAbortError: function() {
         return isAbortError;
       },
+      pipeNodeReadableToNodeResponse: function() {
+        return pipeNodeReadableToNodeResponse;
+      },
       pipeToNodeResponse: function() {
         return pipeToNodeResponse;
       }
@@ -100232,6 +102007,7 @@ var require_pipe_readable = __commonJS({
     function isAbortError(e) {
       return (e == null ? void 0 : e.name) === "AbortError" || (e == null ? void 0 : e.name) === _nextrequest.ResponseAbortedName;
     }
+    var HAS_CLIENT_COMPONENT_METRICS_ENABLED = "performance" in globalThis && process.env.NEXT_OTEL_PERFORMANCE_PREFIX;
     function createWriterFromResponse(res, waitUntilForEnd) {
       let started = false;
       let drained = new _detachedpromise.DetachedPromise();
@@ -100251,7 +102027,7 @@ var require_pipe_readable = __commonJS({
         write: async (chunk) => {
           if (!started) {
             started = true;
-            if ("performance" in globalThis && process.env.NEXT_OTEL_PERFORMANCE_PREFIX) {
+            if (HAS_CLIENT_COMPONENT_METRICS_ENABLED) {
               const metrics2 = (0, _clientcomponentrendererlogger.getClientComponentLoaderMetrics)();
               if (metrics2) {
                 performance.measure(`${process.env.NEXT_OTEL_PERFORMANCE_PREFIX}:next-client-component-loading`, {
@@ -100319,6 +102095,73 @@ var require_pipe_readable = __commonJS({
         });
       }
     }
+    async function pipeNodeReadableToNodeResponse(readable, res, waitUntilForEnd) {
+      try {
+        const { errored, destroyed } = res;
+        if (errored || destroyed) return;
+        let started = false;
+        const finished = new _detachedpromise.DetachedPromise();
+        res.once("close", () => {
+          readable.destroy();
+          finished.resolve();
+        });
+        readable.on("data", (chunk) => {
+          if (!started) {
+            started = true;
+            if ("performance" in globalThis && process.env.NEXT_OTEL_PERFORMANCE_PREFIX) {
+              const metrics2 = (0, _clientcomponentrendererlogger.getClientComponentLoaderMetrics)();
+              if (metrics2) {
+                performance.measure(`${process.env.NEXT_OTEL_PERFORMANCE_PREFIX}:next-client-component-loading`, {
+                  start: metrics2.clientComponentLoadStart,
+                  end: metrics2.clientComponentLoadStart + metrics2.clientComponentLoadTimes
+                });
+              }
+            }
+            res.flushHeaders();
+            (0, _tracer.getTracer)().trace(_constants.NextNodeServerSpan.startResponse, {
+              spanName: "start response"
+            }, () => void 0);
+          }
+          const ok = res.write(chunk);
+          if ("flush" in res && typeof res.flush === "function") {
+            res.flush();
+          }
+          if (!ok) {
+            readable.pause();
+            res.once("drain", () => {
+              readable.resume();
+            });
+          }
+        });
+        readable.on("end", async () => {
+          if (waitUntilForEnd) {
+            await waitUntilForEnd;
+          }
+          if (!res.writableFinished) {
+            res.end();
+          }
+          finished.resolve();
+        });
+        readable.on("error", (err) => {
+          if (isAbortError(err)) {
+            finished.resolve();
+            return;
+          }
+          res.destroy(err);
+          finished.resolve();
+        });
+        await finished.promise;
+      } catch (err) {
+        if (isAbortError(err)) return;
+        throw Object.defineProperty(new Error("failed to pipe response", {
+          cause: err
+        }), "__NEXT_ERROR_CODE", {
+          value: "E180",
+          enumerable: false,
+          configurable: true
+        });
+      }
+    }
   }
 });
 
@@ -100338,6 +102181,9 @@ var require_render_result = __commonJS({
     var _nodewebstreamshelper = require_node_web_streams_helper();
     var _pipereadable = require_pipe_readable();
     var _invarianterror = require_invariant_error();
+    function isNodeReadable(value) {
+      return value !== null && typeof value === "object" && typeof value.pipe === "function" && typeof value.on === "function" && !(value instanceof ReadableStream);
+    }
     var RenderResult = class _RenderResult {
       static #_ = (
         /**
@@ -100421,6 +102267,23 @@ var require_render_result = __commonJS({
         if (Array.isArray(this.response)) {
           return (0, _nodewebstreamshelper.chainStreams)(...this.response);
         }
+        if (isNodeReadable(this.response)) {
+          if (process.env.NEXT_RUNTIME === "edge") {
+            throw Object.defineProperty(new _invarianterror.InvariantError("Node.js Readable cannot be converted to a web stream in the edge runtime"), "__NEXT_ERROR_CODE", {
+              value: "E1150",
+              enumerable: false,
+              configurable: true
+            });
+          } else {
+            let Readable;
+            if (process.env.TURBOPACK) {
+              Readable = require("node:stream").Readable;
+            } else {
+              Readable = __non_webpack_require__("node:stream").Readable;
+            }
+            return Readable.toWeb(this.response);
+          }
+        }
         return this.response;
       }
       /**
@@ -100443,6 +102306,24 @@ var require_render_result = __commonJS({
           return [
             (0, _nodewebstreamshelper.streamFromBuffer)(this.response)
           ];
+        } else if (isNodeReadable(this.response)) {
+          if (process.env.NEXT_RUNTIME === "edge") {
+            throw Object.defineProperty(new _invarianterror.InvariantError("Node.js Readable cannot be converted to a web stream in the edge runtime"), "__NEXT_ERROR_CODE", {
+              value: "E1150",
+              enumerable: false,
+              configurable: true
+            });
+          } else {
+            let Readable;
+            if (process.env.TURBOPACK) {
+              Readable = require("node:stream").Readable;
+            } else {
+              Readable = __non_webpack_require__("node:stream").Readable;
+            }
+            return [
+              Readable.toWeb(this.response)
+            ];
+          }
         } else {
           return [
             this.response
@@ -100516,6 +102397,10 @@ var require_render_result = __commonJS({
       * @param res
       */
       async pipeToNodeResponse(res) {
+        if (this.response !== null && typeof this.response !== "string" && !Buffer.isBuffer(this.response) && !Array.isArray(this.response) && isNodeReadable(this.response)) {
+          await (0, _pipereadable.pipeNodeReadableToNodeResponse)(this.response, res, this.waitUntil);
+          return;
+        }
         await (0, _pipereadable.pipeToNodeResponse)(this.readable, res, this.waitUntil);
       }
     };
@@ -100779,6 +102664,13 @@ var require_response_cache = __commonJS({
           if (waitUntil) waitUntil(promise);
           return promise;
         });
+        if (this.minimal_mode && (response == null ? void 0 : response.cacheControl)) {
+          const cacheKey = createCacheKey(key, invocationID);
+          this.cache.set(cacheKey, {
+            entry: response,
+            expiresAt: Date.now() + this.ttl
+          });
+        }
         return (0, _utils.toResponseCacheEntry)(response);
       }
       /**
@@ -100799,14 +102691,14 @@ var require_response_cache = __commonJS({
             isRoutePPREnabled: context.isRoutePPREnabled,
             isFallback: context.isFallback
           }) : null;
-          if (previousIncrementalCacheEntry && !context.isOnDemandRevalidate) {
+          if (previousIncrementalCacheEntry && !context.isOnDemandRevalidate && previousIncrementalCacheEntry.isStale !== -1) {
             resolve(previousIncrementalCacheEntry);
             resolved = true;
             if (!previousIncrementalCacheEntry.isStale || context.isPrefetch) {
               return previousIncrementalCacheEntry;
             }
           }
-          const incrementalResponseCacheEntry = await this.revalidate(key, context.incrementalCache, context.isRoutePPREnabled, context.isFallback, responseGenerator, previousIncrementalCacheEntry, previousIncrementalCacheEntry !== null && !context.isOnDemandRevalidate, void 0, context.invocationID);
+          const incrementalResponseCacheEntry = context.isPrefetch && previousIncrementalCacheEntry === null ? await this.handleRevalidate(key, context.incrementalCache, context.isRoutePPREnabled, context.isFallback, responseGenerator, previousIncrementalCacheEntry, resolved) : await this.revalidate(key, context.incrementalCache, context.isRoutePPREnabled, context.isFallback, responseGenerator, previousIncrementalCacheEntry, resolved);
           if (!incrementalResponseCacheEntry) {
             if (this.minimal_mode) {
               const cacheKey = createCacheKey(key, context.invocationID);
@@ -100840,14 +102732,14 @@ var require_response_cache = __commonJS({
       * @param invocationID - The invocation ID for cache key scoping.
       * @returns The revalidated cache entry.
       */
-      async revalidate(key, incrementalCache, isRoutePPREnabled, isFallback, responseGenerator, previousIncrementalCacheEntry, hasResolved, waitUntil, invocationID) {
+      async revalidate(key, incrementalCache, isRoutePPREnabled, isFallback, responseGenerator, previousIncrementalCacheEntry, hasResolved, waitUntil) {
         return this.revalidateBatcher.batch(key, () => {
-          const promise = this.handleRevalidate(key, incrementalCache, isRoutePPREnabled, isFallback, responseGenerator, previousIncrementalCacheEntry, hasResolved, invocationID);
+          const promise = this.handleRevalidate(key, incrementalCache, isRoutePPREnabled, isFallback, responseGenerator, previousIncrementalCacheEntry, hasResolved);
           if (waitUntil) waitUntil(promise);
           return promise;
         });
       }
-      async handleRevalidate(key, incrementalCache, isRoutePPREnabled, isFallback, responseGenerator, previousIncrementalCacheEntry, hasResolved, invocationID) {
+      async handleRevalidate(key, incrementalCache, isRoutePPREnabled, isFallback, responseGenerator, previousIncrementalCacheEntry, hasResolved) {
         try {
           const responseCacheEntry = await responseGenerator({
             hasResolved,
@@ -100861,20 +102753,12 @@ var require_response_cache = __commonJS({
             ...responseCacheEntry,
             isMiss: !previousIncrementalCacheEntry
           });
-          if (incrementalResponseCacheEntry.cacheControl) {
-            if (this.minimal_mode) {
-              const cacheKey = createCacheKey(key, invocationID);
-              this.cache.set(cacheKey, {
-                entry: incrementalResponseCacheEntry,
-                expiresAt: Date.now() + this.ttl
-              });
-            } else {
-              await incrementalCache.set(key, incrementalResponseCacheEntry.value, {
-                cacheControl: incrementalResponseCacheEntry.cacheControl,
-                isRoutePPREnabled,
-                isFallback
-              });
-            }
+          if (incrementalResponseCacheEntry.cacheControl && !this.minimal_mode) {
+            await incrementalCache.set(key, incrementalResponseCacheEntry.value, {
+              cacheControl: incrementalResponseCacheEntry.cacheControl,
+              isRoutePPREnabled,
+              isFallback
+            });
           }
           return incrementalResponseCacheEntry;
         } catch (err) {
@@ -100897,23 +102781,23 @@ var require_response_cache = __commonJS({
   }
 });
 
-// node_modules/next/dist/server/lib/encode-cache-tag.js
-var require_encode_cache_tag = __commonJS({
-  "node_modules/next/dist/server/lib/encode-cache-tag.js"(exports2) {
+// node_modules/next/dist/server/lib/encode-header-safe.js
+var require_encode_header_safe = __commonJS({
+  "node_modules/next/dist/server/lib/encode-header-safe.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", {
       value: true
     });
-    Object.defineProperty(exports2, "encodeCacheTag", {
+    Object.defineProperty(exports2, "encodeHeaderSafe", {
       enumerable: true,
       get: function() {
-        return encodeCacheTag;
+        return encodeHeaderSafe;
       }
     });
     var OUT_OF_CLASS_CHAR = /[^\t\x20-\x7e]/;
     var OUT_OF_CLASS_RUN = /[^\t\x20-\x7e]+/g;
-    function encodeCacheTag(tag) {
-      return OUT_OF_CLASS_CHAR.test(tag) ? tag.replace(OUT_OF_CLASS_RUN, (run) => encodeURIComponent(run)) : tag;
+    function encodeHeaderSafe(value) {
+      return OUT_OF_CLASS_CHAR.test(value) ? value.replace(OUT_OF_CLASS_RUN, (run) => encodeURIComponent(run)) : value;
     }
   }
 });
@@ -100949,6 +102833,8 @@ var require_patch_fetch = __commonJS({
       }
     });
     var _constants = require_constants12();
+    var _requestinsights = require_request_insights2();
+    var _requestinsightsidentity = require_request_insights_identity();
     var _tracer = require_tracer();
     var _constants1 = require_constants11();
     var _dynamicrendering = require_dynamic_rendering();
@@ -100958,7 +102844,7 @@ var require_patch_fetch = __commonJS({
     var _responsecache = require_response_cache();
     var _cloneresponse = require_clone_response();
     var _stagedrendering = require_staged_rendering();
-    var _encodecachetag = require_encode_cache_tag();
+    var _encodeheadersafe = require_encode_header_safe();
     var isEdgeRuntime = process.env.NEXT_RUNTIME === "edge";
     var NEXT_PATCH_SYMBOL = /* @__PURE__ */ Symbol.for("next-patch");
     function isFetchPatched() {
@@ -100967,7 +102853,7 @@ var require_patch_fetch = __commonJS({
     function validateRevalidate(revalidateVal, route) {
       try {
         let normalizedRevalidate = void 0;
-        if (revalidateVal === false) {
+        if (revalidateVal === false || revalidateVal === Infinity) {
           normalizedRevalidate = _constants1.INFINITE_CACHE;
         } else if (typeof revalidateVal === "number" && !isNaN(revalidateVal) && revalidateVal > -1) {
           normalizedRevalidate = revalidateVal;
@@ -101002,7 +102888,7 @@ var require_patch_fetch = __commonJS({
             reason: `exceeded max length of ${_constants1.NEXT_CACHE_TAG_MAX_LENGTH}`
           });
         } else {
-          validTags.push((0, _encodecachetag.encodeCacheTag)(tag));
+          validTags.push((0, _encodeheadersafe.encodeHeaderSafe)(tag));
         }
         if (validTags.length > _constants1.NEXT_CACHE_TAG_MAX_ITEMS) {
           console.warn(`Warning: exceeded max tag count for ${description}, dropped tags:`, tags.slice(i).join(", "));
@@ -101017,16 +102903,44 @@ var require_patch_fetch = __commonJS({
       }
       return validTags;
     }
-    function trackFetchMetric(workStore, ctx) {
+    function trackFetchMetric(workStore, span, ctx) {
+      const metric = {
+        ...ctx,
+        end: performance.timeOrigin + performance.now(),
+        idx: workStore.nextFetchId || 0
+      };
+      span == null ? void 0 : span.setAttributes({
+        "http.status_code": metric.status,
+        "next.fetch.idx": metric.idx,
+        "next.fetch.cache_status": metric.cacheStatus,
+        "next.fetch.cache_reason": metric.cacheReason
+      });
+      if ((0, _requestinsights.isRequestInsightsEnabled)()) {
+        const requestInsightsIdentity = (0, _requestinsightsidentity.getRequestInsightsIdentity)();
+        const requestInsightsRequestId = (requestInsightsIdentity == null ? void 0 : requestInsightsIdentity.requestId) ?? workStore.requestId;
+        if (requestInsightsRequestId) {
+          (0, _requestinsights.recordRequestInsightFetch)({
+            requestId: requestInsightsRequestId,
+            kind: requestInsightsIdentity == null ? void 0 : requestInsightsIdentity.kind,
+            htmlRequestId: (requestInsightsIdentity == null ? void 0 : requestInsightsIdentity.htmlRequestId) ?? workStore.htmlRequestId,
+            route: workStore.route
+          }, {
+            url: metric.url,
+            method: metric.method,
+            statusCode: metric.status,
+            startTime: metric.start,
+            durationMs: metric.end - metric.start,
+            cacheStatus: metric.cacheStatus,
+            cacheReason: metric.cacheReason,
+            index: metric.idx
+          });
+        }
+      }
       if (!workStore.shouldTrackFetchMetrics) {
         return;
       }
       workStore.fetchMetrics ??= [];
-      workStore.fetchMetrics.push({
-        ...ctx,
-        end: performance.timeOrigin + performance.now(),
-        idx: workStore.nextFetchId || 0
-      });
+      workStore.fetchMetrics.push(metric);
     }
     async function createCachedPrerenderResponse(res, cacheKey, incrementalCacheContext, incrementalCache, revalidate, handleUnlock) {
       const bodyBuffer = await res.arrayBuffer();
@@ -101123,7 +103037,7 @@ var require_patch_fetch = __commonJS({
             "net.peer.name": url == null ? void 0 : url.hostname,
             "net.peer.port": (url == null ? void 0 : url.port) || void 0
           }
-        }, async () => {
+        }, async (span) => {
           var _getRequestMeta;
           if (isInternal) {
             return originFetch(input, init);
@@ -101280,7 +103194,7 @@ var require_patch_fetch = __commonJS({
                   cacheSignal.endRead();
                   cacheSignal = null;
                 }
-                return (0, _dynamicrenderingutils.makeHangingPromise)(workUnitStore.renderSignal, workStore.route, "fetch()");
+                return (0, _dynamicrenderingutils.makeDynamicHangingPromise)(workUnitStore.renderSignal, workStore.route, "fetch()");
               case "validation-client":
                 break;
               case "request":
@@ -101389,7 +103303,7 @@ var require_patch_fetch = __commonJS({
                       cacheSignal.endRead();
                       cacheSignal = null;
                     }
-                    return (0, _dynamicrenderingutils.makeHangingPromise)(workUnitStore.renderSignal, workStore.route, "fetch()");
+                    return (0, _dynamicrenderingutils.makeDynamicHangingPromise)(workUnitStore.renderSignal, workStore.route, "fetch()");
                   case "request":
                     if (process.env.NODE_ENV === "development" && workUnitStore.stagedRendering) {
                       if (cacheSignal) {
@@ -101499,7 +103413,7 @@ var require_patch_fetch = __commonJS({
             };
             return originFetch(input, clonedInit).then(async (res) => {
               if (!isStale && fetchStart) {
-                trackFetchMetric(workStore, {
+                trackFetchMetric(workStore, span, {
                   start: fetchStart,
                   url: fetchUrl,
                   cacheReason: cacheReasonOverride2 || cacheReason,
@@ -101622,7 +103536,7 @@ var require_patch_fetch = __commonJS({
             }
             if (cachedFetchData) {
               if (fetchStart) {
-                trackFetchMetric(workStore, {
+                trackFetchMetric(workStore, span, {
                   start: fetchStart,
                   url: fetchUrl,
                   cacheReason,
@@ -101657,7 +103571,7 @@ var require_patch_fetch = __commonJS({
                       cacheSignal.endRead();
                       cacheSignal = null;
                     }
-                    return (0, _dynamicrenderingutils.makeHangingPromise)(workUnitStore.renderSignal, workStore.route, "fetch()");
+                    return (0, _dynamicrenderingutils.makeDynamicHangingPromise)(workUnitStore.renderSignal, workStore.route, "fetch()");
                   case "request":
                     if (process.env.NODE_ENV === "development" && workUnitStore.stagedRendering) {
                       if (cacheSignal) {
@@ -101690,7 +103604,7 @@ var require_patch_fetch = __commonJS({
                     case "prerender-client":
                     case "prerender-runtime":
                     case "validation-client":
-                      return (0, _dynamicrenderingutils.makeHangingPromise)(workUnitStore.renderSignal, workStore.route, "fetch()");
+                      return (0, _dynamicrenderingutils.makeDynamicHangingPromise)(workUnitStore.renderSignal, workStore.route, "fetch()");
                     case "request":
                       if (process.env.NODE_ENV === "development" && workUnitStore.stagedRendering) {
                         await workUnitStore.stagedRendering.waitForStage(_stagedrendering.RenderStage.Dynamic);
@@ -101807,6 +103721,7 @@ var require_unstable_cache = __commonJS({
     });
     var _constants = require_constants11();
     var _patchfetch = require_patch_fetch();
+    var _encodeheadersafe = require_encode_header_safe();
     var _workasyncstorageexternal = require_work_async_storage_external();
     var _workunitasyncstorageexternal = require_work_unit_async_storage_external();
     var _responsecache = require_response_cache();
@@ -101839,7 +103754,7 @@ var require_unstable_cache = __commonJS({
         });
       }
       const tags = options.tags ? (0, _patchfetch.validateTags)(options.tags, `unstable_cache ${cb.toString()}`) : [];
-      (0, _patchfetch.validateRevalidate)(options.revalidate, `unstable_cache ${cb.name || cb.toString()}`);
+      const revalidate = (0, _patchfetch.validateRevalidate)(options.revalidate, `unstable_cache ${cb.name || cb.toString()}`);
       const fixedKey = `${cb.toString()}-${Array.isArray(keyParts) && keyParts.join(",")}`;
       const cachedCb = async (...args) => {
         const workStore = _workasyncstorageexternal.workAsyncStorage.getStore();
@@ -101861,7 +103776,7 @@ var require_unstable_cache = __commonJS({
           const fetchUrlPrefix = workStore && workUnitStore ? getFetchUrlPrefix(workStore, workUnitStore) : "";
           const invocationKey = `${fixedKey}-${JSON.stringify(args)}`;
           const cacheKey = await incrementalCache.generateSimpleCacheKey(invocationKey);
-          const fetchUrl = `unstable_cache ${fetchUrlPrefix} ${cb.name ? ` ${cb.name}` : cacheKey}`;
+          const fetchUrl = (0, _encodeheadersafe.encodeHeaderSafe)(`unstable_cache ${fetchUrlPrefix} ${cb.name ? ` ${cb.name}` : cacheKey}`.toWellFormed());
           const fetchIdx = (workStore ? workStore.nextFetchId : noStoreFetchIdx) ?? 1;
           const implicitTags = workUnitStore == null ? void 0 : workUnitStore.implicitTags;
           const innerCacheStore = {
@@ -101882,10 +103797,10 @@ var require_unstable_cache = __commonJS({
                 case "prerender-runtime":
                 case "prerender-ppr":
                 case "prerender-legacy":
-                  if (typeof options.revalidate === "number") {
-                    if (workUnitStore.revalidate < options.revalidate) {
+                  if (typeof revalidate === "number") {
+                    if (workUnitStore.revalidate < revalidate) {
                     } else {
-                      workUnitStore.revalidate = options.revalidate;
+                      workUnitStore.revalidate = revalidate;
                     }
                   }
                   const collectedTags = workUnitStore.tags;
@@ -101918,7 +103833,7 @@ var require_unstable_cache = __commonJS({
             ) {
               const cacheEntry = await incrementalCache.get(cacheKey, {
                 kind: _responsecache.IncrementalCacheKind.FETCH,
-                revalidate: options.revalidate,
+                revalidate,
                 tags,
                 softTags: implicitTags == null ? void 0 : implicitTags.tags,
                 fetchIdx,
@@ -101935,7 +103850,7 @@ var require_unstable_cache = __commonJS({
                     }
                     if (!workStore.pendingRevalidates[invocationKey]) {
                       const revalidationPromise = _workunitasyncstorageexternal.workUnitAsyncStorage.run(innerCacheStore, cb, ...args).then(async (result2) => {
-                        await cacheNewResult(result2, incrementalCache, cacheKey, tags, options.revalidate, fetchIdx, fetchUrl);
+                        await cacheNewResult(result2, incrementalCache, cacheKey, tags, revalidate, fetchIdx, fetchUrl);
                         return result2;
                       }).catch((err) => {
                         console.error(`revalidating cache with key: ${invocationKey}`, err);
@@ -101960,7 +103875,7 @@ var require_unstable_cache = __commonJS({
               if (!workStore.pendingRevalidates) {
                 workStore.pendingRevalidates = {};
               }
-              workStore.pendingRevalidates[invocationKey] = cacheNewResult(result, incrementalCache, cacheKey, tags, options.revalidate, fetchIdx, fetchUrl);
+              workStore.pendingRevalidates[invocationKey] = cacheNewResult(result, incrementalCache, cacheKey, tags, revalidate, fetchIdx, fetchUrl);
             }
             return result;
           } else {
@@ -101968,7 +103883,7 @@ var require_unstable_cache = __commonJS({
             if (!incrementalCache.isOnDemandRevalidate) {
               const cacheEntry = await incrementalCache.get(cacheKey, {
                 kind: _responsecache.IncrementalCacheKind.FETCH,
-                revalidate: options.revalidate,
+                revalidate,
                 tags,
                 fetchIdx,
                 fetchUrl,
@@ -101983,7 +103898,7 @@ var require_unstable_cache = __commonJS({
               }
             }
             const result = await _workunitasyncstorageexternal.workUnitAsyncStorage.run(innerCacheStore, cb, ...args);
-            await cacheNewResult(result, incrementalCache, cacheKey, tags, options.revalidate, fetchIdx, fetchUrl);
+            await cacheNewResult(result, incrementalCache, cacheKey, tags, revalidate, fetchIdx, fetchUrl);
             return result;
           }
         } finally {
@@ -102556,6 +104471,90 @@ var require_utils9 = __commonJS({
   }
 });
 
+// node_modules/next/dist/server/use-cache/cache-life-profile.js
+var require_cache_life_profile = __commonJS({
+  "node_modules/next/dist/server/use-cache/cache-life-profile.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", {
+      value: true
+    });
+    Object.defineProperty(exports2, "validateAndNormalizeCacheLifeProfile", {
+      enumerable: true,
+      get: function() {
+        return validateAndNormalizeCacheLifeProfile;
+      }
+    });
+    var _constants = require_constants11();
+    function normalizeCacheLifeValue(key, value, context) {
+      if (value === void 0) {
+        return void 0;
+      }
+      if (value === false) {
+        if (key === "stale") {
+          throw Object.defineProperty(new Error("Pass `Infinity` instead of `false` if you want to cache on the client forever without checking with the server."), "__NEXT_ERROR_CODE", {
+            value: "E407",
+            enumerable: false,
+            configurable: true
+          });
+        } else if (key === "revalidate") {
+          throw Object.defineProperty(new Error("Pass `Infinity` instead of `false` if you do not want to revalidate by time."), "__NEXT_ERROR_CODE", {
+            value: "E104",
+            enumerable: false,
+            configurable: true
+          });
+        } else {
+          throw Object.defineProperty(new Error("Pass `Infinity` instead of `false` if you want to cache on the server forever without checking with the origin."), "__NEXT_ERROR_CODE", {
+            value: "E658",
+            enumerable: false,
+            configurable: true
+          });
+        }
+      }
+      if (typeof value !== "number") {
+        throw Object.defineProperty(new Error(`The ${key} option must be a number of seconds.`), "__NEXT_ERROR_CODE", {
+          value: "E1414",
+          enumerable: false,
+          configurable: true
+        });
+      }
+      if (value === Infinity) {
+        return _constants.INFINITE_CACHE;
+      }
+      if (!Number.isFinite(value)) {
+        throw Object.defineProperty(new Error(context.kind === "config" ? `Invalid "cacheLife.${context.profileName}.${key}" provided, expected a finite number of seconds or Infinity, received ${value}` : `Invalid \`cacheLife()\` option "${key}" provided, expected a finite number of seconds or Infinity, received ${value}.`), "__NEXT_ERROR_CODE", {
+          value: "E394",
+          enumerable: false,
+          configurable: true
+        });
+      }
+      return value;
+    }
+    function validateAndNormalizeCacheLifeProfile(profile, context) {
+      const normalizedProfile = {
+        ...profile
+      };
+      for (const key of [
+        "stale",
+        "revalidate",
+        "expire"
+      ]) {
+        const value = normalizeCacheLifeValue(key, profile[key], context);
+        if (value !== void 0) {
+          normalizedProfile[key] = value;
+        }
+      }
+      if (normalizedProfile.revalidate !== void 0 && normalizedProfile.expire !== void 0 && normalizedProfile.revalidate > normalizedProfile.expire) {
+        throw Object.defineProperty(new Error("If providing both the revalidate and expire options, the expire option must be greater than the revalidate option. The expire option indicates how many seconds from the start until it can no longer be used."), "__NEXT_ERROR_CODE", {
+          value: "E656",
+          enumerable: false,
+          configurable: true
+        });
+      }
+      return normalizedProfile;
+    }
+  }
+});
+
 // node_modules/next/dist/server/web/spec-extension/revalidate.js
 var require_revalidate = __commonJS({
   "node_modules/next/dist/server/web/spec-extension/revalidate.js"(exports2) {
@@ -102592,13 +104591,18 @@ var require_revalidate = __commonJS({
     var _invarianterror = require_invariant_error();
     var _actionrevalidationkind = require_action_revalidation_kind();
     var _removetrailingslash = require_remove_trailing_slash();
-    var _encodecachetag = require_encode_cache_tag();
+    var _encodeheadersafe = require_encode_header_safe();
+    var _cachelifeprofile = require_cache_life_profile();
     function revalidateTag2(tag, profile) {
       if (!profile) {
         console.warn('"revalidateTag" without the second argument is now deprecated, add second argument of "max" or use "updateTag". See more info here: https://nextjs.org/docs/messages/revalidate-tag-single-arg');
+      } else if (typeof profile === "object") {
+        profile = (0, _cachelifeprofile.validateAndNormalizeCacheLifeProfile)(profile, {
+          kind: "inline"
+        });
       }
       return revalidate([
-        (0, _encodecachetag.encodeCacheTag)(tag)
+        (0, _encodeheadersafe.encodeHeaderSafe)(tag)
       ], `revalidateTag ${tag}`, profile);
     }
     function updateTag(tag) {
@@ -102611,7 +104615,7 @@ var require_revalidate = __commonJS({
         });
       }
       return revalidate([
-        (0, _encodecachetag.encodeCacheTag)(tag)
+        (0, _encodeheadersafe.encodeHeaderSafe)(tag)
       ], `updateTag ${tag}`, void 0);
     }
     function refresh() {
@@ -102633,7 +104637,7 @@ var require_revalidate = __commonJS({
         console.warn(`Warning: revalidatePath received "${originalPath}" which exceeded max length of ${_constants.NEXT_CACHE_SOFT_TAG_MAX_LENGTH}. See more info here https://nextjs.org/docs/app/api-reference/functions/revalidatePath`);
         return;
       }
-      let normalizedPath = `${_constants.NEXT_CACHE_IMPLICIT_TAG_ID}${(0, _encodecachetag.encodeCacheTag)((0, _removetrailingslash.removeTrailingSlash)(originalPath))}`;
+      let normalizedPath = `${_constants.NEXT_CACHE_IMPLICIT_TAG_ID}${(0, _encodeheadersafe.encodeHeaderSafe)((0, _removetrailingslash.removeTrailingSlash)(originalPath))}`;
       if (type) {
         normalizedPath += `${normalizedPath.endsWith("/") ? "" : "/"}${type}`;
       } else if ((0, _utils.isDynamicRoute)(originalPath)) {
@@ -102650,7 +104654,6 @@ var require_revalidate = __commonJS({
       return revalidate(tags, `revalidatePath ${originalPath}`);
     }
     function revalidate(tags, expression, profile) {
-      var _store_cacheLifeProfiles;
       const store = _workasyncstorageexternal.workAsyncStorage.getStore();
       if (!store || !store.incrementalCache) {
         throw Object.defineProperty(new Error(`Invariant: static generation store missing in ${expression}`), "__NEXT_ERROR_CODE", {
@@ -102727,6 +104730,7 @@ var require_revalidate = __commonJS({
       if (!store.pendingRevalidatedTags) {
         store.pendingRevalidatedTags = [];
       }
+      const revalidatedAt = performance.timeOrigin + performance.now();
       for (const tag of tags) {
         const existingIndex = store.pendingRevalidatedTags.findIndex((item) => {
           if (item.tag !== tag) return false;
@@ -102741,11 +104745,14 @@ var require_revalidate = __commonJS({
         if (existingIndex === -1) {
           store.pendingRevalidatedTags.push({
             tag,
-            profile
+            profile,
+            revalidatedAt
           });
+        } else {
+          store.pendingRevalidatedTags[existingIndex].revalidatedAt = revalidatedAt;
         }
       }
-      const cacheLife = profile && typeof profile === "object" ? profile : profile && typeof profile === "string" && (store == null ? void 0 : (_store_cacheLifeProfiles = store.cacheLifeProfiles) == null ? void 0 : _store_cacheLifeProfiles[profile]) ? store.cacheLifeProfiles[profile] : void 0;
+      const cacheLife = profile && typeof profile === "object" ? profile : profile && typeof profile === "string" && (store == null ? void 0 : store.cacheLifeProfiles[profile]) ? store.cacheLifeProfiles[profile] : void 0;
       if (!profile || (cacheLife == null ? void 0 : cacheLife.expire) === 0) {
         store.pathWasRevalidated = _actionrevalidationkind.ActionDidRevalidateStaticAndDynamic;
       }
@@ -102804,6 +104811,113 @@ var require_unstable_no_store = __commonJS({
   }
 });
 
+// node_modules/next/dist/shared/lib/ppr-removed-error.js
+var require_ppr_removed_error = __commonJS({
+  "node_modules/next/dist/shared/lib/ppr-removed-error.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", {
+      value: true
+    });
+    Object.defineProperty(exports2, "throwPrerenderPPRRemovedError", {
+      enumerable: true,
+      get: function() {
+        return throwPrerenderPPRRemovedError;
+      }
+    });
+    var _invarianterror = require_invariant_error();
+    function throwPrerenderPPRRemovedError() {
+      throw Object.defineProperty(new _invarianterror.InvariantError("The prerender-ppr work unit type has been removed. This code path should be unreachable."), "__NEXT_ERROR_CODE", {
+        value: "E1158",
+        enumerable: false,
+        configurable: true
+      });
+    }
+  }
+});
+
+// node_modules/next/dist/server/request/io.js
+var require_io = __commonJS({
+  "node_modules/next/dist/server/request/io.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", {
+      value: true
+    });
+    Object.defineProperty(exports2, "io", {
+      enumerable: true,
+      get: function() {
+        return io;
+      }
+    });
+    var _workasyncstorageexternal = require_work_async_storage_external();
+    var _workunitasyncstorageexternal = require_work_unit_async_storage_external();
+    var _dynamicrenderingutils = require_dynamic_rendering_utils();
+    var _stagedrendering = require_staged_rendering();
+    var _pprremovederror = require_ppr_removed_error();
+    var _utils = require_utils4();
+    var resolvedIOPromise = Promise.resolve(void 0);
+    resolvedIOPromise.status = "fulfilled";
+    resolvedIOPromise.value = void 0;
+    function io() {
+      const workStore = _workasyncstorageexternal.workAsyncStorage.getStore();
+      const workUnitStore = _workunitasyncstorageexternal.workUnitAsyncStorage.getStore();
+      if (workStore && workUnitStore) {
+        if (workUnitStore && !(0, _utils.isRequestApiAllowedInCurrentPhase)(workUnitStore)) {
+          throw Object.defineProperty(new Error(`Route ${workStore.route} used \`io()\` inside \`after()\` while rendering. The \`io()\` function is not allowed in this scope. See more info here: https://nextjs.org/docs/app/api-reference/functions/after`), "__NEXT_ERROR_CODE", {
+            value: "E1380",
+            enumerable: false,
+            configurable: true
+          });
+        }
+        switch (workUnitStore.type) {
+          case "request":
+            if (process.env.NODE_ENV === "development") {
+              if (workUnitStore.asyncApiPromises) {
+                return workUnitStore.asyncApiPromises.io;
+              }
+              return (0, _dynamicrenderingutils.makeDevtoolsIOAwarePromise)(void 0, workUnitStore, _stagedrendering.RenderStage.Dynamic);
+            } else if (workUnitStore.asyncApiPromises) {
+              return workUnitStore.asyncApiPromises.io;
+            }
+            return resolvedIOPromise;
+          case "prerender":
+          case "prerender-client":
+          case "prerender-runtime":
+            return (0, _dynamicrenderingutils.makeDynamicHangingPromise)(workUnitStore.renderSignal, workStore.route, "`io()`");
+          case "prerender-ppr":
+            (0, _pprremovederror.throwPrerenderPPRRemovedError)();
+            break;
+          case "cache":
+          case "private-cache":
+          case "unstable-cache":
+          // Inside cache scopes, io() resolves immediately.
+          // Caches can contain IO-dependent code like new Date() — it will
+          // simply return the value at cache-fill time.
+          // ...
+          // intentional fallthrough
+          case "generate-static-params":
+          // generateStaticParams runs at build time. There is no prerender
+          // to stall so we resolve immediately.
+          // ...
+          // intentional fallthrough
+          case "validation-client":
+          // io() is usable in client components, resolve immediately.
+          // The reason we take this position is most io shielding you would do
+          // in a browser is for sync IO as there aren't many non-fetch based IO
+          // operations you can do in the browser that have meaningful latency.
+          // So while you might use
+          // ...
+          // intentional fallthrough
+          case "prerender-legacy":
+            return resolvedIOPromise;
+          default:
+            workUnitStore;
+        }
+      }
+      return resolvedIOPromise;
+    }
+  }
+});
+
 // node_modules/next/dist/server/use-cache/cache-life.js
 var require_cache_life = __commonJS({
   "node_modules/next/dist/server/use-cache/cache-life.js"(exports2) {
@@ -102817,65 +104931,9 @@ var require_cache_life = __commonJS({
         return cacheLife;
       }
     });
-    var _invarianterror = require_invariant_error();
     var _workasyncstorageexternal = require_work_async_storage_external();
     var _workunitasyncstorageexternal = require_work_unit_async_storage_external();
-    function validateCacheLife(profile) {
-      if (profile.stale !== void 0) {
-        if (profile.stale === false) {
-          throw Object.defineProperty(new Error("Pass `Infinity` instead of `false` if you want to cache on the client forever without checking with the server."), "__NEXT_ERROR_CODE", {
-            value: "E407",
-            enumerable: false,
-            configurable: true
-          });
-        } else if (typeof profile.stale !== "number") {
-          throw Object.defineProperty(new Error("The stale option must be a number of seconds."), "__NEXT_ERROR_CODE", {
-            value: "E308",
-            enumerable: false,
-            configurable: true
-          });
-        }
-      }
-      if (profile.revalidate !== void 0) {
-        if (profile.revalidate === false) {
-          throw Object.defineProperty(new Error("Pass `Infinity` instead of `false` if you do not want to revalidate by time."), "__NEXT_ERROR_CODE", {
-            value: "E104",
-            enumerable: false,
-            configurable: true
-          });
-        } else if (typeof profile.revalidate !== "number") {
-          throw Object.defineProperty(new Error("The revalidate option must be a number of seconds."), "__NEXT_ERROR_CODE", {
-            value: "E233",
-            enumerable: false,
-            configurable: true
-          });
-        }
-      }
-      if (profile.expire !== void 0) {
-        if (profile.expire === false) {
-          throw Object.defineProperty(new Error("Pass `Infinity` instead of `false` if you want to cache on the server forever without checking with the origin."), "__NEXT_ERROR_CODE", {
-            value: "E658",
-            enumerable: false,
-            configurable: true
-          });
-        } else if (typeof profile.expire !== "number") {
-          throw Object.defineProperty(new Error("The expire option must be a number of seconds."), "__NEXT_ERROR_CODE", {
-            value: "E3",
-            enumerable: false,
-            configurable: true
-          });
-        }
-      }
-      if (profile.revalidate !== void 0 && profile.expire !== void 0) {
-        if (profile.revalidate > profile.expire) {
-          throw Object.defineProperty(new Error("If providing both the revalidate and expire options, the expire option must be greater than the revalidate option. The expire option indicates how many seconds from the start until it can no longer be used."), "__NEXT_ERROR_CODE", {
-            value: "E656",
-            enumerable: false,
-            configurable: true
-          });
-        }
-      }
-    }
+    var _cachelifeprofile = require_cache_life_profile();
     function cacheLife(profile) {
       if (!process.env.__NEXT_USE_CACHE) {
         throw Object.defineProperty(new Error("`cacheLife()` is only available with the `cacheComponents` config."), "__NEXT_ERROR_CODE", {
@@ -102916,13 +104974,6 @@ var require_cache_life = __commonJS({
             configurable: true
           });
         }
-        if (!workStore.cacheLifeProfiles) {
-          throw Object.defineProperty(new _invarianterror.InvariantError("`cacheLifeProfiles` should always be provided."), "__NEXT_ERROR_CODE", {
-            value: "E817",
-            enumerable: false,
-            configurable: true
-          });
-        }
         const configuredProfile = workStore.cacheLifeProfiles[profile];
         if (configuredProfile === void 0) {
           if (workStore.cacheLifeProfiles[profile.trim()]) {
@@ -102952,7 +105003,9 @@ module.exports = {
           configurable: true
         });
       } else {
-        validateCacheLife(profile);
+        profile = (0, _cachelifeprofile.validateAndNormalizeCacheLifeProfile)(profile, {
+          kind: "inline"
+        });
       }
       if (profile.revalidate !== void 0) {
         if (workUnitStore.explicitRevalidate === void 0 || workUnitStore.explicitRevalidate > profile.revalidate) {
@@ -103048,6 +105101,7 @@ var require_cache4 = __commonJS({
         },
         unstable_noStore: function unstable_noStore() {
         },
+        io: require_io_browser().io,
         updateTag: notAvailableInClient("updateTag"),
         revalidateTag: notAvailableInClient("revalidateTag"),
         revalidatePath: notAvailableInClient("revalidatePath"),
@@ -103063,6 +105117,7 @@ var require_cache4 = __commonJS({
         revalidatePath: require_revalidate().revalidatePath,
         refresh: require_revalidate().refresh,
         unstable_noStore: require_unstable_no_store().unstable_noStore,
+        io: require_io().io,
         cacheLife: require_cache_life().cacheLife,
         cacheTag: require_cache_tag().cacheTag
       };
@@ -103102,6 +105157,7 @@ var require_cache4 = __commonJS({
     exports2.cacheTag = cacheExports.cacheTag;
     exports2.unstable_cacheTag = cacheExports.unstable_cacheTag;
     exports2.refresh = cacheExports.refresh;
+    exports2.io = cacheExports.io;
   }
 });
 
@@ -103129,7 +105185,7 @@ __export2(settings_exports, {
   SettingsManager: () => SettingsManager,
   SettingsProvider: () => SettingsProvider
 });
-var import_cache, localSettingsCache, CACHE_TTL_MS, SettingsProvider, SettingsManager;
+var import_cache, localSettingsCache, tenantRecordIdMemoryCache, CACHE_TTL_MS, SettingsProvider, SettingsManager;
 var init_settings = __esm({
   "src/lib/settings.ts"() {
     "use strict";
@@ -103138,6 +105194,7 @@ var init_settings = __esm({
     import_cache = __toESM(require_cache4());
     init_tenant_resolver_edge();
     localSettingsCache = {};
+    tenantRecordIdMemoryCache = /* @__PURE__ */ new Map();
     CACHE_TTL_MS = 60 * 1e3;
     SettingsProvider = class _SettingsProvider {
       static isTestEnvironment() {
@@ -103154,10 +105211,13 @@ var init_settings = __esm({
           const cleanSlug = normalizeTenantId(tenantId) || "smmplan";
           delete localSettingsCache[cleanSlug];
           delete localSettingsCache[tenantId];
+          tenantRecordIdMemoryCache.delete(cleanSlug);
+          tenantRecordIdMemoryCache.delete(tenantId);
         } else {
           for (const k of Object.keys(localSettingsCache)) {
             delete localSettingsCache[k];
           }
+          tenantRecordIdMemoryCache.clear();
         }
       }
       /**
@@ -103232,8 +105292,14 @@ var init_settings = __esm({
        */
       static async resolveTenantRecordId(tenantSlug) {
         const slug = normalizeTenantId(tenantSlug) || "smmplan";
+        const cachedId = tenantRecordIdMemoryCache.get(slug);
+        if (cachedId) return cachedId;
         const tenant = await db.tenant.findUnique({ where: { slug } }) || await db.tenant.findFirst({ where: { slug: "smmplan" } }) || await db.tenant.findFirst();
-        if (tenant) return tenant.id;
+        if (tenant) {
+          tenantRecordIdMemoryCache.set(slug, tenant.id);
+          return tenant.id;
+        }
+        tenantRecordIdMemoryCache.set(slug, slug);
         return slug;
       }
       /**
@@ -140105,6 +142171,7 @@ var init_deposit_wizard = __esm({
     import_telegraf = __toESM(require_lib4());
     init_db();
     init_unified_payment_service();
+    init_seo_helpers();
     init_menu_navigation();
     DEPOSIT_WIZARD = "deposit-wizard";
     botTenantId = process.env.BOT_TENANT_ID || "smmplan";
@@ -140208,7 +142275,7 @@ var init_deposit_wizard = __esm({
           return ctx.scene.leave();
         }
         await ctx.editMessageText("\u{1F504} \u0421\u043E\u0437\u0434\u0430\u044E \u043F\u043B\u0430\u0442\u0435\u0436, \u043F\u043E\u0434\u043E\u0436\u0434\u0438\u0442\u0435...");
-        const siteName = botTenantId === "flux" || botTenantId === "lovable" ? "SMMflux" : "SMMplan";
+        const siteName = normalizeTenantId2(botTenantId) === "flux" ? "SMMflux" : "SMMplan";
         const res = await UnifiedPaymentService.createPayment(
           void 0,
           user.id,
@@ -140350,6 +142417,7 @@ var init_referral_wizard = __esm({
     import_telegraf2 = __toESM(require_lib4());
     init_get_base_url();
     init_db();
+    init_seo_helpers();
     REFERRAL_WIZARD = "referral-wizard";
     botTenantId2 = process.env.BOT_TENANT_ID || "smmplan";
     referralWizard = new import_telegraf2.Scenes.WizardScene(
@@ -140377,7 +142445,7 @@ var init_referral_wizard = __esm({
             });
             user.referralCode = newCode;
           }
-          const host = botTenantId2 === "flux" || botTenantId2 === "lovable" ? process.env.FLUX_APP_URL || "https://smmflux.ru" : getBaseUrlSync();
+          const host = normalizeTenantId2(botTenantId2) === "flux" ? process.env.FLUX_APP_URL || "https://smmflux.ru" : getBaseUrlSync();
           const link = `${host}/?ref=${user.referralCode}`;
           const earned = (user.referralBalance ?? 0) / 100;
           const refsCount = user._count?.referrals ?? 0;
@@ -144730,7 +146798,7 @@ async function sendUserTransactions(ctx) {
   await ctx.reply(text, { parse_mode: "HTML" });
 }
 async function sendBindInstructions(ctx) {
-  const host = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || (botTenantId4 === "flux" || botTenantId4 === "lovable" ? "https://smmflux.ru" : "https://test.smmplan.pro");
+  const host = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || (normalizeTenantId2(botTenantId4) === "flux" ? "https://smmflux.ru" : "https://test.smmplan.pro");
   await ctx.reply(
     `\u{1F517} <b>\u0421\u0432\u044F\u0437\u044B\u0432\u0430\u043D\u0438\u0435 \u0430\u043A\u043A\u0430\u0443\u043D\u0442\u0430 ${botSiteName}</b>
 
@@ -145082,6 +147150,7 @@ var init_bot = __esm({
     init_db();
     init_wallet_ops();
     init_admin_audit();
+    init_seo_helpers();
     init_order_wizard();
     init_deposit_wizard();
     init_referral_wizard();
@@ -145112,7 +147181,7 @@ var init_bot = __esm({
       }
     });
     botTenantId4 = process.env.BOT_TENANT_ID || "smmplan";
-    botSiteName = botTenantId4 === "flux" || botTenantId4 === "lovable" ? "SMMflux" : "SMMplan";
+    botSiteName = normalizeTenantId2(botTenantId4) === "flux" ? "SMMflux" : "SMMplan";
     stage = new import_telegraf5.Scenes.Stage([
       orderWizard,
       depositWizard,

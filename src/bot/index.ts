@@ -29,6 +29,7 @@ import { Scenes, session, Telegraf, Markup } from 'telegraf';
 import { db } from '@/lib/db';
 import { WalletOps } from '@/services/financial/wallet-ops';
 import { auditAdminAwaitable } from '@/lib/admin-audit';
+import { normalizeTenantId } from '@/lib/seo-helpers';
 import type { BotContext } from './types/bot-context';
 
 function sanitizeTelegramTemplate(template: string): string {
@@ -63,7 +64,7 @@ export const bot = new Telegraf<BotContext>(TOKEN || 'dummy_token', {
 });
 
 const botTenantId = process.env.BOT_TENANT_ID || 'smmplan';
-const botSiteName = (botTenantId === 'flux' || botTenantId === 'lovable') ? 'SMMflux' : 'SMMplan';
+const botSiteName = normalizeTenantId(botTenantId) === 'flux' ? 'SMMflux' : 'SMMplan';
 
 // ── STAGE ──
 const stage = new Scenes.Stage<BotContext>([
@@ -883,7 +884,7 @@ bot.action('my_tx', async (ctx: BotContext) => {
 bot.command('transactions', sendUserTransactions);
 
 async function sendBindInstructions(ctx: BotContext) {
-  const host = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || (botTenantId === 'flux' || botTenantId === 'lovable' ? 'https://smmflux.ru' : 'https://test.smmplan.pro');
+  const host = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || (normalizeTenantId(botTenantId) === 'flux' ? 'https://smmflux.ru' : 'https://test.smmplan.pro');
   await ctx.reply(
     `🔗 <b>Связывание аккаунта ${botSiteName}</b>\n\n` +
     `Привяжите Telegram к сайту, чтобы синхронизировать баланс, получать уведомления о заказах и обращаться в поддержку без задержек.\n\n` +

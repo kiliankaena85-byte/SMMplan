@@ -104,7 +104,7 @@ export class SmartDripService {
         success: true,
         basePriceCents,
         finalPriceCents,
-        providerCostCents: pricing.providerCostCents,
+        providerCostCents: pricing.providerCostCents ?? 0,
         markup,
       };
         } catch (err: unknown) {

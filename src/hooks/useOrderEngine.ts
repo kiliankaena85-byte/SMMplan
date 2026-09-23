@@ -318,6 +318,30 @@ export function useOrderEngine(
   const categoryServicesCache = useRef<Record<string, PublicService[]>>(
     initialCategoryId && initialServices.length > 0 ? { [initialCategoryId]: initialServices } : {}
   );
+  const prefetchingRef = useRef<Set<string>>(new Set());
+
+  const prefetchCategory = useCallback((targetCatId: string) => {
+    if (!targetCatId || categoryServicesCache.current[targetCatId] || prefetchingRef.current.has(targetCatId)) {
+      return;
+    }
+    prefetchingRef.current.add(targetCatId);
+    getServicesByCategoryAction(targetCatId)
+      .then(svcs => {
+        if (svcs && svcs.length > 0) {
+          const sortedSvcs = [...svcs].sort((a, b) => {
+            const aQuarantined = a.cooldownUntil && new Date(a.cooldownUntil) > new Date();
+            const bQuarantined = b.cooldownUntil && new Date(b.cooldownUntil) > new Date();
+            if (aQuarantined && !bQuarantined) return 1;
+            if (!aQuarantined && bQuarantined) return -1;
+            return 0;
+          });
+          categoryServicesCache.current[targetCatId] = sortedSvcs;
+        }
+      })
+      .catch(() => {
+        prefetchingRef.current.delete(targetCatId);
+      });
+  }, []);
   
   useEffect(() => {
     selectedServiceRef.current = selectedService;
@@ -520,6 +544,22 @@ export function useOrderEngine(
         }
      }
   }, [networkId, catalog, categoryId, suggestedCategories, detectedType, url]);
+
+  // 2.7 Idle prefetch of popular categories for active network
+  useEffect(() => {
+    if (!networkId || catalog.length === 0) return;
+    const net = catalog.find(n => n.id === networkId);
+    if (!net) return;
+    const topCats = net.categories.slice(0, 4);
+    const timer = setTimeout(() => {
+      topCats.forEach(cat => {
+        if (cat.id !== categoryId) {
+          prefetchCategory(cat.id);
+        }
+      });
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [networkId, catalog, categoryId, prefetchCategory]);
 
   // 3. Load Services when Category changes
   useEffect(() => {
@@ -986,6 +1026,7 @@ export function useOrderEngine(
     
 
     // Methods
+    prefetchCategory,
     validate,
     resetOrder: useCallback(() => {
       setUrl("");

@@ -1,3 +1,17 @@
+- [x] ⚡ [AUDIT-REMEDIATION-TS-FINANCE-BRAND-2026] Комплексное устранение дефектов аудита (TS2322, финансовый аудит, бренд lovable, мульти-тенантность аналитики, Server Actions) (100% COMPLETE & VERIFIED):
+  * 🛠️ **Устранение ошибок компиляции TypeScript (TS2322):**
+    - Внедрены нуль-безопасные фоллбеки `providerCostCents ?? 0` во всех 5 точках формирования заказов (`api/v2/route.ts`, `smart-drip.service.ts`, `checkout.ts`).
+  * 💰 **Финансовый аудит (AGENTS.md Invariant):**
+    - В `src/actions/support/ticket.ts` неблокирующий вызов заменен на обязательный `await auditAdminAwaitable({...})` при `TICKET_BULK_REFUND`.
+  * 🏷️ **Ликвидация фантомного бренда 'lovable':**
+    - В Telegram-боте (`index.ts`, `deposit.wizard.ts`, `referral.wizard.ts`, `role-handlers.ts`) прямые проверки `=== 'lovable'` заменены на канонический `normalizeTenantId(...) === 'flux'`.
+  * 🏢 **Изоляция мульти-тенантности в аналитике:**
+    - В `analytics.service.ts` защищен фильтр `isSingleTenant = Boolean(tenantId && tenantId !== 'all')`.
+  * 🧪 **Верификация & CI-контроль:**
+    - `npx tsc --noEmit` — 0 ошибок (код выхода 0).
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
+    - `npm run lint:tenant` — 0 блокеров.
+    - Бандлы `dist/bot.js` (5.7 MB) и `dist/worker.js` (6.6 MB) успешно пересобраны.
 - [x] ⚡ [CATALOG-CATEGORY-SWITCH-UX-STABILIZATION-2026] Ликвидация мерцающих скелетонов и стабилизация смены категорий каталога (100% COMPLETE & LIVE):
   * 🎯 **Паттерн Stale-While-Revalidate в `useOrderEngine.ts`:**
     - Устранено принудительное уничтожение карточек (`setServices([])`) при переключении категорий.

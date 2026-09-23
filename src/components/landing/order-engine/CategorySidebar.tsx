@@ -63,6 +63,8 @@ export function CategorySidebar({ engine }: { engine: OrderEngine }) {
       {sortedCategories.map(cat => (
         <button
           key={cat.id}
+          onMouseEnter={() => engine.prefetchCategory?.(cat.id)}
+          onTouchStart={() => engine.prefetchCategory?.(cat.id)}
           onClick={(e) => {
             e.preventDefault();
             engine.setSelectedService(null);
