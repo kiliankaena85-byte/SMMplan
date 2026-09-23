@@ -141,7 +141,7 @@ export function MobileStep4Checkout({
 
   return (
     <motion.div
-      id="step-4"
+      data-step="4"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}

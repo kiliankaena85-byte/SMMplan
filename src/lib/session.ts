@@ -103,7 +103,9 @@ export async function createSession(userId: string, canResetPassword: boolean = 
   return { sessionToken, expiresAt };
 }
 
-export async function verifySession(requiredTenantId?: string): Promise<{ userId: string; canResetPassword?: boolean; role?: string; tenantId?: string } | null> {
+import { cache } from 'react';
+
+export const verifySession = cache(async (requiredTenantId?: string): Promise<{ userId: string; canResetPassword?: boolean; role?: string; tenantId?: string } | null> => {
   let sessionToken: string | undefined;
   try {
     const cookieStore = await cookies();
@@ -299,7 +301,7 @@ export async function verifySession(requiredTenantId?: string): Promise<{ userId
     console.warn('[verifySession] JWT verification failed:', err instanceof Error ? err.message : 'Unknown error');
     return null;
   }
-}
+});
 
 // Startup assert: ensure DEV_AUTO_LOGIN is NEVER enabled outside test environment
 if (

@@ -569,11 +569,8 @@ export function useOrderEngine(
       return;
     }
 
-    // Clear and set loading state for fresh category fetch (preserve selectedService if user is checking out)
-    setServices([]);
-    if (!selectedServiceRef.current) {
-      setSelectedService(null);
-    }
+    // Keep stale services while loading to prevent layout collapse and scroll jumps
+    setSelectedService(null);
 
     const currentRequestId = ++serviceRequestIdRef.current;
 

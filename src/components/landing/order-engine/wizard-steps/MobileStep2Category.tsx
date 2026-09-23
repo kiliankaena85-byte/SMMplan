@@ -65,7 +65,7 @@ export function MobileStep2Category({
 
   return (
     <motion.div
-      id="step-2"
+      data-step="2"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}

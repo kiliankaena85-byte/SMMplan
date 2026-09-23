@@ -203,6 +203,7 @@ export default async function ServicesCatalogPage() {
                       <Link
                         key={net.id}
                         href={`/services/${net.slug}`}
+                        scroll={false}
                         className="group p-4 bg-muted/40 border border-transparent rounded-2xl transition-all duration-200 text-center flex flex-col items-center justify-center gap-2 hover:border-primary/30 hover:bg-primary/5 hover:text-primary h-28"
                       >
                         <div className="p-2.5 rounded-xl bg-card border border-border group-hover:border-transparent text-muted-foreground group-hover:text-inherit transition-all shadow-sm">

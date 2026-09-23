@@ -1,3 +1,19 @@
+- [x] ⚡ [QUANTITY-STEPPER-TYPING-REMEDIATION-2026] Устранение дефекта жесткой блокировки ввода количества и привязки к минимальному значению в чекауте (100% COMPLETE & VERIFIED):
+  * 🔓 **Устранение агрессивного кейстрок-сброса (`PlanFullscreenCheckout.tsx`):**
+    - Из `PlanFullscreenCheckout` удален непрерывный `useEffect`, отслеживавший `quantity` при каждом нажатии клавиши и сбрасывавший ввод в `minQty`.
+    - Базовая инициализация объема привязана строго к смене услуги `[selectedService.id, minQty]`.
+  * 🎛️ **Свободный ввод, двухфазная нормализация и адаптивный степпер (`PlanCheckoutQuantity.tsx`):**
+    - В `onChange` пользователь может свободно стирать текст и вводить промежуточные значения; отсекаются значения больше `maxQty`.
+    - Нормализация диапазона (`clampOrderQuantity`) перенесена на событие потери фокуса `onBlur`.
+    - Шаг степпера сделан адаптивным: `step = minQty < 100 ? Math.max(1, minQty) : 100` (для услуг с `minQty = 10` шаг равен `10`).
+    - Кнопки `–` и `+` блокируются (`disabled`) при достижении лимитов `effectiveMinQty` и `maxQty`.
+    - Добавлена мягкая инлайн-подсветка (`border-destructive`) и текст подсказки при заниженном количестве без блокировки ввода.
+  * 🧪 **Верификация & CI/CD:**
+    - Сьют `plan-checkout-quantity-stepper-and-typing.test.tsx` (6 из 6 тестов) — 100% PASS.
+    - Сьют `plan-fullscreen-checkout.test.tsx` (7 из 7 тестов) — 100% PASS.
+    - Сьют `component-size-hygiene.test.ts` (26 из 26 тестов) — 100% PASS (`PlanCheckoutQuantity` — 193 строки, `PlanFullscreenCheckout` — 190 строк $\le 200$).
+    - `npx tsc --noEmit` — 0 ошибок компиляции.
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
 - [x] ⚡ [AUTH-COOKIE-CONSENT-AUTOCONFIRM-2026] Автоматическое подтверждение Cookie (152-ФЗ) при авторизации и устранение плашки в /dashboard (100% COMPLETE & VERIFIED):
   * 🍪 **Серверная авто-установка (`src/lib/session.ts` & `/api/auth/verify/route.ts`):**
     - При входе / регистрации / Magic Link сервер вместе с `session_token` выставляет `cookie_consent=true` (1 год, SameSite=Lax, httpOnly=false).

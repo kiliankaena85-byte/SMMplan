@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { OrderEngine } from "@/hooks/useOrderEngine";
 import { CategoryIcon, cleanCategoryName } from "@/components/ui/CategoryIcon";
 import { ChevronRight } from "lucide-react";
@@ -41,6 +42,7 @@ function getCategoryDemandScore(name: string): number {
 
 export function CategorySidebar({ engine }: { engine: OrderEngine }) {
   const { availableCategories, categoryId, setCategoryId } = engine;
+  const router = useRouter();
   
   if (availableCategories.length === 0) {
     return null;
@@ -69,7 +71,7 @@ export function CategorySidebar({ engine }: { engine: OrderEngine }) {
             setCategoryId(cat.id);
             if (typeof window !== 'undefined' && cat.slug) {
               const netSlug = engine.activeNetwork?.slug || 'services';
-              window.history.replaceState(null, '', `/services/${netSlug}/${cat.slug}`);
+              router.replace(`/services/${netSlug}/${cat.slug}`, { scroll: false });
             }
           }}
           className={`text-left px-5 py-3 lg:py-4 rounded-full lg:rounded-[1.5rem] text-[15px] font-bold transition-all duration-200 whitespace-nowrap lg:whitespace-normal shrink-0 lg:shrink group flex items-center justify-between active:scale-95 ${

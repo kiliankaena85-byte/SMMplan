@@ -9760,7 +9760,7 @@ var require_session = __commonJS({
       const prop = (_a = options === null || options === void 0 ? void 0 : options.property) !== null && _a !== void 0 ? _a : "session";
       const getSessionKey = (_b = options === null || options === void 0 ? void 0 : options.getSessionKey) !== null && _b !== void 0 ? _b : defaultGetSessionKey;
       const store = (_c = options === null || options === void 0 ? void 0 : options.store) !== null && _c !== void 0 ? _c : new MemorySessionStore();
-      const cache = /* @__PURE__ */ new Map();
+      const cache2 = /* @__PURE__ */ new Map();
       const concurrents = /* @__PURE__ */ new Map();
       return async (ctx, next) => {
         var _a2;
@@ -9775,7 +9775,7 @@ var require_session = __commonJS({
           ctx[prop] = void 0;
           return await next();
         }
-        let cached = cache.get(key);
+        let cached = cache2.get(key);
         if (cached) {
           debug4(`(${updId}) found cached session, reusing from cache`);
           ++cached.counter;
@@ -9792,13 +9792,13 @@ var require_session = __commonJS({
           const upstream = await promise;
           concurrents.delete(key);
           debug4(`(${updId}) updating cache`);
-          const c2 = cache.get(key);
+          const c2 = cache2.get(key);
           if (c2) {
             c2.counter++;
             cached = c2;
           } else {
             cached = { ref: upstream !== null && upstream !== void 0 ? upstream : (_a2 = options === null || options === void 0 ? void 0 : options.defaultSession) === null || _a2 === void 0 ? void 0 : _a2.call(options, ctx), counter: 1 };
-            cache.set(key, cached);
+            cache2.set(key, cached);
           }
         }
         const c = cached;
@@ -9821,7 +9821,7 @@ var require_session = __commonJS({
         } finally {
           if (--c.counter === 0) {
             debug4(`(${updId}) refcounter reached 0, removing cached`);
-            cache.delete(key);
+            cache2.delete(key);
           }
           debug4(`(${updId}) middlewares completed, checking session`);
           if (touched)
@@ -13991,9 +13991,9 @@ var require_create_deduped_by_callsite_server_error_logger = __commonJS({
           default: obj
         };
       }
-      var cache2 = _getRequireWildcardCache(nodeInterop);
-      if (cache2 && cache2.has(obj)) {
-        return cache2.get(obj);
+      var cache3 = _getRequireWildcardCache(nodeInterop);
+      if (cache3 && cache3.has(obj)) {
+        return cache3.get(obj);
       }
       var newObj = {
         __proto__: null
@@ -14010,17 +14010,17 @@ var require_create_deduped_by_callsite_server_error_logger = __commonJS({
         }
       }
       newObj.default = obj;
-      if (cache2) {
-        cache2.set(obj, newObj);
+      if (cache3) {
+        cache3.set(obj, newObj);
       }
       return newObj;
     }
     var errorRef = {
       current: null
     };
-    var cache = typeof _react.cache === "function" ? _react.cache : (fn) => fn;
+    var cache2 = typeof _react.cache === "function" ? _react.cache : (fn) => fn;
     var logErrorOrWarn = process.env.__NEXT_CACHE_COMPONENTS ? console.error : console.warn;
-    var flushCurrentErrorIfNew = cache(
+    var flushCurrentErrorIfNew = cache2(
       // eslint-disable-next-line @typescript-eslint/no-unused-vars -- cache key
       (key) => {
         try {
@@ -18247,9 +18247,9 @@ var require_dedupe_fetch = __commonJS({
           default: obj
         };
       }
-      var cache = _getRequireWildcardCache(nodeInterop);
-      if (cache && cache.has(obj)) {
-        return cache.get(obj);
+      var cache2 = _getRequireWildcardCache(nodeInterop);
+      if (cache2 && cache2.has(obj)) {
+        return cache2.get(obj);
       }
       var newObj = {
         __proto__: null
@@ -18266,8 +18266,8 @@ var require_dedupe_fetch = __commonJS({
         }
       }
       newObj.default = obj;
-      if (cache) {
-        cache.set(obj, newObj);
+      if (cache2) {
+        cache2.set(obj, newObj);
       }
       return newObj;
     }
@@ -20434,15 +20434,15 @@ var require_normalize_locale_path = __commonJS({
         return normalizeLocalePath;
       }
     });
-    var cache = /* @__PURE__ */ new WeakMap();
+    var cache2 = /* @__PURE__ */ new WeakMap();
     function normalizeLocalePath(pathname, locales) {
       if (!locales) return {
         pathname
       };
-      let lowercasedLocales = cache.get(locales);
+      let lowercasedLocales = cache2.get(locales);
       if (!lowercasedLocales) {
         lowercasedLocales = locales.map((locale) => locale.toLowerCase());
-        cache.set(locales, lowercasedLocales);
+        cache2.set(locales, lowercasedLocales);
       }
       let detectedLocale;
       const segments = pathname.split("/", 2);
@@ -22571,9 +22571,9 @@ var require_patch_fetch = __commonJS({
           }
           if ((workStore.isStaticGeneration || process.env.NODE_ENV === "development" && process.env.__NEXT_CACHE_COMPONENTS && workUnitStore && // eslint-disable-next-line no-restricted-syntax
           workUnitStore.type === "request" && workUnitStore.stagedRendering) && init && typeof init === "object") {
-            const { cache } = init;
+            const { cache: cache2 } = init;
             if (isEdgeRuntime) delete init.cache;
-            if (cache === "no-store") {
+            if (cache2 === "no-store") {
               if (workUnitStore) {
                 switch (workUnitStore.type) {
                   case "prerender":
@@ -33785,7 +33785,7 @@ var init_redis = __esm({
     redis = globalForRedis.redis || new import_ioredis.Redis(redisUrl, {
       maxRetriesPerRequest: process.env.NODE_ENV === "test" ? null : 3,
       connectTimeout: 5e3,
-      lazyConnect: true,
+      lazyConnect: process.env.NODE_ENV !== "production",
       retryStrategy: (times) => calculateRedisRetryDelay(times, process.env.NODE_ENV)
     });
     if (process.env.NODE_ENV !== "production") globalForRedis.redis = redis;
@@ -33801,10 +33801,11 @@ __export2(settings_exports, {
   SettingsManager: () => SettingsManager,
   SettingsProvider: () => SettingsProvider
 });
-var import_cache, localSettingsCache, CACHE_TTL_MS, SettingsProvider, SettingsManager;
+var import_react, import_cache, localSettingsCache, CACHE_TTL_MS, SettingsProvider, SettingsManager;
 var init_settings = __esm({
   "src/lib/settings.ts"() {
     "use strict";
+    import_react = __toESM(require_react_react_server());
     init_db();
     init_vault();
     import_cache = __toESM(require_cache());
@@ -33899,107 +33900,111 @@ var init_settings = __esm({
         if (settings) return settings;
         return this.get(activeTenantId);
       }
-      /**
-       * Helper to resolve the Tenant model ID from a tenant slug.
-       */
-      static async resolveTenantRecordId(tenantSlug) {
-        const slug = normalizeTenantId(tenantSlug) || "smmplan";
-        const tenant = await db.tenant.findUnique({ where: { slug } }) || await db.tenant.findFirst({ where: { slug: "smmplan" } }) || await db.tenant.findFirst();
-        if (tenant) return tenant.id;
-        return slug;
+      static {
+        /**
+         * Helper to resolve the Tenant model ID from a tenant slug.
+         */
+        this.resolveTenantRecordId = (0, import_react.cache)(async (tenantSlug) => {
+          const slug = normalizeTenantId(tenantSlug) || "smmplan";
+          const tenant = await db.tenant.findUnique({ where: { slug } }) || await db.tenant.findFirst({ where: { slug: "smmplan" } }) || await db.tenant.findFirst();
+          if (tenant) return tenant.id;
+          return slug;
+        });
       }
-      /**
-       * Safe wrapper around getCached that self-heals when Next.js incrementalCache is missing (CLI/workers)
-       */
-      static async get(tenantId) {
-        const rawId = tenantId || await this.getTenantId();
-        const normalizedSlug = normalizeTenantId(rawId) || "smmplan";
-        const targetTenantId = await this.resolveTenantRecordId(normalizedSlug);
-        try {
-          if (_SettingsProvider.isTestEnvironment()) {
-            delete localSettingsCache[targetTenantId];
-            const fresh = await db.systemSettings.findUnique({ where: { id: targetTenantId } });
-            if (fresh) return fresh;
-            return await db.systemSettings.upsert({
-              where: { id: targetTenantId },
-              update: {},
-              create: { id: targetTenantId, taxRate: 6, opexMonthly: 0, maintenanceMode: false, isTestMode: true, siteName: normalizedSlug === "flux" ? "SMMflux" : "SMMplan", exchangeRateUSD: 95 }
-            });
-          }
+      static {
+        /**
+         * Safe wrapper around getCached that self-heals when Next.js incrementalCache is missing (CLI/workers)
+         */
+        this.get = (0, import_react.cache)(async (tenantId) => {
+          const rawId = tenantId || await this.getTenantId();
+          const normalizedSlug = normalizeTenantId(rawId) || "smmplan";
+          const targetTenantId = await this.resolveTenantRecordId(normalizedSlug);
           try {
-            return await this.getCached(normalizedSlug);
-          } catch (err) {
-            const errMessage = err instanceof Error ? err.message : String(err);
-            if (errMessage.includes("incrementalCache") || errMessage.includes("Invariant")) {
-              const now = Date.now();
-              const cached = localSettingsCache[targetTenantId];
-              if (cached && cached.expiresAt > now) {
-                return cached.data;
-              }
-              let settings = await db.systemSettings.findUnique({ where: { id: targetTenantId } });
-              if (!settings) {
-                settings = await db.systemSettings.upsert({
-                  where: { id: targetTenantId },
-                  update: {},
-                  create: { id: targetTenantId, taxRate: 6, opexMonthly: 0, maintenanceMode: false, isTestMode: _SettingsProvider.isTestEnvironment(), siteName: normalizedSlug === "flux" ? "SMMflux" : "SMMplan", exchangeRateUSD: 95 }
-                });
-              }
-              localSettingsCache[targetTenantId] = { data: settings, expiresAt: now + CACHE_TTL_MS };
-              return settings;
+            if (_SettingsProvider.isTestEnvironment()) {
+              delete localSettingsCache[targetTenantId];
+              const fresh = await db.systemSettings.findUnique({ where: { id: targetTenantId } });
+              if (fresh) return fresh;
+              return await db.systemSettings.upsert({
+                where: { id: targetTenantId },
+                update: {},
+                create: { id: targetTenantId, taxRate: 6, opexMonthly: 0, maintenanceMode: false, isTestMode: true, siteName: normalizedSlug === "flux" ? "SMMflux" : "SMMplan", exchangeRateUSD: 95 }
+              });
             }
-            throw err;
+            try {
+              return await this.getCached(normalizedSlug);
+            } catch (err) {
+              const errMessage = err instanceof Error ? err.message : String(err);
+              if (errMessage.includes("incrementalCache") || errMessage.includes("Invariant")) {
+                const now = Date.now();
+                const cached = localSettingsCache[targetTenantId];
+                if (cached && cached.expiresAt > now) {
+                  return cached.data;
+                }
+                let settings = await db.systemSettings.findUnique({ where: { id: targetTenantId } });
+                if (!settings) {
+                  settings = await db.systemSettings.upsert({
+                    where: { id: targetTenantId },
+                    update: {},
+                    create: { id: targetTenantId, taxRate: 6, opexMonthly: 0, maintenanceMode: false, isTestMode: _SettingsProvider.isTestEnvironment(), siteName: normalizedSlug === "flux" ? "SMMflux" : "SMMplan", exchangeRateUSD: 95 }
+                  });
+                }
+                localSettingsCache[targetTenantId] = { data: settings, expiresAt: now + CACHE_TTL_MS };
+                return settings;
+              }
+              throw err;
+            }
+          } catch (dbErr) {
+            const dbErrMsg = dbErr instanceof Error ? dbErr.message : String(dbErr);
+            console.warn(`[SettingsProvider] Failed to fetch system settings for ${normalizedSlug} from DB, using fallback:`, dbErrMsg);
+            const defaultName = normalizedSlug === "flux" ? "SMMflux" : "SMMplan";
+            const defaultEmail = normalizedSlug === "flux" ? "support@smmflux.ru" : "support@smmplan.pro";
+            const defaultPrivacyEmail = normalizedSlug === "flux" ? "privacy@smmflux.ru" : "privacy@smmplan.pro";
+            const defaultBot = normalizedSlug === "flux" ? "smmflux_support_bot" : "smmplan_support_bot";
+            const defaultChannel = normalizedSlug === "flux" ? "smmflux_support" : "smmplan_support";
+            return {
+              id: targetTenantId,
+              taxRate: 6,
+              opexMonthly: 0,
+              maintenanceMode: false,
+              isTestMode: false,
+              siteName: defaultName,
+              siteDescription: "",
+              exchangeRateUSD: 90,
+              contactSupportEmail: defaultEmail,
+              contactPrivacyEmail: defaultPrivacyEmail,
+              contactTelegramBot: defaultBot,
+              contactTelegramChannel: defaultChannel,
+              legalCompanyName: defaultName,
+              legalCompanyInn: "",
+              legalCompanyOgrnip: "",
+              legalCompanyAddress: "",
+              usnScheme: "INCOME_EXPENSES",
+              welcomeMessage: "\u0414\u043E\u0431\u0440\u043E \u043F\u043E\u0436\u0430\u043B\u043E\u0432\u0430\u0442\u044C! \u0412\u0430\u0448 \u043F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u044C\u043D\u044B\u0439 \u043A\u0430\u0431\u0438\u043D\u0435\u0442 \u0433\u043E\u0442\u043E\u0432 \u043A \u0440\u0430\u0431\u043E\u0442\u0435.",
+              yookassaShopId: null,
+              yookassaSecretKey: null,
+              yookassaTestShopId: null,
+              yookassaTestSecretKey: null,
+              cryptoBotToken: null,
+              quarantineThreshold: 0.2,
+              globalMarkup: 3,
+              safetyFloor: 3,
+              exchangeRateUpdatedAt: null,
+              siteLogoUrl: null,
+              siteFaviconUrl: null,
+              emailProvider: "SMTP",
+              resendApiKey: null,
+              smtpHost: null,
+              smtpPort: 465,
+              smtpUser: null,
+              smtpPassword: null,
+              supportEmailDomain: null,
+              inboundEmailWebhookSecret: null,
+              robokassaLogin: null,
+              robokassaPassword: null,
+              updatedAt: /* @__PURE__ */ new Date()
+            };
           }
-        } catch (dbErr) {
-          const dbErrMsg = dbErr instanceof Error ? dbErr.message : String(dbErr);
-          console.warn(`[SettingsProvider] Failed to fetch system settings for ${normalizedSlug} from DB, using fallback:`, dbErrMsg);
-          const defaultName = normalizedSlug === "flux" ? "SMMflux" : "SMMplan";
-          const defaultEmail = normalizedSlug === "flux" ? "support@smmflux.ru" : "support@smmplan.pro";
-          const defaultPrivacyEmail = normalizedSlug === "flux" ? "privacy@smmflux.ru" : "privacy@smmplan.pro";
-          const defaultBot = normalizedSlug === "flux" ? "smmflux_support_bot" : "smmplan_support_bot";
-          const defaultChannel = normalizedSlug === "flux" ? "smmflux_support" : "smmplan_support";
-          return {
-            id: targetTenantId,
-            taxRate: 6,
-            opexMonthly: 0,
-            maintenanceMode: false,
-            isTestMode: false,
-            siteName: defaultName,
-            siteDescription: "",
-            exchangeRateUSD: 90,
-            contactSupportEmail: defaultEmail,
-            contactPrivacyEmail: defaultPrivacyEmail,
-            contactTelegramBot: defaultBot,
-            contactTelegramChannel: defaultChannel,
-            legalCompanyName: defaultName,
-            legalCompanyInn: "",
-            legalCompanyOgrnip: "",
-            legalCompanyAddress: "",
-            usnScheme: "INCOME_EXPENSES",
-            welcomeMessage: "\u0414\u043E\u0431\u0440\u043E \u043F\u043E\u0436\u0430\u043B\u043E\u0432\u0430\u0442\u044C! \u0412\u0430\u0448 \u043F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u044C\u043D\u044B\u0439 \u043A\u0430\u0431\u0438\u043D\u0435\u0442 \u0433\u043E\u0442\u043E\u0432 \u043A \u0440\u0430\u0431\u043E\u0442\u0435.",
-            yookassaShopId: null,
-            yookassaSecretKey: null,
-            yookassaTestShopId: null,
-            yookassaTestSecretKey: null,
-            cryptoBotToken: null,
-            quarantineThreshold: 0.2,
-            globalMarkup: 3,
-            safetyFloor: 3,
-            exchangeRateUpdatedAt: null,
-            siteLogoUrl: null,
-            siteFaviconUrl: null,
-            emailProvider: "SMTP",
-            resendApiKey: null,
-            smtpHost: null,
-            smtpPort: 465,
-            smtpUser: null,
-            smtpPassword: null,
-            supportEmailDomain: null,
-            inboundEmailWebhookSecret: null,
-            robokassaLogin: null,
-            robokassaPassword: null,
-            updatedAt: /* @__PURE__ */ new Date()
-          };
-        }
+        });
       }
       /**
        * Securely decrypts and returns payment API keys.
@@ -34090,32 +34095,34 @@ var init_settings = __esm({
         const settings = await this.get(activeTenantId);
         return settings.supportEmailDomain || process.env.SUPPORT_EMAIL_DOMAIN || "smmplan.pro";
       }
-      /**
-       * Returns all dynamic contact and legal information, completely replacing the old KV store.
-       */
-      static async getContactAndLegalSettings(tenantId) {
-        const activeTenantId = tenantId || await this.getTenantId();
-        const settings = await this.get(activeTenantId);
-        const isFlux = activeTenantId === "flux";
-        const defaultSiteName = isFlux ? "SMMflux" : "SMMplan";
-        const defaultDomain = isFlux ? "smmflux.ru" : "smmplan.pro";
-        return {
-          SITE_NAME: settings.siteName || defaultSiteName,
-          SITE_DESCRIPTION: settings.siteDescription || "",
-          SUPPORT_EMAIL: settings.contactSupportEmail || `support@${defaultDomain}`,
-          PRIVACY_EMAIL: settings.contactPrivacyEmail || `privacy@${defaultDomain}`,
-          TELEGRAM_SUPPORT_BOT: settings.contactTelegramBot || "",
-          TELEGRAM_SUPPORT_CHANNEL: settings.contactTelegramChannel || "",
-          WHATSAPP: settings.contactWhatsApp || "",
-          VK: settings.contactVk || "",
-          COMPANY_NAME: settings.legalCompanyName || defaultSiteName,
-          COMPANY_INN: settings.legalCompanyInn || "",
-          COMPANY_OGRNIP: settings.legalCompanyOgrnip || "",
-          COMPANY_ADDRESS: settings.legalCompanyAddress || "",
-          LEGAL_INN: settings.legalCompanyInn || "",
-          LEGAL_OGRNIP: settings.legalCompanyOgrnip || "",
-          LEGAL_ADDRESS: settings.legalCompanyAddress || ""
-        };
+      static {
+        /**
+         * Returns all dynamic contact and legal information, completely replacing the old KV store.
+         */
+        this.getContactAndLegalSettings = (0, import_react.cache)(async (tenantId) => {
+          const activeTenantId = tenantId || await this.getTenantId();
+          const settings = await this.get(activeTenantId);
+          const isFlux = activeTenantId === "flux";
+          const defaultSiteName = isFlux ? "SMMflux" : "SMMplan";
+          const defaultDomain = isFlux ? "smmflux.ru" : "smmplan.pro";
+          return {
+            SITE_NAME: settings.siteName || defaultSiteName,
+            SITE_DESCRIPTION: settings.siteDescription || "",
+            SUPPORT_EMAIL: settings.contactSupportEmail || `support@${defaultDomain}`,
+            PRIVACY_EMAIL: settings.contactPrivacyEmail || `privacy@${defaultDomain}`,
+            TELEGRAM_SUPPORT_BOT: settings.contactTelegramBot || "",
+            TELEGRAM_SUPPORT_CHANNEL: settings.contactTelegramChannel || "",
+            WHATSAPP: settings.contactWhatsApp || "",
+            VK: settings.contactVk || "",
+            COMPANY_NAME: settings.legalCompanyName || defaultSiteName,
+            COMPANY_INN: settings.legalCompanyInn || "",
+            COMPANY_OGRNIP: settings.legalCompanyOgrnip || "",
+            COMPANY_ADDRESS: settings.legalCompanyAddress || "",
+            LEGAL_INN: settings.legalCompanyInn || "",
+            LEGAL_OGRNIP: settings.legalCompanyOgrnip || "",
+            LEGAL_ADDRESS: settings.legalCompanyAddress || ""
+          };
+        });
       }
       /**
        * Returns the dynamic USD to RUB exchange rate.
@@ -37368,12 +37375,12 @@ var require_levels = __commonJS({
     function genLsCache(instance) {
       const formatter = instance[formattersSym].level;
       const { labels } = instance.levels;
-      const cache = {};
+      const cache2 = {};
       for (const label in labels) {
         const level = formatter(labels[label], Number(label));
-        cache[label] = JSON.stringify(level).slice(0, -1);
+        cache2[label] = JSON.stringify(level).slice(0, -1);
       }
-      instance[lsCacheSym] = cache;
+      instance[lsCacheSym] = cache2;
       return instance;
     }
     function isStandardLevel(level, useOnlyCustomLevels) {
@@ -41072,7 +41079,7 @@ var require_range = __commonJS({
       parseRange(range) {
         const memoOpts = (this.options.includePrerelease && FLAG_INCLUDE_PRERELEASE) | (this.options.loose && FLAG_LOOSE);
         const memoKey = memoOpts + ":" + range;
-        const cached = cache.get(memoKey);
+        const cached = cache2.get(memoKey);
         if (cached) {
           return cached;
         }
@@ -41106,7 +41113,7 @@ var require_range = __commonJS({
           rangeMap.delete("");
         }
         const result = [...rangeMap.values()];
-        cache.set(memoKey, result);
+        cache2.set(memoKey, result);
         return result;
       }
       intersects(range, options) {
@@ -41145,7 +41152,7 @@ var require_range = __commonJS({
     };
     module2.exports = Range;
     var LRU = require_lrucache();
-    var cache = new LRU();
+    var cache2 = new LRU();
     var parseOptions = require_parse_options();
     var Comparator = require_comparator();
     var debug4 = require_debug2();
@@ -125156,8 +125163,8 @@ var require_cache4 = __commonJS({
        * @returns {requestResponseList}
        */
       #batchCacheOperations(operations) {
-        const cache = this.#relevantRequestResponseList;
-        const backupCache = [...cache];
+        const cache2 = this.#relevantRequestResponseList;
+        const backupCache = [...cache2];
         const addedItems = [];
         const resultList = [];
         try {
@@ -125184,9 +125191,9 @@ var require_cache4 = __commonJS({
                 return [];
               }
               for (const requestResponse of requestResponses) {
-                const idx = cache.indexOf(requestResponse);
+                const idx = cache2.indexOf(requestResponse);
                 assert2(idx !== -1);
-                cache.splice(idx, 1);
+                cache2.splice(idx, 1);
               }
             } else if (operation.type === "put") {
               if (operation.response == null) {
@@ -125216,11 +125223,11 @@ var require_cache4 = __commonJS({
               }
               requestResponses = this.#queryCache(operation.request);
               for (const requestResponse of requestResponses) {
-                const idx = cache.indexOf(requestResponse);
+                const idx = cache2.indexOf(requestResponse);
                 assert2(idx !== -1);
-                cache.splice(idx, 1);
+                cache2.splice(idx, 1);
               }
-              cache.push([operation.request, operation.response]);
+              cache2.push([operation.request, operation.response]);
               addedItems.push([operation.request, operation.response]);
             }
             resultList.push([operation.request, operation.response]);
@@ -125397,13 +125404,13 @@ var require_cachestorage = __commonJS({
         if (options.cacheName != null) {
           if (this.#caches.has(options.cacheName)) {
             const cacheList = this.#caches.get(options.cacheName);
-            const cache = new Cache(kConstruct, cacheList);
-            return await cache.match(request, options);
+            const cache2 = new Cache(kConstruct, cacheList);
+            return await cache2.match(request, options);
           }
         } else {
           for (const cacheList of this.#caches.values()) {
-            const cache = new Cache(kConstruct, cacheList);
-            const response = await cache.match(request, options);
+            const cache2 = new Cache(kConstruct, cacheList);
+            const response = await cache2.match(request, options);
             if (response !== void 0) {
               return response;
             }
@@ -125433,12 +125440,12 @@ var require_cachestorage = __commonJS({
         webidl.argumentLengthCheck(arguments, 1, prefix);
         cacheName = webidl.converters.DOMString(cacheName, prefix, "cacheName");
         if (this.#caches.has(cacheName)) {
-          const cache2 = this.#caches.get(cacheName);
-          return new Cache(kConstruct, cache2);
+          const cache3 = this.#caches.get(cacheName);
+          return new Cache(kConstruct, cache3);
         }
-        const cache = [];
-        this.#caches.set(cacheName, cache);
-        return new Cache(kConstruct, cache);
+        const cache2 = [];
+        this.#caches.set(cacheName, cache2);
+        return new Cache(kConstruct, cache2);
       }
       /**
        * @see https://w3c.github.io/ServiceWorker/#cache-storage-delete

@@ -20,7 +20,6 @@ import { db } from "@/lib/db";
 import { headers, cookies } from "next/headers";
 import { normalizeTenantId } from "@/lib/tenant-resolver-edge";
 
-export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
   const settings = await SettingsProvider.getContactAndLegalSettings();
@@ -74,16 +73,12 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
   const isHoldingMode = isHoldingParam || (isProdHost && params.contour !== "test");
 
   let userBalanceCents = 0;
-  const [catalogResult, settings, session, baseUrl] = await Promise.all([
-    getPublicCatalogAction(tenantId),
-    SettingsProvider.getContactAndLegalSettings(),
-    verifySession(),
-    getBaseUrlAsync()
-  ]);
-
-  const catalog = catalogResult.success && catalogResult.data ? catalogResult.data : [];
   
-  // SSR Pre-fetch default category services to eliminate client waterfall latency
+  // 1. Fetch catalog first (cached, very fast)
+  const catalogResult = await getPublicCatalogAction(tenantId);
+  const catalog = catalogResult.success && catalogResult.data ? catalogResult.data : [];
+
+  // 2. Resolve target category for services pre-fetch
   let targetCategoryId = initialCategoryId;
   let targetNetworkId = initialNetworkId;
   if (!targetCategoryId && catalog.length > 0) {
@@ -92,7 +87,14 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
     targetCategoryId = defaultCat?.id;
     targetNetworkId = defaultNet?.id;
   }
-  const initialServices = targetCategoryId ? await getServicesByCategoryAction(targetCategoryId, tenantId) : [];
+
+  // 3. Parallelize settings, session, baseUrl, and services pre-fetch
+  const [settings, session, baseUrl, initialServices] = await Promise.all([
+    SettingsProvider.getContactAndLegalSettings(),
+    verifySession(),
+    getBaseUrlAsync(),
+    targetCategoryId ? getServicesByCategoryAction(targetCategoryId, tenantId) : Promise.resolve([])
+  ]);
 
   const tenantConfig = TENANTS.find(t => t.id === tenantId);
   const siteName = tenantConfig?.name || settings.SITE_NAME || "SMMplan";

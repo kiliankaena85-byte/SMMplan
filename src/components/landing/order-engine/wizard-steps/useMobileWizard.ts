@@ -59,7 +59,8 @@ export function useMobileWizard(engine: OrderEngine) {
   const setActiveStep = useCallback((step: 1 | 2 | 3 | 4) => {
     userManuallyBrowsingRef.current = true;
     setActiveStepRaw(step);
-  }, []);
+    setTimeout(() => scrollToStep(step), 120);
+  }, [scrollToStep]);
 
 
   // Single effect to synchronize browser history outside of React render/setState updaters (B3)
@@ -75,13 +76,13 @@ export function useMobileWizard(engine: OrderEngine) {
     prevStepRef.current = activeStepRaw;
 
     if (activeStepRaw > prevStep) {
-      window.history.pushState({ wizardStep: activeStepRaw }, '', '#step-' + activeStepRaw);
+      window.history.pushState({ wizardStep: activeStepRaw }, '', window.location.pathname + window.location.search);
     } else if (activeStepRaw === 1) {
       if (window.location.hash.startsWith('#step-')) {
         window.history.replaceState({ wizardStep: 1 }, '', window.location.pathname + window.location.search);
       }
     } else {
-      window.history.replaceState({ wizardStep: activeStepRaw }, '', '#step-' + activeStepRaw);
+      window.history.replaceState({ wizardStep: activeStepRaw }, '', window.location.pathname + window.location.search);
     }
   }, [activeStepRaw, mounted]);
 

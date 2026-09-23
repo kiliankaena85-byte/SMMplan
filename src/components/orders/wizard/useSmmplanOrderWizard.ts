@@ -108,7 +108,7 @@ export function useSmmplanOrderWizard({ userEmail = '', initialReorderData, tena
 
   // [T1-2 + T1-6] resolveServiceTargetType in filter + requestId race-condition guard
   useEffect(() => {
-    if (!selectedCategory) { setServices([]); return; }
+    if (!selectedCategory) { return; }
     const currentRequestId = ++serviceRequestIdRef.current;
     setIsLoadingServices(true);
     getServicesByCategoryAction(selectedCategory.id, tenantId).then(servs => {

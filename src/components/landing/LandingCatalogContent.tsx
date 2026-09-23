@@ -124,7 +124,7 @@ export function LandingCatalogContent({
             <CategorySidebar engine={engine} />
 
             <div className="flex flex-col flex-1 min-w-0 border-r border-border/50 pb-12 lg:pb-0">
-              <div className="p-4 md:p-6 lg:p-8 bg-content1 relative flex flex-col min-h-0">
+              <div className="p-4 md:p-6 lg:p-8 bg-content1 relative flex flex-col min-h-[500px] lg:min-h-[600px]">
                 <div className="flex items-center justify-between mb-4 md:mb-6 shrink-0">
                   <h3 className="font-extrabold text-foreground text-xl md:text-2xl tracking-tight flex items-center gap-3">
                     Выберите тариф {services.length > 0 && <span className="text-sm font-bold bg-primary/10 text-primary px-3 py-1 rounded-full">{services.length}</span>}
@@ -156,7 +156,7 @@ export function LandingCatalogContent({
                     </div>
                   </div>
                 ) : (
-                  <div className={`pb-8 pt-4 transition-opacity duration-300 hidden md:block ${isLoading && services.length === 0 ? 'opacity-50' : 'opacity-100'}`}>
+                  <div className={`pb-8 pt-4 transition-opacity duration-200 hidden md:block ${isLoading ? 'opacity-60 pointer-events-none' : 'opacity-100'}`}>
                     <ServiceGrid 
                       engine={engine} 
                       checkoutProps={checkoutVariantProps}

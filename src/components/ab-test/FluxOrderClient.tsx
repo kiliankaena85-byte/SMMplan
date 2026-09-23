@@ -338,7 +338,6 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux',
       if (matchedNetwork) {
         setActiveNetwork(matchedNetwork);
         setActiveCategory(null);
-        setServices([]);
         setSelectedService(null);
         navigateTo('category');
       } else {
@@ -352,7 +351,6 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux',
       if (matchedNetwork) {
         setActiveNetwork(matchedNetwork);
         setActiveCategory(null);
-        setServices([]);
         setSelectedService(null);
         navigateTo('category');
       } else {
@@ -369,11 +367,10 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux',
   const selectCategory = async (cat: FluxCategory) => {
     setActiveCategory(cat);
     setIsLoadingServices(true);
-    setServices([]);
     navigateTo('service');
 
     if (activeNetwork && cat.slug && typeof window !== 'undefined') {
-      window.history.replaceState(null, '', `/services/${activeNetwork.slug}/${cat.slug}`);
+      // Intentionally avoiding window.history.replaceState for path changes as it triggers Next.js router and causes a full page layout re-render and scroll jump.
     }
 
     try {
@@ -389,7 +386,6 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux',
       }
       setServices(srvList);
     } catch { 
-      // error is intentionally ignored here since we just set services to empty
     } finally {
       setIsLoadingServices(false);
     }
@@ -417,7 +413,7 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux',
   const price = selectedService ? (selectedService.pricePerUnitRub * effectiveQuantity).toFixed(2) : "0.00";
 
   return (
-    <div className={`w-full max-w-5xl mx-auto flex flex-col items-center justify-center font-sans px-4 relative overflow-visible ${step === 'link' ? 'pt-4 md:pt-8 pb-2' : 'min-h-[50vh] pt-4 pb-8'}`}>
+    <div className={`w-full max-w-5xl mx-auto flex flex-col items-center justify-center font-sans px-4 relative overflow-visible ${step === 'link' ? 'pt-4 md:pt-8 pb-2' : 'min-h-[540px] pt-4 pb-8'}`}>
       {step !== 'link' && (
         <div 
           className="w-full max-w-3xl mb-6 flex items-center bg-card border border-border/80 shadow-sm h-14 rounded-2xl px-2 z-10 transform-gpu"
@@ -445,7 +441,7 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux',
           </button>
         </div>
       )}
-      <AnimatePresence initial={false} custom={direction} mode="wait">
+      <AnimatePresence initial={false} custom={direction} mode="popLayout">
         
         {/* STEP 1: LINK INPUT */}
         {step === 'link' && (
@@ -647,53 +643,65 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux',
               <h2 className="text-2xl font-bold text-foreground tracking-tight">{activeCategory.name}</h2>
             </div>
 
-            {isLoadingServices ? (
-              <div className="py-20 flex justify-center">
-                <Box className="w-12 h-12 text-primary/50 animate-pulse" />
+            {isLoadingServices && services.length === 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-5 py-2">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="min-h-[140px] sm:min-h-[160px] rounded-[1.5rem] sm:rounded-[2rem] bg-muted/40 animate-pulse border border-border/40" />
+                ))}
               </div>
             ) : (
-              <motion.div 
-                variants={containerVariants}
-                initial="hidden"
-                animate="show"
-                className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-5"
-              >
-                {services.map((service) => (
-                  <motion.div 
-                    key={service.id}
-                    role="button"
-                    tabIndex={0}
-                    variants={itemVariants}
-                    className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-[1.5rem] sm:rounded-[2rem] border border-white/90 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-md hover:shadow-xl hover:border-primary/50 transition-all duration-150 flex flex-col justify-between group relative min-h-[140px] sm:min-h-[160px] transform-gpu hover:scale-[1.01] active:scale-[0.99]"
-                    onClick={() => selectService(service)}
-                    onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectService(service); } }}
-                  >
-                    <div className="p-5 pb-14 sm:p-6 sm:pb-16">
-                      <div className="flex justify-between items-start gap-2 mb-2">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {service.numericId && <ServiceIdBadge numericId={service.numericId} />}
-                          <h4 className="font-bold text-foreground text-lg sm:text-xl leading-snug">{service.name}</h4>
+              <div className="relative">
+                {isLoadingServices && (
+                  <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/40 backdrop-blur-[2px] rounded-[2rem]">
+                    <div className="flex flex-col items-center gap-2 p-4 bg-background/80 rounded-2xl shadow-lg border border-border">
+                       <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                       <span className="text-sm font-bold text-foreground">Обновление...</span>
+                    </div>
+                  </div>
+                )}
+                <motion.div 
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="show"
+                  className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-5"
+                >
+                  {services.map((service) => (
+                    <motion.div 
+                      key={service.id}
+                      role="button"
+                      tabIndex={0}
+                      variants={itemVariants}
+                      className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-[1.5rem] sm:rounded-[2rem] border border-white/90 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-md hover:shadow-xl hover:border-primary/50 transition-all duration-150 flex flex-col justify-between group relative min-h-[140px] sm:min-h-[160px] transform-gpu hover:scale-[1.01] active:scale-[0.99]"
+                      onClick={() => selectService(service)}
+                      onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectService(service); } }}
+                    >
+                      <div className="p-5 pb-14 sm:p-6 sm:pb-16">
+                        <div className="flex justify-between items-start gap-2 mb-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {service.numericId && <ServiceIdBadge numericId={service.numericId} />}
+                            <h4 className="font-bold text-foreground text-lg sm:text-xl leading-snug">{service.name}</h4>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-3 sm:mt-4 space-y-1.5 sm:space-y-2">
+                          <p className="text-[12px] sm:text-[13px] text-muted-foreground flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span> 
+                            Старт: <span className="font-medium text-foreground">{service.speed || 'Моментально'}</span>
+                          </p>
+                          <p className="text-[12px] sm:text-[13px] text-muted-foreground flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span> 
+                            Лимиты: <span className="font-medium text-foreground tabular-nums font-mono">{service.minQty} - {service.maxQty} шт.</span>
+                          </p>
                         </div>
                       </div>
                       
-                      <div className="mt-3 sm:mt-4 space-y-1.5 sm:space-y-2">
-                        <p className="text-[12px] sm:text-[13px] text-muted-foreground flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span> 
-                          Старт: <span className="font-medium text-foreground">{service.speed || 'Моментально'}</span>
-                        </p>
-                        <p className="text-[12px] sm:text-[13px] text-muted-foreground flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span> 
-                          Лимиты: <span className="font-medium text-foreground tabular-nums font-mono">{service.minQty} - {service.maxQty} шт.</span>
-                        </p>
+                      <div className="absolute bottom-4 left-4 sm:bottom-5 sm:left-5 bg-foreground text-background px-3 py-1.5 sm:px-4 sm:py-2 rounded-full font-bold text-[13px] sm:text-[14px] shadow-sm pointer-events-none tabular-nums font-mono">
+                        {service.pricePerUnitRub.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} ₽ <span className="font-normal opacity-80 font-sans">/ шт</span>
                       </div>
-                    </div>
-                    
-                    <div className="absolute bottom-4 left-4 sm:bottom-5 sm:left-5 bg-foreground text-background px-3 py-1.5 sm:px-4 sm:py-2 rounded-full font-bold text-[13px] sm:text-[14px] shadow-sm pointer-events-none tabular-nums font-mono">
-                      {service.pricePerUnitRub.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} ₽ <span className="font-normal opacity-80 font-sans">/ шт</span>
-                    </div>
-                  </motion.div>
-                ))}
-              </motion.div>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              </div>
             )}
           </motion.div>
         )}

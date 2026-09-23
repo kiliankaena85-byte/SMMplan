@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { db } from "@/lib/db";
 import { SystemSettings, UsnScheme } from "@prisma/client";
 import { VaultService } from "./vault";
@@ -152,19 +153,19 @@ export class SettingsProvider {
   /**
    * Helper to resolve the Tenant model ID from a tenant slug.
    */
-  static async resolveTenantRecordId(tenantSlug: string): Promise<string> {
+  static resolveTenantRecordId = cache(async (tenantSlug: string): Promise<string> => {
     const slug = normalizeTenantId(tenantSlug) || 'smmplan';
     const tenant = await db.tenant.findUnique({ where: { slug } }) 
       || await db.tenant.findFirst({ where: { slug: 'smmplan' } })
       || await db.tenant.findFirst();
     if (tenant) return tenant.id;
     return slug;
-  }
+  });
 
   /**
    * Safe wrapper around getCached that self-heals when Next.js incrementalCache is missing (CLI/workers)
    */
-  static async get(tenantId?: string): Promise<SystemSettings> {
+  static get = cache(async (tenantId?: string): Promise<SystemSettings> => {
     const rawId = tenantId || await this.getTenantId();
     const normalizedSlug = normalizeTenantId(rawId) || 'smmplan';
     const targetTenantId = await this.resolveTenantRecordId(normalizedSlug);
@@ -259,7 +260,7 @@ export class SettingsProvider {
         updatedAt: new Date()
       } as SystemSettings;
     }
-  }
+  });
 
   /**
    * Securely decrypts and returns payment API keys.
@@ -379,7 +380,7 @@ export class SettingsProvider {
   /**
    * Returns all dynamic contact and legal information, completely replacing the old KV store.
    */
-  static async getContactAndLegalSettings(tenantId?: string): Promise<ContactAndLegalSettings> {
+  static getContactAndLegalSettings = cache(async (tenantId?: string): Promise<ContactAndLegalSettings> => {
     const activeTenantId = tenantId || await this.getTenantId();
     const settings = await this.get(activeTenantId);
     
@@ -404,7 +405,7 @@ export class SettingsProvider {
       LEGAL_OGRNIP: settings.legalCompanyOgrnip || "",
       LEGAL_ADDRESS: settings.legalCompanyAddress || "",
     };
-  }
+  });
 
   /**
    * Returns the dynamic USD to RUB exchange rate.

@@ -73,6 +73,7 @@ export function FluxServicesCatalog({ networks, featuredArticles }: FluxServices
                 <Link
                   key={net.id}
                   href={`/services/${net.slug}`}
+                  scroll={false}
                   className="group relative rounded-[2rem] bg-card/90 backdrop-blur-xl border border-border/80 hover:border-purple-400 p-6 flex flex-col justify-between transition-all duration-300 hover:shadow-[0_16px_40px_rgba(168,85,247,0.12)] hover:-translate-y-1 overflow-hidden"
                 >
                   <div className="flex items-center justify-between mb-4">
@@ -185,6 +186,7 @@ export function FluxServicesCatalog({ networks, featuredArticles }: FluxServices
 
         <Link
           href="/"
+          scroll={false}
           className="px-8 py-4 rounded-full bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 text-white font-bold text-sm shadow-[0_4px_25px_rgba(168,85,247,0.35)] hover:shadow-[0_6px_30px_rgba(236,72,153,0.45)] hover:-translate-y-0.5 transition-all shrink-0 active:scale-95 whitespace-nowrap"
         >
           Оформить быстрый заказ

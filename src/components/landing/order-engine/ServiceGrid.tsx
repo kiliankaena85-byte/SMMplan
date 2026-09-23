@@ -171,7 +171,7 @@ export function ServiceGrid({ engine, checkoutMode, checkoutProps }: ServiceGrid
     });
   }, [visibleServices, selectedService, selectedNetworkObj, setSelectedService, checkoutMode, checkoutProps]);
 
-  if (isLoading) {
+  if (isLoading && services.length === 0) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {Array.from({ length: 4 }).map((_, i) => (
@@ -205,7 +205,15 @@ export function ServiceGrid({ engine, checkoutMode, checkoutProps }: ServiceGrid
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 relative">
+      {isLoading && services.length > 0 && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/40 backdrop-blur-[2px] rounded-3xl">
+          <div className="flex flex-col items-center gap-2 p-4 bg-background/80 rounded-2xl shadow-lg border border-border">
+             <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+             <span className="text-sm font-bold text-foreground">Обновление...</span>
+          </div>
+        </div>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
         {desktopGridContent}
       </div>

@@ -37,6 +37,7 @@ export function LandingSeoRelated({
                 <Link
                   key={cat.id}
                   href={`/services/${networkSlug}/${cat.slug}`}
+                  scroll={false}
                   className="px-3.5 py-1.5 rounded-xl bg-secondary hover:bg-primary/10 border border-border hover:border-primary/40 text-xs font-bold text-foreground hover:text-primary transition-all duration-200"
                 >
                   {cat.name}
@@ -55,6 +56,7 @@ export function LandingSeoRelated({
                 <Link
                   key={net.id}
                   href={`/services/${net.slug}`}
+                  scroll={false}
                   className="px-3.5 py-1.5 rounded-xl bg-card hover:bg-secondary border border-border text-xs font-bold text-foreground transition-all duration-200"
                 >
                   {net.name}

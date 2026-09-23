@@ -52,7 +52,7 @@ export function MobileStep3Service({
 
   return (
     <motion.div
-      id="step-3"
+      data-step="3"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -71,7 +71,7 @@ export function MobileStep3Service({
             </span>
           </div>
 
-          {isTariffLoading ? (
+          {isTariffLoading && services.length === 0 ? (
             <div className="grid grid-cols-1 gap-2.5">
               {Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="h-24 rounded-2xl bg-content2/70 animate-pulse border border-border/40" />
@@ -102,30 +102,37 @@ export function MobileStep3Service({
               </div>
             </div>
           ) : (
-            <div className="flex flex-col gap-2.5">
-              {displayedServices.map((srv) => (
-                <TariffCard
-                  key={srv.id}
-                  service={srv}
-                  isSelected={selectedService?.id === srv.id}
-                  onSelect={(s) => {
-                    setSelectedService(s);
-                    setActiveStep(4);
-                  }}
-                  brandStyle={brandStyle}
-                />
-              ))}
-
-              {services.length > 3 && (
-                <button
-                  type="button"
-                  onClick={() => setShowAllTariffs(!showAllTariffs)}
-                  className="py-2 px-3 min-h-[44px] rounded-xl bg-content2 hover:bg-content3 text-[11px] font-extrabold text-primary border border-border/50 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.98] mt-1"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>{showAllTariffs ? "Показать только рекомендуемые (3 тарифа)" : `Показать все ${services.length} тарифов ▾`}</span>
-                </button>
+            <div className="relative">
+              {isTariffLoading && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/40 backdrop-blur-[2px] rounded-2xl">
+                  <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                </div>
               )}
+              <div className="flex flex-col gap-2.5">
+                {displayedServices.map((srv) => (
+                  <TariffCard
+                    key={srv.id}
+                    service={srv}
+                    isSelected={selectedService?.id === srv.id}
+                    onSelect={(s) => {
+                      setSelectedService(s);
+                      setActiveStep(4);
+                    }}
+                    brandStyle={brandStyle}
+                  />
+                ))}
+
+                {services.length > 3 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllTariffs(!showAllTariffs)}
+                    className="py-2 px-3 min-h-[44px] rounded-xl bg-content2 hover:bg-content3 text-[11px] font-extrabold text-primary border border-border/50 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.98] mt-1"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>{showAllTariffs ? "Показать только рекомендуемые (3 тарифа)" : `Показать все ${services.length} тарифов ▾`}</span>
+                  </button>
+                )}
+              </div>
             </div>
           )}
 

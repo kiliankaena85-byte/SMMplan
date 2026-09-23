@@ -12,27 +12,17 @@ export const dynamic = 'force-dynamic';
 
 import { resolveTenantFromRequest } from '@/lib/tenant-resolver-edge';
 
+import { getDashboardUser } from './user-data';
+
 export default async function DashboardPage(props: { searchParams?: Promise<{ tenant?: string }> }) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const searchParams = await props.searchParams;
-  const session = await verifySession();
-  if (!session) redirect('/login');
+  const { session, user } = await getDashboardUser();
 
   const reqHeaders = await headers();
   const tenantId = resolveTenantFromRequest(reqHeaders);
 
-  const [user, orders, referralCount] = await Promise.all([
-    db.user.findUnique({
-      where: { id: session.userId },
-      select: {
-        email: true,
-        balance: true,
-        totalSpent: true,
-        referralCode: true,
-        createdAt: true,
-        tenantId: true,
-      },
-    }),
+  const [orders, referralCount] = await Promise.all([
     db.order.findMany({
       where: { userId: session.userId },
       orderBy: { createdAt: 'desc' },
@@ -51,8 +41,6 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ te
     }),
     db.user.count({ where: { referredById: session.userId } }),
   ]);
-
-  if (!user) redirect('/login');
 
   // P3.4: Use server-side headers() — no hydration mismatch
   const origin = await getBaseUrlAsync();

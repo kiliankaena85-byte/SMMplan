@@ -13,6 +13,8 @@ import { LandingCatalogContent } from "./LandingCatalogContent";
 import { LandingFooterSection } from "./LandingFooterSection";
 import { LandingModals } from "./LandingModals";
 
+const EMPTY_INITIAL_SERVICES: PublicService[] = [];
+
 export function SmartLinkLanding({
   initialCatalog,
   initialEmail,
@@ -25,7 +27,7 @@ export function SmartLinkLanding({
   customHeroTitle,
   customHeroSubtitle,
   seoHubContent,
-  initialServices = [],
+  initialServices = EMPTY_INITIAL_SERVICES,
   initialFlow = 'classic'
 }: {
   initialCatalog: PublicNetwork[];

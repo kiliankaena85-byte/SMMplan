@@ -297,7 +297,6 @@ function FluxDashboardOrderWizardInner({
     setActiveNetwork(network);
     setActiveCategory(null);
     setSelectedService(null);
-    setServices([]);
     navigateTo('category');
   };
 
@@ -341,7 +340,6 @@ function FluxDashboardOrderWizardInner({
 
       setServices(srvList);
     } catch {
-      setServices([]);
     } finally {
       setIsLoadingServices(false);
     }
@@ -692,7 +690,7 @@ function FluxDashboardOrderWizardInner({
 
       {/* ── ACTIVE WIZARD STEPS ── */}
       {!isOrderSuccess && (
-        <AnimatePresence initial={false} custom={direction} mode="wait">
+        <AnimatePresence initial={false} custom={direction} mode="popLayout">
           
           {/* STEP 1: NETWORK SELECTION */}
           {step === 'network' && (
@@ -890,7 +888,7 @@ function FluxDashboardOrderWizardInner({
                 </button>
               </div>
 
-              {isLoadingServices ? (
+              {isLoadingServices && services.length === 0 ? (
                 <div className="py-20 flex justify-center">
                   <Box className="w-12 h-12 text-primary/50 animate-pulse" />
                 </div>
@@ -899,12 +897,21 @@ function FluxDashboardOrderWizardInner({
                   В данной категории пока нет активных тарифов. Пожалуйста, выберите другую категорию.
                 </div>
               ) : (
-                <motion.div 
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="show"
-                  className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-4"
-                >
+                <div className="relative">
+                  {isLoadingServices && (
+                    <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/40 backdrop-blur-[2px] rounded-[1.5rem]">
+                      <div className="flex flex-col items-center gap-2 p-4 bg-background/80 rounded-2xl shadow-lg border border-border">
+                         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                         <span className="text-sm font-bold text-foreground">Обновление...</span>
+                      </div>
+                    </div>
+                  )}
+                  <motion.div 
+                    variants={containerVariants}
+                    initial="hidden"
+                    animate="show"
+                    className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-4"
+                  >
                   {services.map((service) => (
                     <motion.div 
                       key={service.id}
@@ -939,6 +946,7 @@ function FluxDashboardOrderWizardInner({
                     </motion.div>
                   ))}
                 </motion.div>
+              </div>
               )}
             </motion.div>
           )}

@@ -67,7 +67,6 @@ export function MobileCatalogModal({
   useEffect(() => {
     if (categoryId) {
       setIsLoadingServices(true);
-      setServices([]);
       getServicesByCategoryAction(categoryId)
         .then((res) => {
           setServices(res);
@@ -78,8 +77,6 @@ export function MobileCatalogModal({
         .finally(() => {
           setIsLoadingServices(false);
         });
-    } else {
-      setServices([]);
     }
   }, [categoryId]);
 
@@ -192,7 +189,7 @@ export function MobileCatalogModal({
 
       {/* Main Content Area */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="popLayout">
           {currentStep === 1 ? (
             /* STEP 1: Networks grid */
             <motion.div
@@ -272,7 +269,7 @@ export function MobileCatalogModal({
                 </div>
               </div>
 
-              {isLoadingServices ? (
+              {isLoadingServices && services.length === 0 ? (
                 /* Shimmer loading list */
                 Array.from({ length: 4 }).map((_, i) => (
                   <div
@@ -296,16 +293,28 @@ export function MobileCatalogModal({
                   {serviceQuery ? "Тарифы не найдены" : "В этой категории пока нет активных тарифов."}
                 </div>
               ) : (
-                filteredServices.map((srv) => (
-                  <TariffCard
-                    key={srv.id}
-                    service={srv}
-                    isSelected={selectedService?.id === srv.id}
-                    onSelect={handleSelectService}
-                    compact={true}
-                    brandStyle={brandStyle}
-                  />
-                ))
+                <div className="relative">
+                  {isLoadingServices && (
+                    <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/40 backdrop-blur-[2px] rounded-2xl">
+                      <div className="flex flex-col items-center gap-2 p-4 bg-background/80 rounded-2xl shadow-lg border border-border">
+                         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                         <span className="text-sm font-bold text-foreground">Обновление...</span>
+                      </div>
+                    </div>
+                  )}
+                  <div className="space-y-3">
+                    {filteredServices.map((srv) => (
+                      <TariffCard
+                        key={srv.id}
+                        service={srv}
+                        isSelected={selectedService?.id === srv.id}
+                        onSelect={handleSelectService}
+                        compact={true}
+                        brandStyle={brandStyle}
+                      />
+                    ))}
+                  </div>
+                </div>
               )}
             </motion.div>
           )}

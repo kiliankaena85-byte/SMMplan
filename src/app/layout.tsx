@@ -6,7 +6,9 @@ import { NetworkAwareProvider } from '@/components/providers/NetworkAwareProvide
 import { FloatingQADock } from '@/components/dev/FloatingQADock';
 import { CookieConsent } from '@/components/common/CookieConsent';
 import { getTenantHost, normalizeTenantId } from '@/lib/seo-helpers';
+import { Inter } from 'next/font/google';
 
+const inter = Inter({ subsets: ['cyrillic', 'latin'], display: 'swap', variable: '--font-inter' });
 import { headers } from 'next/headers';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -163,12 +165,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   if (showMaintenance) {
     return (
-      <html lang="ru" className={`theme-${tenantId}`} suppressHydrationWarning>
+      <html lang="ru" className={`theme-${tenantId} ${inter.variable}`} suppressHydrationWarning>
         <head>
           <title>{siteName} — Сервисное обслуживание</title>
-          <link rel="preconnect" href="https://fonts.googleapis.com" />
-          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
           <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         </head>
         <body className="font-sans antialiased bg-background text-foreground" suppressHydrationWarning>
@@ -183,11 +182,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   }
 
   return (
-    <html lang="ru" className={`theme-${tenantId}`} suppressHydrationWarning>
+    <html lang="ru" className={`theme-${tenantId} ${inter.variable}`} suppressHydrationWarning>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         {(() => {
           const rawHost = reqHeaders.get('host') || reqHeaders.get('x-forwarded-host') || '';

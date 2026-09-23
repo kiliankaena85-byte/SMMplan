@@ -438,7 +438,6 @@ function PlanSlideOrderClientInner({
       if (matchedNetwork) {
         setActiveNetwork(matchedNetwork);
         setActiveCategory(null);
-        setServices([]);
         setSelectedService(null);
         navigateTo('category');
       } else {
@@ -452,7 +451,6 @@ function PlanSlideOrderClientInner({
       if (matchedNetwork) {
         setActiveNetwork(matchedNetwork);
         setActiveCategory(null);
-        setServices([]);
         setSelectedService(null);
         navigateTo('category');
       } else {
@@ -469,7 +467,6 @@ function PlanSlideOrderClientInner({
   const selectCategory = async (cat: PublicCategory) => {
     setActiveCategory(cat);
     setIsLoadingServices(true);
-    setServices([]);
     navigateTo('service');
 
     try {
@@ -485,7 +482,6 @@ function PlanSlideOrderClientInner({
       }
       setServices(srvList);
     } catch {
-      setServices([]);
     } finally {
       setIsLoadingServices(false);
     }
@@ -611,7 +607,7 @@ function PlanSlideOrderClientInner({
         </div>
       )}
 
-      <AnimatePresence initial={false} custom={direction} mode="wait">
+      <AnimatePresence initial={false} custom={direction} mode="popLayout">
         
         {/* ── STEP 1: LINK INPUT (HERO SCREEN) ── */}
         {step === 'link' && (
@@ -932,7 +928,7 @@ function PlanSlideOrderClientInner({
               </p>
             </div>
 
-            {isLoadingServices ? (
+            {isLoadingServices && services.length === 0 ? (
               <div className="py-20 flex flex-col items-center justify-center gap-3">
                 <Box className="w-10 h-10 text-primary animate-pulse" />
                 <span className="text-xs text-muted-foreground font-medium">Загрузка тарифов...</span>
@@ -951,69 +947,79 @@ function PlanSlideOrderClientInner({
                 </button>
               </div>
             ) : (
-              <motion.div 
-                variants={containerVariants}
-                initial="hidden"
-                animate="show"
-                className="grid grid-cols-1 md:grid-cols-2 gap-3"
-              >
-                {services.map((service) => (
-                  <motion.div
-                    key={service.id}
-                    variants={itemVariants}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => selectService(service)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        selectService(service);
-                      }
-                    }}
-                    className="p-4 rounded-2xl bg-card border border-border/80 hover:border-primary/60 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer relative"
-                  >
-                    <div>
-                      <h4 className="font-bold text-foreground text-base leading-snug mb-2 group-hover:text-primary transition-colors">
-                        {service.name}
-                      </h4>
+              <div className="relative">
+                {isLoadingServices && (
+                  <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/40 backdrop-blur-[2px] rounded-2xl">
+                    <div className="flex flex-col items-center gap-2 p-4 bg-background/80 rounded-2xl shadow-lg border border-border">
+                       <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                       <span className="text-sm font-bold text-foreground">Обновление...</span>
+                    </div>
+                  </div>
+                )}
+                <motion.div 
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="show"
+                  className="grid grid-cols-1 md:grid-cols-2 gap-3"
+                >
+                  {services.map((service) => (
+                    <motion.div
+                      key={service.id}
+                      variants={itemVariants}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => selectService(service)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          selectService(service);
+                        }
+                      }}
+                      className="p-4 rounded-2xl bg-card border border-border/80 hover:border-primary/60 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer relative"
+                    >
+                      <div>
+                        <h4 className="font-bold text-foreground text-base leading-snug mb-2 group-hover:text-primary transition-colors">
+                          {service.name}
+                        </h4>
 
-                      <div className="space-y-1 text-xs text-muted-foreground mb-4">
-                        <p className="flex items-center gap-1.5">
-                          <Clock className="w-3.5 h-3.5 text-emerald-500" />
-                          <span>Старт: <strong className="text-foreground font-semibold">{service.speed || 'Моментально'}</strong></span>
-                        </p>
-                        <p className="flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-primary/60 inline-block" />
-                          <span>Лимиты: <strong className="text-foreground font-semibold font-mono">{service.minQty} – {service.maxQty} шт.</strong></span>
-                        </p>
-                        {service.warrantyDays ? (
-                          <p className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
-                            <ShieldCheck className="w-3.5 h-3.5" />
-                            <span>Гарантия: {service.warrantyDays} дн.</span>
+                        <div className="space-y-1 text-xs text-muted-foreground mb-4">
+                          <p className="flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5 text-emerald-500" />
+                            <span>Старт: <strong className="text-foreground font-semibold">{service.speed || 'Моментально'}</strong></span>
                           </p>
-                        ) : null}
+                          <p className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-primary/60 inline-block" />
+                            <span>Лимиты: <strong className="text-foreground font-semibold font-mono">{service.minQty} – {service.maxQty} шт.</strong></span>
+                          </p>
+                          {service.warrantyDays ? (
+                            <p className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
+                              <ShieldCheck className="w-3.5 h-3.5" />
+                              <span>Гарантия: {service.warrantyDays} дн.</span>
+                            </p>
+                          ) : null}
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="pt-3 border-t border-border/60 flex items-center justify-between">
-                      <div className="text-xs text-muted-foreground">
-                        <span className="text-base sm:text-lg font-black text-foreground font-mono">
-                          {service.pricePerUnitRub.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} ₽
-                        </span>
-                        <span className="ml-1 text-[11px]">/ шт</span>
+                      <div className="pt-3 border-t border-border/60 flex items-center justify-between">
+                        <div className="text-xs text-muted-foreground">
+                          <span className="text-base sm:text-lg font-black text-foreground font-mono">
+                            {service.pricePerUnitRub.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} ₽
+                          </span>
+                          <span className="ml-1 text-[11px]">/ шт</span>
+                        </div>
+
+                        <button
+                          type="button"
+                          className="h-8 px-3.5 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer pointer-events-none"
+                        >
+                          <span>Выбрать</span>
+                          <ArrowRightIcon className="w-3.5 h-3.5" />
+                        </button>
                       </div>
-
-                      <button
-                        type="button"
-                        className="h-8 px-3.5 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer pointer-events-none"
-                      >
-                        <span>Выбрать</span>
-                        <ArrowRightIcon className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </motion.div>
-                ))}
-              </motion.div>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              </div>
             )}
           </motion.div>
         )}

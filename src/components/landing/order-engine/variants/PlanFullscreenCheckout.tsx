@@ -103,15 +103,20 @@ export function PlanFullscreenCheckout({
   const maxQty = selectedService.maxQty || 1000000;
   const effectiveMinQty = dripFeedEnabled && runs > 0 ? minQty * runs : minQty;
 
+  // Initialize quantity to minQty when service changes or if uninitialized
   useEffect(() => {
     if (!quantity || Number(quantity) < minQty) {
       setQuantity(minQty);
     }
-  }, [minQty, quantity, setQuantity]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedService.id, minQty]);
 
   const handleStepQuantity = (delta: number) => {
-    const current = Number(quantity) || minQty;
-    setQuantity(Math.max(effectiveMinQty, Math.min(maxQty, current + delta)));
+    const current = Number(quantity) || effectiveMinQty;
+    const target = current === effectiveMinQty && delta > 0 && Number(quantity) === 0
+      ? effectiveMinQty
+      : current + delta;
+    setQuantity(Math.max(effectiveMinQty, Math.min(maxQty, target)));
     setLocalError(null);
   };
 

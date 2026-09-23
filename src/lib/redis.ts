@@ -77,7 +77,7 @@ export const redis =
   new Redis(redisUrl, {
     maxRetriesPerRequest: process.env.NODE_ENV === 'test' ? null : 3,
     connectTimeout: 5000,
-    lazyConnect: true,
+    lazyConnect: process.env.NODE_ENV !== 'production',
     retryStrategy: (times) => calculateRedisRetryDelay(times, process.env.NODE_ENV),
   });
 
