@@ -10,6 +10,8 @@ node_modules
 *.tsbuildinfo
 
 # ── Staging env (contains real secrets — treat as compromised) ──
+.env.stage
+.env.stage.*
 .env.staging
 .env.staging.local
 
