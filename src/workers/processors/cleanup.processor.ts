@@ -460,8 +460,12 @@ export async function runOrphanSweep(): Promise<void> {
         continue;
       }
 
-      // If job does not exist -> Re-enqueue
+      // If job does not exist -> Re-enqueue safely
       try {
+        const staleJob = await ordersQueue.getJob(jobId);
+        if (staleJob) {
+          await staleJob.remove().catch(() => {});
+        }
         await ordersQueue.add('order-dispatch', { orderId: orphan.id }, { jobId });
         sweptCount++;
         const minutesPending = Math.round((Date.now() - orphan.createdAt.getTime()) / 60000);

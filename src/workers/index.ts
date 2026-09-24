@@ -75,7 +75,7 @@ const workerConfig: BullWorkerOptions = {
   }
 };
 
-const orderWorker = new Worker('ordersQueue', orderProcessor, workerConfig);
+const orderWorker = new Worker('ordersQueue', orderProcessor, { ...workerConfig, concurrency: 5 });
 const syncWorker = new Worker('syncQueue', syncProcessor, { ...workerConfig, concurrency: 2 });
 const catalogWorker = new Worker('catalogQueue', catalogProcessor, workerConfig);
 const cleanupWorker = new Worker('cleanup', async (job) => { 

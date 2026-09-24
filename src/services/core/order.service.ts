@@ -29,6 +29,41 @@ type CreateOrderInput = {
   isLinkOverridden?: boolean;
 };
 
+/**
+ * Fire-and-forget helper for debit email notification with full error boundary.
+ * Executes user and service lookup in parallel.
+ * Protects against unhandled promise rejections and SMTP timeouts.
+ */
+export async function sendOrderDebitNotificationSafe(
+  userId: string,
+  serviceId: string,
+  numericOrderId: number | bigint,
+  chargeCents: bigint | number,
+  prismaDb: any = db,
+  smtpSender?: (args: any) => Promise<any>
+): Promise<void> {
+  try {
+    const sender = smtpSender ?? (await import('../../lib/smtp')).sendOrderBalanceDebitMail;
+    const [u, s] = await Promise.all([
+      prismaDb.user.findUnique({ where: { id: userId }, select: { email: true, balance: true, tenantId: true } }),
+      prismaDb.service.findUnique({ where: { id: serviceId }, select: { name: true } })
+    ]);
+
+    if (u?.email && s?.name) {
+      await sender({
+        email: u.email,
+        orderId: numericOrderId.toString(),
+        serviceName: s.name,
+        chargedCents: chargeCents,
+        remainingBalanceCents: u.balance,
+        tenantId: u.tenantId
+      });
+    }
+  } catch (err) {
+    console.error('[OrderService] Non-blocking debit email notification failed:', err);
+  }
+}
+
 class OrderService {
   /**
    * Fast secure path for Orders.
@@ -225,25 +260,8 @@ class OrderService {
       }
 
       // 4. Return success instantly to User Interface. No delays!
-      // Email Notification (Fire and Forget)
-      import('../../lib/smtp').then(({ sendOrderBalanceDebitMail }) => {
-        db.user.findUnique({ where: { id: userId }, select: { email: true, balance: true, tenantId: true } }).then(u => {
-          if (u?.email) {
-            db.service.findUnique({ where: { id: input.serviceId }, select: { name: true } }).then(s => {
-              if (s?.name) {
-                sendOrderBalanceDebitMail({
-                  email: u.email,
-                  orderId: newOrder.numericId.toString(),
-                  serviceName: s.name,
-                  chargedCents: input.charge,
-                  remainingBalanceCents: u.balance,
-                  tenantId: u.tenantId
-                }).catch(console.error);
-              }
-            });
-          }
-        });
-      });
+      // Email Notification (Fire and Forget with complete error isolation)
+      sendOrderDebitNotificationSafe(userId, input.serviceId, newOrder.numericId, input.charge).catch(() => {});
 
       return { success: true, orderId: newOrder.id };
 

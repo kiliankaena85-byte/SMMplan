@@ -15,6 +15,37 @@ import { SmartRoutingService, MarginGuard, PrioritizedRoute } from '../../servic
 
 const log = logger.child({ component: 'OrderProcessor' });
 
+/**
+ * Checks Redis duplicate dispatch guard.
+ * If Redis contains an external order ID from a previous successful provider call,
+ * auto-heals the DB order to IN_PROGRESS.
+ * Returns true if auto-healed (caller should exit).
+ * Returns false if in-flight or not dispatched.
+ */
+export async function handleDispatchedGuard(
+  orderId: string,
+  connection: any,
+  prismaDb: any
+): Promise<boolean> {
+  const redisKey = `order:dispatched:${orderId}`;
+  const alreadyDispatched = await connection.get(redisKey);
+
+  if (alreadyDispatched && alreadyDispatched !== '1') {
+    log.info(`[OrderProcessor] Duplicate Dispatch Guard: Order ${orderId} was already dispatched with externalId=${alreadyDispatched}. Auto-healing DB record...`);
+    await prismaDb.order.update({
+      where: { id: orderId },
+      data: {
+        externalId: alreadyDispatched,
+        status: 'IN_PROGRESS',
+        error: null
+      }
+    });
+    return true;
+  }
+
+  return false;
+}
+
 export default async function orderProcessor(job: Job<OrderJobPayload>) {
   let orderId: string;
   try {
@@ -90,8 +121,13 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
   // R2-003: Redis-level Mutex to prevent duplicate dispatch during DB write crashes or BullMQ job retries
   const connection = getRedisConnection();
   const redisKey = `order:dispatched:${order.id}`;
-  const alreadyDispatched = await connection.get(redisKey);
 
+  const wasAutoHealed = await handleDispatchedGuard(order.id, connection, db);
+  if (wasAutoHealed) {
+    return;
+  }
+
+  const alreadyDispatched = await connection.get(redisKey);
   if (alreadyDispatched) {
     log.warn(`[OrderProcessor] Duplicate Dispatch Guard: Order ${order.id} was already dispatched to provider but DB write failed previously. Shifting to PENDING_CHECK.`);
 
@@ -304,6 +340,9 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
       }
 
       const extId = response.order ? response.order.toString() : '';
+      if (extId) {
+        await connection.set(redisKey, extId, 'EX', 86400);
+      }
 
       try {
         await db.order.update({

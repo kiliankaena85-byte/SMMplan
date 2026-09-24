@@ -72394,1701 +72394,6 @@ var init_queue_manager = __esm({
   }
 });
 
-// src/utils/target-type-mapper.ts
-var target_type_mapper_exports = {};
-__export2(target_type_mapper_exports, {
-  LinkType: () => LinkType,
-  TargetTypeEnum: () => TargetTypeEnum,
-  getCompatibilityError: () => getCompatibilityError,
-  inferTargetTypeFromName: () => inferTargetTypeFromName,
-  isLinkServiceCompatible: () => isLinkServiceCompatible,
-  isTargetTypeCompatible: () => isTargetTypeCompatible,
-  normalizeTargetType: () => normalizeTargetType,
-  resolveServiceTargetType: () => resolveServiceTargetType
-});
-function normalizeTargetType(rawType) {
-  if (!rawType) return "CUSTOM" /* CUSTOM */;
-  const clean = rawType.trim().toUpperCase();
-  switch (clean) {
-    case "CHANNEL":
-    case "GROUP":
-    case "CHAT":
-    case "PUBLIC":
-    case "COMMUNITY":
-    case "COMMUNITIES":
-    case "SUBSCRIBERS":
-    case "MEMBERS":
-    case "BOOST":
-      return "CHANNEL" /* CHANNEL */;
-    case "POST":
-    case "PRIVATE_POST":
-    case "PHOTO":
-    case "WALL":
-    case "TWEET":
-    case "STATUS":
-    case "TRACK":
-    case "POST_INTERACTION":
-    case "LIKES":
-    case "REACTIONS":
-    case "VIEWS":
-    case "REPOSTS":
-    case "SHARES":
-      return "POST" /* POST */;
-    case "PROFILE":
-    case "USER":
-    case "ACCOUNT":
-    case "ARTIST":
-    case "FOLLOWERS":
-    case "FRIENDS":
-      return "PROFILE" /* PROFILE */;
-    case "VIDEO":
-    case "SHORT_VIDEO":
-    case "SHORT_LINK":
-    case "CLIP":
-    case "REEL":
-    case "SHORTS":
-    case "VK_VIDEO":
-    case "VK_CLIP":
-    case "VK_PLAY":
-    case "PHOTO_MODE":
-    case "VIDEO_INTERACTION":
-    case "WATCH_TIME":
-    case "LIVESTREAM":
-      return "VIDEO" /* VIDEO */;
-    case "STORY":
-    case "STORIES":
-    case "HIGHLIGHT":
-    case "HIGHLIGHTS":
-    case "STORY_INTERACTION":
-      return "STORY" /* STORY */;
-    case "POLL":
-    case "VOTE":
-    case "VOTES":
-    case "POLL_VOTES":
-      return "POLL" /* POLL */;
-    case "COMMENT":
-    case "COMMENTS":
-    case "REVIEWS":
-      return "COMMENTS" /* COMMENTS */;
-    case "BOT":
-    case "REFERRAL":
-    case "BOT_STARTS":
-      return "BOT" /* BOT */;
-    case "CHANNEL_POSTS":
-    case "AUTO_POSTS":
-    case "AUTO_VIEWS":
-    case "AUTO_LIKES":
-    case "AUTO":
-      return "CHANNEL_POSTS" /* CHANNEL_POSTS */;
-    case "CUSTOM":
-    case "GENERIC_LINK":
-    case "OTHER":
-    case "UNKNOWN":
-    default:
-      return "CUSTOM" /* CUSTOM */;
-  }
-}
-function inferTargetTypeFromName(name) {
-  if (!name) return "POST" /* POST */;
-  const n = name.toLowerCase().replace(/vexboost/gi, "").replace(/smmboost/gi, "");
-  const nNoPunct = n.replace(/[^a-zа-яё0-9]/gi, "");
-  if (nNoPunct.includes("\u0430\u0432\u0442\u043E\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || nNoPunct.includes("\u0430\u0432\u0442\u043E\u043B\u0430\u0439\u043A") || nNoPunct.includes("\u0430\u0432\u0442\u043E\u0440\u0435\u0430\u043A\u0446\u0438") || nNoPunct.includes("\u0430\u0432\u0442\u043E\u0440\u0435\u043F\u043E\u0441\u0442") || nNoPunct.includes("\u0430\u0432\u0442\u043E\u0430\u043A\u0442\u0438\u0432\u043D\u043E") || nNoPunct.includes("autoview") || nNoPunct.includes("autolike") || nNoPunct.includes("autoreact") || nNoPunct.includes("autoshare") || nNoPunct.includes("autorepost") || nNoPunct.includes("futureview") || nNoPunct.includes("futurelike") || n.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u043A\u0430") && !n.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A") && !n.includes("\u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A") || n.includes("\u0431\u0443\u0434\u0443\u0449\u0438\u0435 \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B") || n.includes("\u0431\u0443\u0434\u0443\u0449\u0438\u0445 \u043F\u043E\u0441\u0442\u043E\u0432") || n.includes("\u043C\u0430\u0441\u0441\u043E\u0432\u044B\u0435 \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B") || n.includes("channel posts") || /\d+-\d+\s*пост/i.test(n) || /\d+\s*пост/i.test(n) || /на\s+несколько\s+постов/i.test(n) || // "Просмотры на последних N постов" / "Последних 50 постов" — applies to channel, NOT post
-  n.includes("\u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0445 \u043F\u043E\u0441\u0442") || n.includes("\u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0445 \u043F\u0443\u0431\u043B\u0438\u043A") || n.includes("\u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0445 \u0437\u0430\u043F\u0438\u0441") || n.includes("\u043F\u043E\u0441\u043B\u0435\u0434\u043D") && (n.includes("\u043F\u043E\u0441\u0442") || n.includes("\u0437\u0430\u043F\u0438\u0441") || n.includes("\u043F\u0443\u0431\u043B\u0438\u043A")) || n.includes("last post") || n.includes("last 5 post") || n.includes("last 10 post") || n.includes("last 20 post") || n.includes("last 50 post") || // "Пакет охвата" — views package on last N posts of a channel
-  n.includes("\u043F\u0430\u043A\u0435\u0442") && n.includes("\u043E\u0445\u0432\u0430\u0442") || n.includes("\u043F\u0430\u043A\u0435\u0442") && n.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440")) {
-    return "CHANNEL_POSTS" /* CHANNEL_POSTS */;
-  }
-  if (n.includes("\u043E\u043F\u0440\u043E\u0441") || n.includes("\u0433\u043E\u043B\u043E\u0441") || n.includes("poll") || n.includes("vote")) {
-    return "POLL" /* POLL */;
-  }
-  if (n.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A") || n.includes("\u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A") || n.includes("\u0444\u043E\u043B\u043B\u043E\u0432\u0435\u0440") || n.includes("subscriber") || n.includes("member") || n.includes("follower") || n.includes("\u043A\u0430\u043D\u0430\u043B") || n.includes("channel") || n.includes("\u0433\u0440\u0443\u043F\u043F") || n.includes("group") || n.includes("\u0431\u0443\u0441\u0442") || n.includes("boost") || n.includes("\u0438\u043D\u0432\u0430\u0439\u0442") || n.includes("invite")) {
-    return "CHANNEL" /* CHANNEL */;
-  }
-  if (n.includes("\u0441\u0442\u043E\u0440\u0438") || n.includes("story") || n.includes("stories") || n.includes("\u0438\u0441\u0442\u043E\u0440\u0438")) {
-    return "STORY" /* STORY */;
-  }
-  if (n.includes("\u0432\u0438\u0434\u0435\u043E") || n.includes("video") || n.includes("shorts") || n.includes("reels") || n.includes("clip") || n.includes("\u043A\u043B\u0438\u043F") || n.includes("\u0441\u0442\u0440\u0438\u043C") || n.includes("stream") || n.includes("\u0437\u0440\u0438\u0442\u0435\u043B")) {
-    return "VIDEO" /* VIDEO */;
-  }
-  if (n.includes("\u043F\u0440\u043E\u0444\u0438\u043B\u044C") || n.includes("profile") || n.includes("\u0430\u043A\u043A\u0430\u0443\u043D\u0442") || n.includes("\u0434\u0440\u0443\u0433") || n.includes("friend")) {
-    return "PROFILE" /* PROFILE */;
-  }
-  if (n.includes("\u043A\u043E\u043C\u043C\u0435\u043D\u0442") || n.includes("comment") || n.includes("\u043E\u0442\u0437\u044B\u0432") || n.includes("review")) {
-    return "COMMENTS" /* COMMENTS */;
-  }
-  if (n.includes("\u0431\u043E\u0442") || n.includes("bot") || n.includes("\u0440\u0435\u0444\u0435\u0440\u0430\u043B") || n.includes("referral")) {
-    return "BOT" /* BOT */;
-  }
-  return "POST" /* POST */;
-}
-function resolveServiceTargetType(service) {
-  if (!service) return "POST" /* POST */;
-  const effectiveName = service.name || service.category?.name || "";
-  const inferred = inferTargetTypeFromName(effectiveName);
-  if ((!service.targetType || service.targetType === "POST" || service.targetType === "CUSTOM") && (inferred === "CHANNEL" /* CHANNEL */ || inferred === "CHANNEL_POSTS" /* CHANNEL_POSTS */ || inferred === "POLL" /* POLL */ || inferred === "VIDEO" /* VIDEO */ || inferred === "STORY" /* STORY */ || inferred === "BOT" /* BOT */)) {
-    return inferred;
-  }
-  return service.targetType || inferred;
-}
-function isTargetTypeCompatible(detectedLinkType, serviceTargetType) {
-  if (!detectedLinkType || !serviceTargetType) return true;
-  const detected = normalizeTargetType(detectedLinkType);
-  const service = normalizeTargetType(serviceTargetType);
-  if (detected === "CUSTOM" /* CUSTOM */ || service === "CUSTOM" /* CUSTOM */) return true;
-  if (detected === service) return true;
-  const allowedTargets = UNIFIED_COMPATIBILITY_MAP[detected];
-  if (!allowedTargets) return true;
-  return allowedTargets.has(service);
-}
-function getCompatibilityError(rawLinkType, rawTargetType, serviceName) {
-  const link = normalizeTargetType(rawLinkType);
-  const target = normalizeTargetType(rawTargetType);
-  const prefix = serviceName ? `\u0423\u0441\u043B\u0443\u0433\u0430 \xAB${serviceName}\xBB` : "\u0412\u044B\u0431\u0440\u0430\u043D\u043D\u0430\u044F \u0443\u0441\u043B\u0443\u0433\u0430";
-  if (link === "PROFILE" /* PROFILE */ && target === "POST" /* POST */) {
-    return `${prefix} \u043F\u0440\u0435\u0434\u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0430 \u0434\u043B\u044F \u043F\u0443\u0431\u043B\u0438\u043A\u0430\u0446\u0438\u0439 (\u043B\u0430\u0439\u043A\u0438/\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B/\u0440\u0435\u0430\u043A\u0446\u0438\u0438). \u0414\u043B\u044F \u0435\u0435 \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u044F \u0443\u043A\u0430\u0436\u0438\u0442\u0435 \u043F\u0440\u044F\u043C\u0443\u044E \u0441\u0441\u044B\u043B\u043A\u0443 \u043D\u0430 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u044B\u0439 \u043F\u043E\u0441\u0442 \u0438\u043B\u0438 \u0444\u043E\u0442\u043E, \u0430 \u043D\u0435 \u043D\u0430 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0443 \u043F\u0440\u043E\u0444\u0438\u043B\u044F.`;
-  }
-  if (link === "CHANNEL" /* CHANNEL */ && target === "POST" /* POST */) {
-    return `${prefix} \u043F\u0440\u0438\u043C\u0435\u043D\u044F\u0435\u0442\u0441\u044F \u043A \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u044B\u043C \u0437\u0430\u043F\u0438\u0441\u044F\u043C. \u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u0441\u0441\u044B\u043B\u043A\u0443 \u043D\u0430 \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u044B\u0439 \u043F\u043E\u0441\u0442 \u0432 \u043A\u0430\u043D\u0430\u043B\u0435 (\u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440, https://t.me/channel/123), \u0430 \u043D\u0435 \u043D\u0430 \u043A\u0430\u043D\u0430\u043B \u0446\u0435\u043B\u0438\u043A\u043E\u043C.`;
-  }
-  if (link === "POST" /* POST */ && target === "CHANNEL" /* CHANNEL */) {
-    return `${prefix} \u043F\u0440\u0435\u0434\u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0430 \u0434\u043B\u044F \u043F\u0440\u0438\u0432\u043B\u0435\u0447\u0435\u043D\u0438\u044F \u043F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A\u043E\u0432 \u0432 \u043A\u0430\u043D\u0430\u043B/\u0433\u0440\u0443\u043F\u043F\u0443. \u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u0443\u043A\u0430\u0436\u0438\u0442\u0435 \u0441\u0441\u044B\u043B\u043A\u0443 \u043D\u0430 \u0441\u0430\u043C \u043A\u0430\u043D\u0430\u043B (\u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440, https://t.me/channel), \u0430 \u043D\u0435 \u043D\u0430 \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u0443\u044E \u043F\u0443\u0431\u043B\u0438\u043A\u0430\u0446\u0438\u044E.`;
-  }
-  if (link === "POST" /* POST */ && target === "PROFILE" /* PROFILE */) {
-    return `${prefix} \u043F\u0440\u0435\u0434\u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0430 \u0434\u043B\u044F \u043F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A\u043E\u0432 \u043D\u0430 \u0430\u043A\u043A\u0430\u0443\u043D\u0442/\u043F\u0440\u043E\u0444\u0438\u043B\u044C. \u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u0441\u0441\u044B\u043B\u043A\u0443 \u043D\u0430 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0443 \u043F\u0440\u043E\u0444\u0438\u043B\u044F, \u0430 \u043D\u0435 \u043D\u0430 \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u044B\u0439 \u043F\u043E\u0441\u0442.`;
-  }
-  if (link === "POST" /* POST */ && target === "CHANNEL_POSTS" /* CHANNEL_POSTS */) {
-    return `${prefix} \u2014 \u044D\u0442\u043E \u043F\u0430\u043A\u0435\u0442 \u0430\u0432\u0442\u043E-\u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442\u0435\u0439 \u043D\u0430 \u0431\u0443\u0434\u0443\u0449\u0438\u0435 \u043F\u0443\u0431\u043B\u0438\u043A\u0430\u0446\u0438\u0438 \u043A\u0430\u043D\u0430\u043B\u0430. \u0414\u043B\u044F \u0435\u0435 \u0437\u0430\u043F\u0443\u0441\u043A\u0430 \u0442\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044F \u0441\u0441\u044B\u043B\u043A\u0430 \u043D\u0430 \u043A\u0430\u043D\u0430\u043B \u0446\u0435\u043B\u0438\u043A\u043E\u043C, \u0430 \u043D\u0435 \u043D\u0430 \u0440\u0430\u0437\u043E\u0432\u044B\u0439 \u043F\u043E\u0441\u0442.`;
-  }
-  if (link === "STORY" /* STORY */ && target !== "STORY" /* STORY */) {
-    return `${prefix} \u043D\u0435 \u0441\u043E\u0432\u043C\u0435\u0441\u0442\u0438\u043C\u0430 \u0441\u043E \u0441\u0441\u044B\u043B\u043A\u0430\u043C\u0438 \u043D\u0430 \u0418\u0441\u0442\u043E\u0440\u0438\u0438 (Stories). \u0414\u043B\u044F \u0438\u0441\u0442\u043E\u0440\u0438\u0439 \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u044B \u0442\u043E\u043B\u044C\u043A\u043E \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B \u0438 \u0440\u0435\u0430\u043A\u0446\u0438\u0438 \u043D\u0430 \u0441\u0442\u043E\u0440\u0438\u0437.`;
-  }
-  if (link !== "STORY" /* STORY */ && target === "STORY" /* STORY */) {
-    return `${prefix} \u0440\u0430\u0431\u043E\u0442\u0430\u0435\u0442 \u0438\u0441\u043A\u043B\u044E\u0447\u0438\u0442\u0435\u043B\u044C\u043D\u043E \u0441\u043E \u0441\u0441\u044B\u043B\u043A\u0430\u043C\u0438 \u043D\u0430 \u0418\u0441\u0442\u043E\u0440\u0438\u0438 (Stories). \u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u043F\u0440\u044F\u043C\u0443\u044E \u0441\u0441\u044B\u043B\u043A\u0443 \u043D\u0430 \u0430\u043A\u0442\u0438\u0432\u043D\u0443\u044E \u0438\u0441\u0442\u043E\u0440\u0438\u044E.`;
-  }
-  return `${prefix} (\u0442\u0438\u043F \u0446\u0435\u043B\u0438: ${target}) \u043D\u0435\u0441\u043E\u0432\u043C\u0435\u0441\u0442\u0438\u043C\u0430 \u0441 \u0443\u043A\u0430\u0437\u0430\u043D\u043D\u044B\u043C \u0442\u0438\u043F\u043E\u043C \u0441\u0441\u044B\u043B\u043A\u0438 (${link}). \u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u043F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u0444\u043E\u0440\u043C\u0430\u0442 \u0441\u0441\u044B\u043B\u043A\u0438.`;
-}
-var TargetTypeEnum, LinkType, UNIFIED_COMPATIBILITY_MAP, isLinkServiceCompatible;
-var init_target_type_mapper = __esm({
-  "src/utils/target-type-mapper.ts"() {
-    "use strict";
-    TargetTypeEnum = /* @__PURE__ */ ((TargetTypeEnum2) => {
-      TargetTypeEnum2["CHANNEL"] = "CHANNEL";
-      TargetTypeEnum2["POST"] = "POST";
-      TargetTypeEnum2["PROFILE"] = "PROFILE";
-      TargetTypeEnum2["STORY"] = "STORY";
-      TargetTypeEnum2["VIDEO"] = "VIDEO";
-      TargetTypeEnum2["CHANNEL_POSTS"] = "CHANNEL_POSTS";
-      TargetTypeEnum2["POLL"] = "POLL";
-      TargetTypeEnum2["COMMENTS"] = "COMMENTS";
-      TargetTypeEnum2["BOT"] = "BOT";
-      TargetTypeEnum2["CUSTOM"] = "CUSTOM";
-      TargetTypeEnum2["POST_INTERACTION"] = "POST_INTERACTION";
-      TargetTypeEnum2["VIDEO_INTERACTION"] = "VIDEO_INTERACTION";
-      TargetTypeEnum2["STORY_INTERACTION"] = "STORY_INTERACTION";
-      TargetTypeEnum2["POLL_VOTES"] = "POLL_VOTES";
-      TargetTypeEnum2["BOT_STARTS"] = "BOT_STARTS";
-      return TargetTypeEnum2;
-    })(TargetTypeEnum || {});
-    LinkType = TargetTypeEnum;
-    UNIFIED_COMPATIBILITY_MAP = {
-      ["CHANNEL" /* CHANNEL */]: /* @__PURE__ */ new Set([
-        "CHANNEL" /* CHANNEL */,
-        "CHANNEL_POSTS" /* CHANNEL_POSTS */,
-        "PROFILE" /* PROFILE */,
-        "CUSTOM" /* CUSTOM */
-      ]),
-      ["PROFILE" /* PROFILE */]: /* @__PURE__ */ new Set([
-        "PROFILE" /* PROFILE */,
-        "CHANNEL" /* CHANNEL */,
-        "CHANNEL_POSTS" /* CHANNEL_POSTS */,
-        // Anomaly 1.3: IG/TikTok profile post monitoring
-        "CUSTOM" /* CUSTOM */
-      ]),
-      ["POST" /* POST */]: /* @__PURE__ */ new Set([
-        "POST" /* POST */,
-        "VIDEO" /* VIDEO */,
-        "COMMENTS" /* COMMENTS */,
-        "POLL" /* POLL */,
-        // Anomaly 1.2: TG/VK polls inside posts
-        "CUSTOM" /* CUSTOM */
-      ]),
-      ["VIDEO" /* VIDEO */]: /* @__PURE__ */ new Set([
-        "VIDEO" /* VIDEO */,
-        "POST" /* POST */,
-        "COMMENTS" /* COMMENTS */,
-        // Anomaly 1.1: Comments on videos/clips
-        "CUSTOM" /* CUSTOM */
-      ]),
-      ["STORY" /* STORY */]: /* @__PURE__ */ new Set([
-        "STORY" /* STORY */,
-        "CUSTOM" /* CUSTOM */
-      ]),
-      ["POLL" /* POLL */]: /* @__PURE__ */ new Set([
-        "POLL" /* POLL */,
-        "POST" /* POST */,
-        "CUSTOM" /* CUSTOM */
-      ]),
-      ["BOT" /* BOT */]: /* @__PURE__ */ new Set([
-        "BOT" /* BOT */,
-        "CHANNEL" /* CHANNEL */,
-        "CUSTOM" /* CUSTOM */
-      ]),
-      ["COMMENTS" /* COMMENTS */]: /* @__PURE__ */ new Set([
-        "COMMENTS" /* COMMENTS */,
-        "POST" /* POST */,
-        "VIDEO" /* VIDEO */,
-        "CUSTOM" /* CUSTOM */
-      ]),
-      ["CHANNEL_POSTS" /* CHANNEL_POSTS */]: /* @__PURE__ */ new Set([
-        "CHANNEL_POSTS" /* CHANNEL_POSTS */,
-        "CHANNEL" /* CHANNEL */,
-        "PROFILE" /* PROFILE */,
-        "CUSTOM" /* CUSTOM */
-      ]),
-      ["CUSTOM" /* CUSTOM */]: /* @__PURE__ */ new Set([
-        "CHANNEL" /* CHANNEL */,
-        "PROFILE" /* PROFILE */,
-        "POST" /* POST */,
-        "VIDEO" /* VIDEO */,
-        "STORY" /* STORY */,
-        "POLL" /* POLL */,
-        "BOT" /* BOT */,
-        "COMMENTS" /* COMMENTS */,
-        "CHANNEL_POSTS" /* CHANNEL_POSTS */,
-        "CUSTOM" /* CUSTOM */
-      ]),
-      ["POST_INTERACTION" /* POST_INTERACTION */]: /* @__PURE__ */ new Set([
-        "POST" /* POST */,
-        "VIDEO" /* VIDEO */,
-        "COMMENTS" /* COMMENTS */,
-        "POLL" /* POLL */,
-        "CUSTOM" /* CUSTOM */
-      ]),
-      ["VIDEO_INTERACTION" /* VIDEO_INTERACTION */]: /* @__PURE__ */ new Set([
-        "VIDEO" /* VIDEO */,
-        "POST" /* POST */,
-        "COMMENTS" /* COMMENTS */,
-        "CUSTOM" /* CUSTOM */
-      ]),
-      ["STORY_INTERACTION" /* STORY_INTERACTION */]: /* @__PURE__ */ new Set([
-        "STORY" /* STORY */,
-        "CUSTOM" /* CUSTOM */
-      ]),
-      ["POLL_VOTES" /* POLL_VOTES */]: /* @__PURE__ */ new Set([
-        "POLL" /* POLL */,
-        "POST" /* POST */,
-        "CUSTOM" /* CUSTOM */
-      ]),
-      ["BOT_STARTS" /* BOT_STARTS */]: /* @__PURE__ */ new Set([
-        "BOT" /* BOT */,
-        "CHANNEL" /* CHANNEL */,
-        "CUSTOM" /* CUSTOM */
-      ])
-    };
-    isLinkServiceCompatible = isTargetTypeCompatible;
-  }
-});
-
-// src/utils/target-type.ts
-var target_type_exports = {};
-__export2(target_type_exports, {
-  LinkType: () => LinkType,
-  TargetTypeEnum: () => TargetTypeEnum,
-  getCompatibilityError: () => getCompatibilityError,
-  inferTargetTypeFromCategory: () => inferTargetTypeFromCategory,
-  inferTargetTypeFromName: () => inferTargetTypeFromName,
-  isCompatible: () => isCompatible,
-  isHybridViewCategory: () => isHybridViewCategory,
-  isLinkServiceCompatible: () => isLinkServiceCompatible,
-  isTargetTypeCompatible: () => isTargetTypeCompatible,
-  normalizeTargetType: () => normalizeTargetType,
-  resolveServiceTargetType: () => resolveServiceTargetType
-});
-function isCompatible(serviceType, linkType) {
-  return isTargetTypeCompatible(linkType, serviceType);
-}
-function isHybridViewCategory(categoryName) {
-  if (!categoryName) return false;
-  const n = categoryName.toLowerCase();
-  if (n.includes("\u0441\u0442\u043E\u0440\u0438") || n.includes("story") || n.includes("\u043A\u043B\u0438\u043F") || n.includes("clip") || n.includes("shorts") || n.includes("reel")) {
-    return false;
-  }
-  return n.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || n.includes("\u043E\u0445\u0432\u0430\u0442") || n.includes("view") || n.includes("watch");
-}
-function inferTargetTypeFromCategory(categoryName) {
-  if (isHybridViewCategory(categoryName)) {
-    return "CUSTOM" /* CUSTOM */;
-  }
-  return inferTargetTypeFromName(categoryName);
-}
-var init_target_type = __esm({
-  "src/utils/target-type.ts"() {
-    "use strict";
-    init_target_type_mapper();
-  }
-});
-
-// src/constants/link-service-compatibility.ts
-var link_service_compatibility_exports = {};
-__export2(link_service_compatibility_exports, {
-  LinkType: () => LinkType2,
-  ServiceTargetType: () => ServiceTargetType,
-  getCompatibilityError: () => getCompatibilityError2,
-  isLinkServiceCompatible: () => isLinkServiceCompatible2,
-  normalizeLinkType: () => normalizeLinkType,
-  normalizeServiceTargetType: () => normalizeServiceTargetType
-});
-function normalizeLinkType(rawType) {
-  return normalizeTargetType(rawType);
-}
-function normalizeServiceTargetType(rawType) {
-  return normalizeTargetType(rawType);
-}
-function isLinkServiceCompatible2(rawLinkType, rawTargetType) {
-  return isTargetTypeCompatible(rawLinkType, rawTargetType);
-}
-function getCompatibilityError2(rawLinkType, rawTargetType, serviceName) {
-  return getCompatibilityError(rawLinkType, rawTargetType, serviceName);
-}
-var LinkType2, ServiceTargetType;
-var init_link_service_compatibility = __esm({
-  "src/constants/link-service-compatibility.ts"() {
-    "use strict";
-    init_target_type();
-    LinkType2 = TargetTypeEnum;
-    ServiceTargetType = TargetTypeEnum;
-  }
-});
-
-// src/utils/description-sanitizer.ts
-var init_description_sanitizer = __esm({
-  "src/utils/description-sanitizer.ts"() {
-    "use strict";
-  }
-});
-
-// src/constants/geo-registry.ts
-var init_geo_registry = __esm({
-  "src/constants/geo-registry.ts"() {
-    "use strict";
-  }
-});
-
-// src/services/providers/name-tokenizer.service.ts
-var init_name_tokenizer_service = __esm({
-  "src/services/providers/name-tokenizer.service.ts"() {
-    "use strict";
-    init_geo_registry();
-  }
-});
-
-// src/utils/translation-dictionary.ts
-var QualityTiers, TranslationPatterns;
-var init_translation_dictionary = __esm({
-  "src/utils/translation-dictionary.ts"() {
-    "use strict";
-    QualityTiers = {
-      REAL: "\u0416\u0438\u0432\u044B\u0435",
-      PREMIUM: "\u041F\u0440\u0435\u043C\u0438\u0443\u043C",
-      STANDARD: "\u0421\u0442\u0430\u043D\u0434\u0430\u0440\u0442",
-      ECONOMY: "\u042D\u043A\u043E\u043D\u043E\u043C"
-    };
-    TranslationPatterns = [
-      // Гарантии (Refill)
-      { pattern: /no\s*drop/i, translation: "\u0411\u0435\u0437 \u043E\u0442\u043F\u0438\u0441\u043E\u043A", isRefill: true, warrantyDays: 30 },
-      { pattern: /r\s*30/i, translation: "\u0413\u0430\u0440\u0430\u043D\u0442\u0438\u044F 30 \u0434\u043D\u0435\u0439", isRefill: true, warrantyDays: 30 },
-      { pattern: /гарантия\s*30д/i, translation: "\u0413\u0430\u0440\u0430\u043D\u0442\u0438\u044F 30 \u0434\u043D\u0435\u0439", isRefill: true, warrantyDays: 30 },
-      { pattern: /гарантия\s*14д/i, translation: "\u0413\u0430\u0440\u0430\u043D\u0442\u0438\u044F 14 \u0434\u043D\u0435\u0439", isRefill: true, warrantyDays: 14 },
-      { pattern: /r\s*60/i, translation: "\u0413\u0430\u0440\u0430\u043D\u0442\u0438\u044F 60 \u0434\u043D\u0435\u0439", isRefill: true, warrantyDays: 60 },
-      { pattern: /r\s*99/i, translation: "\u0412\u0435\u0447\u043D\u0430\u044F \u0433\u0430\u0440\u0430\u043D\u0442\u0438\u044F (99 \u0434\u043D\u0435\u0439)", isRefill: true, warrantyDays: 99 },
-      { pattern: /refill\s*30/i, translation: "\u0413\u0430\u0440\u0430\u043D\u0442\u0438\u044F 30 \u0434\u043D\u0435\u0439", isRefill: true, warrantyDays: 30 },
-      { pattern: /lifetime/i, translation: "\u041F\u043E\u0436\u0438\u0437\u043D\u0435\u043D\u043D\u0430\u044F \u0433\u0430\u0440\u0430\u043D\u0442\u0438\u044F", isRefill: true, warrantyDays: 365 },
-      { pattern: /no\s*refill/i, translation: "\u0411\u0435\u0437 \u0433\u0430\u0440\u0430\u043D\u0442\u0438\u0438", isRefill: false, warrantyDays: 0 },
-      { pattern: /без\s*гарантии/i, translation: "\u0411\u0435\u0437 \u0433\u0430\u0440\u0430\u043D\u0442\u0438\u0438", isRefill: false, warrantyDays: 0 },
-      // Качество (Quality)
-      { pattern: /uhq/i, translation: "\u0421\u0432\u0435\u0440\u0445\u0432\u044B\u0441\u043E\u043A\u043E\u0435 \u043A\u0430\u0447\u0435\u0441\u0442\u0432\u043E (UHQ)", tier: QualityTiers.PREMIUM },
-      { pattern: /hq/i, translation: "\u0412\u044B\u0441\u043E\u043A\u043E\u0435 \u043A\u0430\u0447\u0435\u0441\u0442\u0432\u043E", tier: QualityTiers.PREMIUM },
-      { pattern: /high\s*quality/i, translation: "\u0412\u044B\u0441\u043E\u043A\u043E\u0435 \u043A\u0430\u0447\u0435\u0441\u0442\u0432\u043E", tier: QualityTiers.PREMIUM },
-      { pattern: /lq/i, translation: "\u041D\u0438\u0437\u043A\u043E\u0435 \u043A\u0430\u0447\u0435\u0441\u0442\u0432\u043E", tier: QualityTiers.ECONOMY },
-      { pattern: /low\s*quality/i, translation: "\u041D\u0438\u0437\u043A\u043E\u0435 \u043A\u0430\u0447\u0435\u0441\u0442\u0432\u043E", tier: QualityTiers.ECONOMY },
-      { pattern: /real/i, translation: "\u0420\u0435\u0430\u043B\u044C\u043D\u044B\u0435 \u0430\u043A\u043A\u0430\u0443\u043D\u0442\u044B", tier: QualityTiers.PREMIUM },
-      { pattern: /ру\s*сим/i, translation: "\u0420\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u044F \u043D\u0430 RU-\u0441\u0438\u043C\u043A\u0430\u0440\u0442\u044B", tier: QualityTiers.PREMIUM },
-      { pattern: /ии\s*ключевые\s*слова/i, translation: "\u0418\u043D\u0442\u0435\u043B\u043B\u0435\u043A\u0442\u0443\u0430\u043B\u044C\u043D\u0430\u044F \u043D\u0430\u043A\u0440\u0443\u0442\u043A\u0430 (\u0418\u0418)", tier: QualityTiers.PREMIUM },
-      { pattern: /active/i, translation: "\u0410\u043A\u0442\u0438\u0432\u043D\u044B\u0435 \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u0438", tier: QualityTiers.PREMIUM },
-      { pattern: /bots/i, translation: "\u0411\u043E\u0442\u044B", tier: QualityTiers.ECONOMY },
-      { pattern: /fake/i, translation: "\u0424\u0435\u0439\u043A\u0438", tier: QualityTiers.ECONOMY },
-      { pattern: /mix/i, translation: "\u0421\u043C\u0435\u0448\u0430\u043D\u043D\u043E\u0435 \u043A\u0430\u0447\u0435\u0441\u0442\u0432\u043E", tier: QualityTiers.STANDARD },
-      { pattern: /микс/i, translation: "\u0421\u043C\u0435\u0448\u0430\u043D\u043D\u043E\u0435 \u043A\u0430\u0447\u0435\u0441\u0442\u0432\u043E", tier: QualityTiers.STANDARD },
-      // Скорость (Speed)
-      { pattern: /instant/i, translation: "\u041C\u043E\u043C\u0435\u043D\u0442\u0430\u043B\u044C\u043D\u044B\u0439 \u0441\u0442\u0430\u0440\u0442", velocityScore: 100 },
-      { pattern: /fast/i, translation: "\u0412\u044B\u0441\u043E\u043A\u0430\u044F \u0441\u043A\u043E\u0440\u043E\u0441\u0442\u044C", velocityScore: 80 },
-      { pattern: /slow/i, translation: "\u041C\u0435\u0434\u043B\u0435\u043D\u043D\u0430\u044F \u0441\u043A\u043E\u0440\u043E\u0441\u0442\u044C", velocityScore: 20 },
-      { pattern: /gradual/i, translation: "\u041F\u043B\u0430\u0432\u043D\u043E\u0435 \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u0435", velocityScore: 40 },
-      { pattern: /\d+к\/д/i, translation: "\u0412\u044B\u0441\u043E\u043A\u0430\u044F \u0441\u043A\u043E\u0440\u043E\u0441\u0442\u044C (\u0434\u0435\u0441\u044F\u0442\u043A\u0438 \u0442\u044B\u0441\u044F\u0447 \u0432 \u0441\u0443\u0442\u043A\u0438)", velocityScore: 80 },
-      // Специфика / Исключения (Edge cases)
-      { pattern: /non?\s*drop/i, translation: "\u041C\u0438\u043D\u0438\u043C\u0430\u043B\u044C\u043D\u044B\u0435 \u043E\u0442\u043F\u0438\u0441\u043A\u0438", isRefill: true },
-      { pattern: /возможны\s*списания/i, translation: "\u0412\u043E\u0437\u043C\u043E\u0436\u043D\u044B \u0441\u043F\u0438\u0441\u0430\u043D\u0438\u044F (\u0431\u0435\u0437 \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u044F)" },
-      { pattern: /списания\s*возможны/i, translation: "\u0412\u043E\u0437\u043C\u043E\u0436\u043D\u044B \u0441\u043F\u0438\u0441\u0430\u043D\u0438\u044F (\u0431\u0435\u0437 \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u044F)" },
-      { pattern: /targeted/i, translation: "\u0426\u0435\u043B\u0435\u0432\u0430\u044F \u0430\u0443\u0434\u0438\u0442\u043E\u0440\u0438\u044F" },
-      { pattern: /auto/i, translation: "\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 (\u043D\u0430 \u043D\u043E\u0432\u044B\u0435 \u043F\u043E\u0441\u0442\u044B)" },
-      { pattern: /views\s*with\s*impressions/i, translation: "\u041F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B \u0441 \u043E\u0445\u0432\u0430\u0442\u043E\u043C" },
-      { pattern: /retention/i, translation: "\u0421 \u0443\u0434\u0435\u0440\u0436\u0430\u043D\u0438\u0435\u043C" }
-    ];
-  }
-});
-
-// src/services/providers/smart-analyzer.logic.ts
-var CATEGORY_LABELS;
-var init_smart_analyzer_logic = __esm({
-  "src/services/providers/smart-analyzer.logic.ts"() {
-    "use strict";
-    init_description_sanitizer();
-    init_geo_registry();
-    init_name_tokenizer_service();
-    init_translation_dictionary();
-    CATEGORY_LABELS = {
-      SUBSCRIBERS: "\u041F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A\u0438 / \u0423\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u0438",
-      GROUPS: "\u0412\u0441\u0442\u0443\u043F\u043B\u0435\u043D\u0438\u0435 \u0432 \u0433\u0440\u0443\u043F\u043F\u044B / \u0447\u0430\u0442\u044B",
-      LIKES: "\u041B\u0430\u0439\u043A\u0438 / \u041D\u0440\u0430\u0432\u0438\u0442\u0441\u044F",
-      VIEWS: "\u041F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B / \u041E\u0445\u0432\u0430\u0442",
-      COMMENTS: "\u041A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0438 / \u041E\u0442\u0437\u044B\u0432\u044B",
-      REACTIONS: "\u0420\u0435\u0430\u043A\u0446\u0438\u0438 / \u042D\u043C\u043E\u0434\u0437\u0438",
-      REPOSTS: "\u0420\u0435\u043F\u043E\u0441\u0442\u044B / \u041F\u043E\u0434\u0435\u043B\u0438\u0442\u044C\u0441\u044F",
-      AUTO_VIEWS: "\u0410\u0432\u0442\u043E\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B",
-      AUTO_LIKES: "\u0410\u0432\u0442\u043E\u043B\u0430\u0439\u043A\u0438",
-      AUTO_REACTIONS: "\u0410\u0432\u0442\u043E\u0440\u0435\u0430\u043A\u0446\u0438\u0438",
-      AUTO_REPOSTS: "\u0410\u0432\u0442\u043E\u0440\u0435\u043F\u043E\u0441\u0442\u044B",
-      AUTO_COMMENTS: "\u0410\u0432\u0442\u043E\u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0438",
-      BOOSTS: "\u0411\u0443\u0441\u0442\u044B (Telegram Levels)",
-      POLLS: "\u0413\u043E\u043B\u043E\u0441\u0430 / \u041E\u043F\u0440\u043E\u0441\u044B",
-      STORIES: "\u0421\u0442\u043E\u0440\u0438\u0437 / \u0418\u0441\u0442\u043E\u0440\u0438\u0438",
-      BOTS: "\u0420\u043E\u0431\u043E\u0442\u044B / \u0411\u043E\u0442\u044B",
-      REFERRALS: "\u0420\u0435\u0444\u0435\u0440\u0430\u043B\u044B (Apps/Bots)",
-      FRIENDS: "\u0417\u0430\u044F\u0432\u043A\u0438 \u0432 \u0434\u0440\u0443\u0437\u044C\u044F",
-      PLAYS: "\u041F\u0440\u043E\u0441\u043B\u0443\u0448\u0438\u0432\u0430\u043D\u0438\u044F (Music)",
-      TRAFFIC: "\u0422\u0440\u0430\u0444\u0438\u043A / \u041F\u043E\u0441\u0435\u0449\u0435\u043D\u0438\u044F",
-      DISLIKES: "\u0414\u0438\u0437\u043B\u0430\u0439\u043A\u0438",
-      STARS: "\u0417\u0432\u0435\u0437\u0434\u044B (Telegram Stars)",
-      SAVES: "\u0421\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F / Saves",
-      COMPLAINTS: "\u0416\u0430\u043B\u043E\u0431\u044B / Reports",
-      STREAMS: "\u0421\u0442\u0440\u0438\u043C\u044B",
-      PREMIUM: "Premium \u041F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A\u0438",
-      RECOVER: "\u0412\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 / \u0414\u043E\u043A\u0440\u0443\u0442\u043A\u0430",
-      OTHER: "\u0414\u0440\u0443\u0433\u043E\u0435 / \u0420\u0430\u0437\u043D\u043E\u0435"
-    };
-  }
-});
-
-// src/services/analyzer/link-rules.ts
-var LINK_RULES;
-var init_link_rules = __esm({
-  "src/services/analyzer/link-rules.ts"() {
-    "use strict";
-    init_smart_analyzer_logic();
-    LINK_RULES = [
-      // ===================== TELEGRAM =====================
-      {
-        platform: "TELEGRAM" /* TELEGRAM */,
-        type: "private_post",
-        pattern: /(?:t\.me|telegram\.me|telegram\.dog)\/c\/(\d+)\/(\d+)\/?(?:\?.*)?$/i,
-        suggestedCategories: [],
-        context: "private"
-      },
-      {
-        platform: "TELEGRAM" /* TELEGRAM */,
-        type: "story",
-        pattern: /(?:t\.me|telegram\.me|telegram\.dog)\/([\w-]+)\/s\/(\d+)\/?(?:\?.*)?$/i,
-        suggestedCategories: [CATEGORY_LABELS.STORIES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.REACTIONS],
-        context: "temporary_story"
-      },
-      {
-        platform: "TELEGRAM" /* TELEGRAM */,
-        type: "post",
-        pattern: /(?:t\.me|telegram\.me|telegram\.dog)\/(?:s\/)?[\w-]+\/(?:topic\/|\d+\/)?(\d+)\/?(?:\?.*)?$/i,
-        suggestedCategories: [CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.REACTIONS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.STARS],
-        context: "engagement"
-      },
-      {
-        platform: "TELEGRAM" /* TELEGRAM */,
-        type: "bot",
-        pattern: /(?:t\.me|telegram\.me|telegram\.dog)\/(?:[\w-]+bot|[\w-]+_bot)\/?(?:\?.*)?$/i,
-        suggestedCategories: [CATEGORY_LABELS.BOTS, CATEGORY_LABELS.REFERRALS, CATEGORY_LABELS.SUBSCRIBERS],
-        context: "automation"
-      },
-      {
-        platform: "TELEGRAM" /* TELEGRAM */,
-        type: "channel",
-        pattern: /(?:t\.me|telegram\.me|telegram\.dog)\/(?:boost\/(?:c\/)?@?([\w-]+)\/?(?:\?.*)?$|(?:s\/)?(?:c\/)?@?([\w-]+)(?:\/boost\/?(?:\?.*)?|\/?\?(?:.*&)?boost(?:[=&].*)?)$)/i,
-        suggestedCategories: [CATEGORY_LABELS.BOOSTS, CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.PREMIUM],
-        context: "channel_boost_target"
-      },
-      {
-        platform: "TELEGRAM" /* TELEGRAM */,
-        type: "channel",
-        pattern: /(?:t\.me|telegram\.me|telegram\.dog)\/(?:joinchat\/|\+)([\w-]+)\/?(?:\?.*)?$/i,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS],
-        context: "private_invite"
-      },
-      {
-        platform: "TELEGRAM" /* TELEGRAM */,
-        type: "channel",
-        pattern: /(?:t\.me|telegram\.me|telegram\.dog)\/(?:s\/)?@?([\w-]+)\/?(?:\?.*)?$|web\.telegram\.org\/(?:k|a)\/#@?([\w-]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.PREMIUM, CATEGORY_LABELS.BOOSTS, CATEGORY_LABELS.GROUPS, CATEGORY_LABELS.STORIES, CATEGORY_LABELS.STARS, CATEGORY_LABELS.AUTO_VIEWS, CATEGORY_LABELS.AUTO_REACTIONS, CATEGORY_LABELS.AUTO_REPOSTS],
-        context: "global_search_optimization"
-      },
-      // ===================== YOUTUBE =====================
-      {
-        platform: "YOUTUBE" /* YOUTUBE */,
-        type: "video",
-        pattern: /(?:youtube\.com\/(?:watch\?.*v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{6,12})(?=[^\w-]|$|&)/i,
-        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.STREAMS],
-        context: "high_retention_target"
-      },
-      {
-        platform: "YOUTUBE" /* YOUTUBE */,
-        type: "channel",
-        pattern: /youtube\.com\/((?:@)[\w-.]+|channel\/[\w-.]+|user\/[\w-.]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS],
-        context: "authority_growth"
-      },
-      // ===================== INSTAGRAM =====================
-      {
-        platform: "INSTAGRAM" /* INSTAGRAM */,
-        type: "highlight",
-        pattern: /instagram\.com\/stories\/highlights\/([\w-]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.STORIES, CATEGORY_LABELS.VIEWS],
-        context: "highlight_views"
-      },
-      {
-        platform: "INSTAGRAM" /* INSTAGRAM */,
-        type: "story",
-        pattern: /instagram\.com\/stories\/([\w._]+)\/(\d+)/i,
-        suggestedCategories: [CATEGORY_LABELS.STORIES, CATEGORY_LABELS.VIEWS],
-        context: "temporary_story"
-      },
-      {
-        platform: "INSTAGRAM" /* INSTAGRAM */,
-        type: "post",
-        pattern: /instagram\.com\/(?:p|reel|tv)\/([\w-]+)/,
-        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.SAVES, CATEGORY_LABELS.REACTIONS],
-        context: "viral_momentum"
-      },
-      {
-        platform: "INSTAGRAM" /* INSTAGRAM */,
-        type: "profile",
-        pattern: /(?:instagram\.com|ig\.me)\/([\w._]+)/,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.STORIES, CATEGORY_LABELS.STREAMS, CATEGORY_LABELS.AUTO_LIKES, CATEGORY_LABELS.AUTO_VIEWS],
-        context: "trust_building"
-      },
-      // ===================== TIKTOK =====================
-      {
-        platform: "TIKTOK" /* TIKTOK */,
-        type: "short_link",
-        pattern: /(?:vm\.tiktok\.com|vt\.tiktok\.com|tiktok\.com\/t)\/([\w-]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.SAVES],
-        context: "mobile_viral"
-      },
-      {
-        platform: "TIKTOK" /* TIKTOK */,
-        type: "video",
-        pattern: /tiktok\.com\/@[\w.]+\/(?:video|photo)\/(\d+)/i,
-        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.SAVES],
-        context: "viral_reach"
-      },
-      {
-        platform: "TIKTOK" /* TIKTOK */,
-        type: "live",
-        pattern: /tiktok\.com\/@[\w.]+\/live/i,
-        suggestedCategories: [CATEGORY_LABELS.STREAMS],
-        context: "live_stream"
-      },
-      {
-        platform: "TIKTOK" /* TIKTOK */,
-        type: "profile",
-        pattern: /tiktok\.com\/(@[\w.]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.AUTO_LIKES],
-        context: "influence"
-      },
-      // ===================== VK =====================
-      {
-        platform: "VK" /* VK */,
-        type: "comment",
-        pattern: /(?:vk\.(?:com|ru)|vkvideo\.ru)\/(?:wall|video|photo|clip)(-?\d+_\d+)\?[^#]*\breply=(\d+)/i,
-        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.REACTIONS],
-        context: "social_reach"
-      },
-      {
-        platform: "VK" /* VK */,
-        type: "post",
-        pattern: /(?:vk\.(?:com|ru)|vkvideo\.ru)\/(?:wall|clip|video|photo)(-?\d+_\d+)/,
-        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.REACTIONS, CATEGORY_LABELS.POLLS],
-        context: "social_reach"
-      },
-      {
-        platform: "VK" /* VK */,
-        type: "profile",
-        pattern: /vk\.(?:com|ru)\/([\w._]+)/,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.FRIENDS, CATEGORY_LABELS.VIEWS],
-        context: "networking"
-      },
-      // ===================== TWITCH =====================
-      {
-        platform: "TWITCH" /* TWITCH */,
-        type: "clip",
-        pattern: /(?:clips\.twitch\.tv\/|twitch\.tv\/[\w]+\/clip\/)([\w-]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.LIKES],
-        context: "viral_reach"
-      },
-      {
-        platform: "TWITCH" /* TWITCH */,
-        type: "video",
-        pattern: /twitch\.tv\/videos\/(\d+)/i,
-        suggestedCategories: [CATEGORY_LABELS.VIEWS],
-        context: "past_broadcast_views"
-      },
-      {
-        platform: "TWITCH" /* TWITCH */,
-        type: "channel",
-        pattern: /twitch\.tv\/([\w]+)/,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.STREAMS, CATEGORY_LABELS.BOTS, CATEGORY_LABELS.GROUPS, CATEGORY_LABELS.OTHER],
-        context: "streaming_growth"
-      },
-      // ===================== TWITTER / X =====================
-      {
-        platform: "TWITTER" /* TWITTER */,
-        type: "post",
-        // BUG-FIX (SIL-2026): anchor host with (?:^|[./]) to prevent substring match inside yandex.com etc.
-        pattern: /(?:(?:^|[./])twitter\.com|(?:^|[./])x\.com)\/([\w]+)\/status\/(\d+)/,
-        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.BOOKMARKS],
-        context: "social_reach"
-      },
-      {
-        platform: "TWITTER" /* TWITTER */,
-        type: "profile",
-        // BUG-FIX (SIL-2026): anchor host with (?:^|[./]) to prevent substring match inside yandex.com etc.
-        pattern: /(?:(?:^|[./])twitter\.com|(?:^|[./])x\.com)\/([\w]+)/,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.AUTO_VIEWS],
-        context: "social_presence"
-      },
-      // ===================== LIKEE =====================
-      {
-        platform: "LIKEE" /* LIKEE */,
-        type: "video",
-        pattern: /(?:l\.likee\.video\/v\/([\w-]+)|(?:likee\.video|likee\.com)\/@[\w.]+\/video\/(\d+))/i,
-        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS],
-        context: "mobile_viral"
-      },
-      {
-        platform: "LIKEE" /* LIKEE */,
-        type: "profile",
-        pattern: /(?:l\.likee\.video\/p\/([\w-]+)|(?:likee\.video|likee\.com)\/(@[\w.]+))/i,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.VIEWS],
-        context: "influencer_growth"
-      },
-      // ===================== OK =====================
-      {
-        platform: "OK" /* OK */,
-        type: "post",
-        pattern: /ok\.ru\/(?:group|profile)\/\d+\/(?:topic|statuses)\/(\d+)/i,
-        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.REACTIONS],
-        context: "social_reach"
-      },
-      {
-        platform: "OK" /* OK */,
-        type: "group",
-        pattern: /ok\.ru\/group\/(\d+)/i,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.VIEWS],
-        context: "community_authority"
-      },
-      {
-        platform: "OK" /* OK */,
-        type: "profile",
-        pattern: /ok\.ru\/(?:profile\/(\d+)|([\w.-]+))/i,
-        suggestedCategories: [CATEGORY_LABELS.FRIENDS, CATEGORY_LABELS.VIEWS],
-        context: "networking"
-      },
-      // ===================== RUTUBE =====================
-      {
-        platform: "RUTUBE" /* RUTUBE */,
-        type: "video",
-        pattern: /rutube\.ru\/(?:video\/(?:private\/)?|play\/embed\/)([\w-]{32})/i,
-        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS],
-        context: "authority_growth"
-      },
-      {
-        platform: "RUTUBE" /* RUTUBE */,
-        type: "channel",
-        pattern: /rutube\.ru\/(?:channel\/(\d+)|u\/([\w.-]+))/i,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS],
-        context: "viral_momentum"
-      },
-      // ===================== DZEN =====================
-      {
-        platform: "DZEN" /* DZEN */,
-        type: "post",
-        pattern: /(?:dzen\.ru|zen\.yandex\.ru)\/(?:a\/|b\/|shorts\/|video\/watch\/|media\/(?:[\w.-]+\/)?)([\w-]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS],
-        context: "authority_growth"
-      },
-      {
-        platform: "DZEN" /* DZEN */,
-        type: "channel",
-        pattern: /(?:dzen\.ru|zen\.yandex\.ru)\/(?:id\/([\w-]+)|u\/([\w.-]+)|channel\/([\w-]+)|@?([\w.-]+))\/?(?:\?.*)?$/i,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.VIEWS],
-        context: "viral_momentum"
-      },
-      // ===================== DISCORD =====================
-      {
-        platform: "DISCORD" /* DISCORD */,
-        type: "invite",
-        pattern: /(?:discord\.gg|discord\.com\/invite)\/([\w-]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.GROUPS],
-        context: "automation"
-      },
-      // ===================== KICK =====================
-      {
-        platform: "KICK" /* KICK */,
-        type: "channel",
-        pattern: /kick\.com\/([\w.-]+)$/i,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.STREAMS],
-        context: "live_stream"
-      },
-      // ===================== SPOTIFY =====================
-      {
-        platform: "SPOTIFY" /* SPOTIFY */,
-        type: "artist",
-        pattern: /open\.spotify\.com\/artist\/([\w-]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.PLAYS],
-        context: "artist_listeners"
-      },
-      {
-        platform: "SPOTIFY" /* SPOTIFY */,
-        type: "track",
-        pattern: /open\.spotify\.com\/track\/([\w-]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.PLAYS, CATEGORY_LABELS.SAVES],
-        context: "viral_reach"
-      },
-      {
-        platform: "SPOTIFY" /* SPOTIFY */,
-        type: "playlist",
-        pattern: /open\.spotify\.com\/(?:playlist|album)\/([\w-]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.PLAYS],
-        context: "networking"
-      },
-      // ===================== SOUNDCLOUD =====================
-      {
-        platform: "SOUNDCLOUD" /* SOUNDCLOUD */,
-        type: "track",
-        pattern: /(?:soundcloud\.com\/[\w.-]+\/[\w.-]+|on\.soundcloud\.com\/([\w.-]+))/i,
-        suggestedCategories: [CATEGORY_LABELS.PLAYS, CATEGORY_LABELS.LIKES, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.COMMENTS],
-        context: "music_viral"
-      },
-      {
-        platform: "SOUNDCLOUD" /* SOUNDCLOUD */,
-        type: "artist",
-        pattern: /soundcloud\.com\/([\w.-]+)\/?$/i,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS],
-        context: "authority_growth"
-      },
-      // ===================== PINTEREST =====================
-      {
-        platform: "PINTEREST" /* PINTEREST */,
-        type: "pin",
-        pattern: /(?:pinterest\.[a-z.]+\/pin\/|pin\.it\/)([\w-]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.SAVES, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.REACTIONS],
-        context: "visual_discovery"
-      },
-      {
-        platform: "PINTEREST" /* PINTEREST */,
-        type: "profile",
-        pattern: /pinterest\.[a-z.]+\/([\w.-]+)\/?$/i,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS],
-        context: "networking"
-      },
-      // ===================== REDDIT =====================
-      {
-        platform: "REDDIT" /* REDDIT */,
-        type: "post",
-        pattern: /reddit\.com\/r\/[\w.-]+\/comments\/([\w]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS],
-        context: "community_authority"
-      },
-      {
-        platform: "REDDIT" /* REDDIT */,
-        type: "subreddit",
-        pattern: /reddit\.com\/r\/([\w.-]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS],
-        context: "community_growth"
-      },
-      {
-        platform: "REDDIT" /* REDDIT */,
-        type: "profile",
-        pattern: /reddit\.com\/user\/([\w.-]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS],
-        context: "networking"
-      },
-      // ===================== LINKEDIN =====================
-      {
-        platform: "LINKEDIN" /* LINKEDIN */,
-        type: "post",
-        pattern: /linkedin\.com\/(?:posts|feed\/update)\/([\w.-]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS],
-        context: "api_engagement"
-      },
-      {
-        platform: "LINKEDIN" /* LINKEDIN */,
-        type: "company",
-        pattern: /linkedin\.com\/company\/([\w.-]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS],
-        context: "corporate_growth"
-      },
-      {
-        platform: "LINKEDIN" /* LINKEDIN */,
-        type: "profile",
-        pattern: /linkedin\.com\/(?:in|pub)\/([\w.-]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.FRIENDS],
-        context: "professional_networking"
-      },
-      // ===================== SNAPCHAT =====================
-      {
-        platform: "SNAPCHAT" /* SNAPCHAT */,
-        type: "spotlight",
-        pattern: /snapchat\.com\/spotlight\/([\w.-]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.LIKES, CATEGORY_LABELS.REPOSTS],
-        context: "viral_momentum"
-      },
-      {
-        platform: "SNAPCHAT" /* SNAPCHAT */,
-        type: "profile",
-        pattern: /(?:snapchat\.com\/add|story\.snapchat\.com\/u)\/([\w.-]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.STORIES],
-        context: "networking"
-      },
-      // ===================== YANDEX (MUSIC / MAPS) =====================
-      {
-        platform: "YANDEX" /* YANDEX */,
-        type: "track",
-        pattern: /music\.yandex\.(?:ru|com)\/(?:album\/\d+\/track\/|track\/)(\d+)/i,
-        suggestedCategories: [CATEGORY_LABELS.PLAYS, CATEGORY_LABELS.LIKES],
-        context: "music_growth"
-      },
-      {
-        platform: "YANDEX" /* YANDEX */,
-        type: "artist",
-        pattern: /music\.yandex\.(?:ru|com)\/artist\/(\d+)/i,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.PLAYS],
-        context: "artist_growth"
-      },
-      {
-        platform: "YANDEX" /* YANDEX */,
-        type: "album",
-        pattern: /music\.yandex\.(?:ru|com)\/album\/(\d+)/i,
-        suggestedCategories: [CATEGORY_LABELS.PLAYS, CATEGORY_LABELS.LIKES],
-        context: "album_growth"
-      },
-      // ===================== APPLE (MUSIC / PODCASTS) =====================
-      {
-        platform: "APPLE" /* APPLE */,
-        type: "podcast",
-        pattern: /podcasts\.apple\.com\/[^/]+\/podcast\/[^/]+\/id(\d+)/i,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.PLAYS, CATEGORY_LABELS.REACTIONS],
-        context: "audio_authority"
-      },
-      {
-        platform: "APPLE" /* APPLE */,
-        type: "track",
-        pattern: /music\.apple\.com\/[^/]+\/album\/[^/]+\/\d+\?i=(\d+)/i,
-        suggestedCategories: [CATEGORY_LABELS.PLAYS, CATEGORY_LABELS.LIKES],
-        context: "music_growth"
-      },
-      {
-        platform: "APPLE" /* APPLE */,
-        type: "album",
-        pattern: /music\.apple\.com\/[^/]+\/album\/[^/]+\/(\d+)/i,
-        suggestedCategories: [CATEGORY_LABELS.PLAYS, CATEGORY_LABELS.LIKES],
-        context: "album_growth"
-      },
-      // ===================== FACEBOOK =====================
-      {
-        platform: "FACEBOOK" /* FACEBOOK */,
-        type: "post",
-        pattern: /facebook\.com\/[^/]+\/(?:posts|videos|photos)\/([\w.-]+)|permalink\.php\?story_fbid=([\w.-]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.REACTIONS],
-        context: "social_reach"
-      },
-      {
-        platform: "FACEBOOK" /* FACEBOOK */,
-        type: "profile",
-        pattern: /facebook\.com\/([\w.-]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.FRIENDS],
-        context: "networking"
-      },
-      // ===================== THREADS =====================
-      {
-        platform: "THREADS" /* THREADS */,
-        type: "post",
-        pattern: /threads\.net\/@[\w.-]+\/post\/([\w.-]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS],
-        context: "viral_momentum"
-      },
-      {
-        platform: "THREADS" /* THREADS */,
-        type: "profile",
-        pattern: /threads\.net\/@[\w.-]+/,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS],
-        context: "networking"
-      },
-      // ===================== KWAI =====================
-      {
-        platform: "KWAI" /* KWAI */,
-        type: "video",
-        pattern: /kwai\.com\/(?:video|p)\/([\w.-]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.REPOSTS],
-        context: "viral_reach"
-      },
-      {
-        platform: "KWAI" /* KWAI */,
-        type: "profile",
-        pattern: /kwai\.com\/@?([\w.-]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS],
-        context: "networking"
-      },
-      // ===================== TUMBLR =====================
-      {
-        platform: "TUMBLR" /* TUMBLR */,
-        type: "post",
-        pattern: /(?:[\w.-]+\.tumblr\.com\/post\/\d+|tumblr\.com\/[\w.-]+\/(\d+))/i,
-        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.REPOSTS],
-        context: "blog_growth"
-      },
-      {
-        platform: "TUMBLR" /* TUMBLR */,
-        type: "profile",
-        pattern: /([\w.-]+)\.tumblr\.com/i,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS],
-        context: "networking"
-      },
-      // ===================== MEDIUM =====================
-      {
-        platform: "MEDIUM" /* MEDIUM */,
-        type: "post",
-        pattern: /medium\.com\/(?:@[\w.-]+\/|p\/)([\w.-]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.VIEWS],
-        context: "blog_reach"
-      },
-      {
-        platform: "MEDIUM" /* MEDIUM */,
-        type: "profile",
-        pattern: /medium\.com\/@([\w.-]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS],
-        context: "networking"
-      },
-      // ===================== QUORA =====================
-      {
-        platform: "QUORA" /* QUORA */,
-        type: "profile",
-        pattern: /quora\.com\/profile\/([\w.-]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS],
-        context: "networking"
-      },
-      {
-        platform: "QUORA" /* QUORA */,
-        type: "question",
-        pattern: /quora\.com\/(?:q\/)?([\w.-]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS],
-        context: "expert_authority"
-      },
-      // ===================== VIMEO =====================
-      {
-        platform: "VIMEO" /* VIMEO */,
-        type: "video",
-        pattern: /vimeo\.com\/(?:video\/|channels\/[\w.-]+\/)?(\d+)/i,
-        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS],
-        context: "video_growth"
-      },
-      {
-        platform: "VIMEO" /* VIMEO */,
-        type: "channel",
-        pattern: /vimeo\.com\/([\w.-]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.VIEWS],
-        context: "video_growth"
-      },
-      // ===================== RUMBLE =====================
-      {
-        platform: "RUMBLE" /* RUMBLE */,
-        type: "video",
-        pattern: /rumble\.com\/([\w.-]+\.html|v[\w.-]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS],
-        context: "video_growth"
-      },
-      {
-        platform: "RUMBLE" /* RUMBLE */,
-        type: "channel",
-        pattern: /rumble\.com\/(?:c\/|user\/)?([\w.-]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.VIEWS],
-        context: "video_growth"
-      },
-      // ===================== SHAZAM =====================
-      {
-        platform: "SHAZAM" /* SHAZAM */,
-        type: "track",
-        pattern: /shazam\.com\/track\/(\d+)/i,
-        suggestedCategories: [CATEGORY_LABELS.PLAYS, CATEGORY_LABELS.LIKES],
-        context: "music_discovery"
-      },
-      // ===================== WHATSAPP =====================
-      {
-        platform: "WHATSAPP" /* WHATSAPP */,
-        type: "group",
-        pattern: /(?:chat\.whatsapp\.com|wa\.me)\/([\w.-]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.GROUPS],
-        context: "messenger_community"
-      },
-      // ===================== MAX MESSENGER =====================
-      {
-        platform: "MAX" /* MAX */,
-        type: "channel",
-        pattern: /(?:max\.ru)\/c\/(-?\d+(?:\/[\w-]+)?|[\w.-]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.GROUPS],
-        context: "automation"
-      },
-      {
-        platform: "MAX" /* MAX */,
-        type: "profile",
-        pattern: /(?:max\.ru)\/([\w_.-]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.BOTS],
-        context: "networking"
-      },
-      // ===================== STEAM =====================
-      {
-        platform: "STEAM" /* STEAM */,
-        type: "post",
-        pattern: /steamcommunity\.com\/sharedfiles\/filedetails\/\?id=(\d+)/i,
-        suggestedCategories: [CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.LIKES],
-        context: "social_reach"
-      },
-      {
-        platform: "STEAM" /* STEAM */,
-        type: "profile",
-        pattern: /steamcommunity\.com\/(?:id\/([\w.-]+)|profiles\/(\d+))/i,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.FRIENDS],
-        context: "networking"
-      },
-      // ===================== WIBES =====================
-      {
-        platform: "WIBES" /* WIBES */,
-        type: "post",
-        pattern: /wibes\.ru\/[\w.-]+\/([\w.-]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.SAVES],
-        context: "social_reach"
-      },
-      {
-        platform: "WIBES" /* WIBES */,
-        type: "profile",
-        pattern: /wibes\.ru\/([\w.-]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS],
-        context: "networking"
-      },
-      // ===================== TROVO =====================
-      {
-        platform: "TROVO" /* TROVO */,
-        type: "live",
-        pattern: /trovo\.live\/(?:s\/[\w.-]+\/|[\w.-]+\/)(\d+)/i,
-        suggestedCategories: [CATEGORY_LABELS.STREAMS],
-        context: "live_stream"
-      },
-      {
-        platform: "TROVO" /* TROVO */,
-        type: "channel",
-        pattern: /trovo\.live\/(?:s\/)?([\w.-]+)/i,
-        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.STREAMS],
-        context: "streaming_growth"
-      },
-      // ===================== FALLBACK WEBSITE & TRAFFIC =====================
-      {
-        platform: "WEBSITE" /* WEBSITE */,
-        type: "seo_traffic",
-        pattern: /^https?:\/\/[^/\s]+\.[a-z]{2,}/i,
-        suggestedCategories: [CATEGORY_LABELS.TRAFFIC],
-        context: "seo_authority"
-      },
-      {
-        platform: "WEBSITE" /* WEBSITE */,
-        type: "direct_traffic",
-        pattern: /^https?:\/\//,
-        suggestedCategories: [CATEGORY_LABELS.OTHER, CATEGORY_LABELS.VIEWS],
-        context: "visibility"
-      }
-    ];
-  }
-});
-
-// src/utils/link-normalizer.ts
-function stripQueryParams(url) {
-  if (!url) return "";
-  const bounded = url.length > MAX_SAFE_URL_LENGTH ? url.slice(0, MAX_SAFE_URL_LENGTH) : url;
-  const trimmed = bounded.trim();
-  try {
-    const parsed = new URL(trimmed);
-    const searchParams = parsed.searchParams;
-    const exactBlocklist = /* @__PURE__ */ new Set(["igsh", "igshid", "fbclid", "gclid", "yclid", "ttref", "feature", "si", "ref"]);
-    const prefixBlocklist = ["utm_"];
-    const keysToDelete = [];
-    searchParams.forEach((_, key) => {
-      if (exactBlocklist.has(key) || prefixBlocklist.some((p) => key.startsWith(p))) {
-        keysToDelete.push(key);
-      }
-    });
-    keysToDelete.forEach((k) => searchParams.delete(k));
-    let result = parsed.toString();
-    if (parsed.search === "" && result.endsWith("/")) {
-      result = result.slice(0, -1);
-    }
-    return result;
-  } catch (e) {
-    let cleaned = trimmed;
-    cleaned = cleaned.replace(/[?&](igsh|igshid|utm_[a-z0-9_]+|fbclid|yclid|gclid|feature|si|ref)=[^&\s]+/gi, "");
-    cleaned = cleaned.replace(/[?&]$/, "");
-    return cleaned;
-  }
-}
-var MAX_SAFE_URL_LENGTH;
-var init_link_normalizer = __esm({
-  "src/utils/link-normalizer.ts"() {
-    "use strict";
-    MAX_SAFE_URL_LENGTH = 2048;
-  }
-});
-
-// src/lib/log-safe.ts
-function safeUrlForLog(url) {
-  if (!url || typeof url !== "string") return "[unparseable-url]";
-  try {
-    const raw = url.trim();
-    if (raw.length === 0) return "[unparseable-url]";
-    const formatted = raw.includes("://") ? raw : `https://${raw}`;
-    const parsed = new URL(formatted);
-    return `${parsed.protocol}//${parsed.host}${parsed.pathname}`;
-  } catch {
-    return "[unparseable-url]";
-  }
-}
-var init_log_safe = __esm({
-  "src/lib/log-safe.ts"() {
-    "use strict";
-  }
-});
-
-// src/lib/ssrf-guard.ts
-var ssrf_guard_exports = {};
-__export2(ssrf_guard_exports, {
-  SHORT_LINK_HOSTS: () => SHORT_LINK_HOSTS,
-  isPublicHost: () => isPublicHost,
-  isPublicIp: () => isPublicIp,
-  isUrlSafeForFetch: () => isUrlSafeForFetch,
-  resolveShortLink: () => resolveShortLink
-});
-function isPublicIp(rawIp) {
-  let ip = rawIp.trim().toLowerCase();
-  if (ip.startsWith("[") && ip.endsWith("]")) {
-    ip = ip.slice(1, -1);
-  }
-  if (ip.startsWith("::ffff:")) {
-    const rem = ip.slice(7);
-    if (rem.includes(".")) {
-      ip = rem;
-    } else {
-      const parts = rem.split(":");
-      if (parts.length === 2) {
-        const high = parseInt(parts[0], 16);
-        const low = parseInt(parts[1], 16);
-        if (!isNaN(high) && !isNaN(low)) {
-          const b1 = high >> 8 & 255;
-          const b2 = high & 255;
-          const b3 = low >> 8 & 255;
-          const b4 = low & 255;
-          ip = `${b1}.${b2}.${b3}.${b4}`;
-        } else {
-          return false;
-        }
-      } else {
-        return false;
-      }
-    }
-  }
-  if (ip.startsWith("127.") || ip.startsWith("10.") || ip.startsWith("169.254.") || ip.startsWith("192.168.") || ip === "0.0.0.0" || ip.startsWith("0.")) {
-    return false;
-  }
-  if (ip.startsWith("172.")) {
-    const parts = ip.split(".");
-    if (parts.length >= 2) {
-      const secondOctet = parseInt(parts[1], 10);
-      if (secondOctet >= 16 && secondOctet <= 31) {
-        return false;
-      }
-    }
-  }
-  if (ip === "::1" || ip === "::" || ip.startsWith("fc00:") || ip.startsWith("fd00:") || ip.startsWith("fe80:") || ip === "fd00:ec2::254") {
-    return false;
-  }
-  return true;
-}
-function isUrlSafeForFetch(urlString) {
-  if (!urlString || typeof urlString !== "string") return false;
-  let parsedUrl;
-  try {
-    const hasExplicitScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(urlString);
-    parsedUrl = new import_url.URL(hasExplicitScheme ? urlString : `https://${urlString}`);
-  } catch {
-    return false;
-  }
-  if (!["http:", "https:"].includes(parsedUrl.protocol)) return false;
-  const rawHost = parsedUrl.hostname.toLowerCase().trim();
-  const host = rawHost.startsWith("[") && rawHost.endsWith("]") ? rawHost.slice(1, -1) : rawHost;
-  if (host === "localhost" || host.endsWith(".local") || host.endsWith(".internal") || host === "metadata.google.internal" || host.endsWith(".metadata.internal")) {
-    return false;
-  }
-  if (!isPublicIp(host)) {
-    return false;
-  }
-  return true;
-}
-async function isPublicHost(hostname) {
-  const cleanHost = hostname.toLowerCase().trim();
-  if (cleanHost === "localhost" || cleanHost.endsWith(".local") || cleanHost.endsWith(".internal")) {
-    return false;
-  }
-  if (!isPublicIp(cleanHost)) {
-    return false;
-  }
-  try {
-    const dns4 = await import("dns/promises");
-    const records = await dns4.lookup(cleanHost, { all: true });
-    if (!records || records.length === 0) return false;
-    for (const record of records) {
-      if (!isPublicIp(record.address)) {
-        return false;
-      }
-    }
-    return true;
-  } catch {
-    return false;
-  }
-}
-async function resolveShortLink(rawUrl) {
-  let currentUrl = rawUrl.trim();
-  if (!currentUrl) return rawUrl;
-  try {
-    const initialTest = new import_url.URL(currentUrl.includes("://") ? currentUrl : `https://${currentUrl}`);
-    if (initialTest.protocol !== "http:" && initialTest.protocol !== "https:") {
-      return rawUrl;
-    }
-  } catch {
-    return rawUrl;
-  }
-  if (!currentUrl.startsWith("http")) {
-    currentUrl = `https://${currentUrl}`;
-  }
-  const maxHops = 5;
-  for (let hop = 0; hop < maxHops; hop++) {
-    try {
-      const parsed = new import_url.URL(currentUrl);
-      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-        return currentUrl;
-      }
-      const isAllowedHost2 = await isPublicHost(parsed.hostname);
-      if (!isAllowedHost2) {
-        return currentUrl;
-      }
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5e3);
-      const res = await fetch(currentUrl, {
-        method: "HEAD",
-        redirect: "manual",
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-      const location = res.headers.get("location");
-      if (res.status >= 300 && res.status < 400 && location) {
-        const nextUrl = new import_url.URL(location, currentUrl).toString();
-        currentUrl = nextUrl;
-      } else {
-        break;
-      }
-    } catch {
-      break;
-    }
-  }
-  return currentUrl;
-}
-var import_url, SHORT_LINK_HOSTS;
-var init_ssrf_guard = __esm({
-  "src/lib/ssrf-guard.ts"() {
-    "use strict";
-    import_url = require("url");
-    SHORT_LINK_HOSTS = /* @__PURE__ */ new Set([
-      "bit.ly",
-      "youtu.be",
-      "vm.tiktok.com",
-      // NOTE: vt.tiktok.com is NOT here — it's handled directly by LINK_RULES pattern
-      // without needing HTTP resolution (adding it here would cause real HTTP fetches in tests)
-      "t.co",
-      "cutt.ly",
-      "clck.ru",
-      "tinyurl.com",
-      "is.gd"
-    ]);
-  }
-});
-
-// src/services/analyzer/link-analyzer.ts
-var link_analyzer_exports = {};
-__export2(link_analyzer_exports, {
-  IntelligenceLinkAnalyzer: () => IntelligenceLinkAnalyzer
-});
-var IntelligenceLinkAnalyzer;
-var init_link_analyzer = __esm({
-  "src/services/analyzer/link-analyzer.ts"() {
-    "use strict";
-    init_link_rules();
-    init_link_normalizer();
-    init_log_safe();
-    IntelligenceLinkAnalyzer = class {
-      async analyze(rawUrl) {
-        if (!rawUrl || rawUrl.trim() === "") {
-          return this.getFallbackResult(rawUrl, "EMPTY_INPUT");
-        }
-        const boundedRaw = rawUrl.length > 2048 ? rawUrl.slice(0, 2048) : rawUrl;
-        const cleanUrl = boundedRaw.trim();
-        const isBareHandle = cleanUrl.startsWith("@");
-        const hasNoDomainOrDot = !cleanUrl.includes(".") && !cleanUrl.includes("/");
-        if (isBareHandle || hasNoDomainOrDot) {
-          const rawHandle = cleanUrl.startsWith("@") ? cleanUrl.substring(1) : cleanUrl;
-          const hintHandle = rawHandle.trim() || "username";
-          return this.getFallbackResult(
-            cleanUrl,
-            "MISSING_DOMAIN",
-            `\u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u043F\u043E\u043B\u043D\u0443\u044E \u0441\u0441\u044B\u043B\u043A\u0443 \u0441 \u0430\u0434\u0440\u0435\u0441\u043E\u043C \u0441\u0430\u0439\u0442\u0430 (\u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440: t.me/${hintHandle}, vk.com/${hintHandle} \u0438\u043B\u0438 instagram.com/${hintHandle})`
-          );
-        }
-        const hasSingleParam = rawUrl.toLowerCase().includes("single");
-        const sanitizedUrl = this.sanitize(cleanUrl);
-        const expandedUrl = await this.resolve(sanitizedUrl);
-        const normalizedVk = this.normalizeVkUrl(expandedUrl);
-        const normalizedForMatch = this.normalizeForMatch(normalizedVk);
-        return this.match(normalizedForMatch, hasSingleParam);
-      }
-      normalizeVkUrl(url) {
-        if (!url.includes("vk.com") && !url.includes("vk.ru") && !url.includes("vkvideo.ru")) return url;
-        try {
-          const parsed = new URL(url.startsWith("http") ? url : `https://${url}`);
-          const wParam = parsed.searchParams.get("w");
-          const zParam = parsed.searchParams.get("z");
-          if (wParam && /^(wall|clip|video)-?\d+_\d+/.test(wParam)) {
-            return `${parsed.origin}/${wParam}`;
-          }
-          if (zParam && /^(wall|clip|video)-?\d+_\d+/.test(zParam)) {
-            return `${parsed.origin}/${zParam}`;
-          }
-          return url;
-        } catch {
-          return url;
-        }
-      }
-      normalizeForMatch(url) {
-        try {
-          const parsed = new URL(url.startsWith("http") ? url : `https://${url}`);
-          parsed.hostname = parsed.hostname.toLowerCase();
-          let decodedPath = parsed.pathname;
-          try {
-            decodedPath = decodeURIComponent(parsed.pathname);
-          } catch {
-          }
-          parsed.pathname = decodedPath;
-          return parsed.toString().replace(/%40/g, "@");
-        } catch {
-          return url.replace(/%40/g, "@");
-        }
-      }
-      sanitize(url) {
-        try {
-          let cleanUrl = url.trim();
-          cleanUrl = cleanUrl.replace(/(?:%20|\s)+$/, "");
-          const urlPattern = /(https?:\/\/[^\s!,;()]+|www\.[^\s!,;()]+|[a-zA-Z0-9-]+\.[a-zA-Z]{2,}\/[^\s!,;()]*)/i;
-          const match = cleanUrl.match(urlPattern);
-          if (match) {
-            cleanUrl = match[0];
-            cleanUrl = cleanUrl.split("%20")[0].split(" ")[0];
-            cleanUrl = cleanUrl.replace(/[?.,!;:]+$/, "");
-          } else {
-            cleanUrl = cleanUrl.split(" ")[0];
-            cleanUrl = cleanUrl.split("%20")[0];
-            cleanUrl = cleanUrl.replace(/[?.,!;:]+$/, "");
-          }
-          cleanUrl = stripQueryParams(cleanUrl);
-          if (!cleanUrl.startsWith("http://") && !cleanUrl.startsWith("https://") && cleanUrl.includes(".")) {
-            cleanUrl = "https://" + cleanUrl;
-          }
-          const urlObj = new URL(cleanUrl);
-          return urlObj.toString().replace(/%40/g, "@");
-        } catch (_e) {
-          return url.trim().replace(/%40/g, "@");
-        }
-      }
-      async resolve(url) {
-        try {
-          const parsed = new URL(url.startsWith("http") ? url : `https://${url}`);
-          const { SHORT_LINK_HOSTS: SHORT_LINK_HOSTS2, resolveShortLink: resolveShortLink2 } = await Promise.resolve().then(() => (init_ssrf_guard(), ssrf_guard_exports));
-          if (SHORT_LINK_HOSTS2.has(parsed.hostname.toLowerCase())) {
-            if (url.includes("youtu.be/")) {
-              return url.replace("youtu.be/", "youtube.com/watch?v=");
-            }
-            return await resolveShortLink2(url);
-          }
-        } catch (e) {
-          console.warn(`[LinkAnalyzer] Resolution skipped for ${safeUrlForLog(url)}`);
-        }
-        return url;
-      }
-      match(url, isSingleParam = false) {
-        const decodedUrl = url.replace(/%40/g, "@");
-        for (const rule of LINK_RULES) {
-          const match = decodedUrl.match(rule.pattern);
-          if (match) {
-            const isTgPost = rule.platform === "TELEGRAM" /* TELEGRAM */ && rule.type === "post";
-            const isSinglePhoto = isSingleParam || decodedUrl.toLowerCase().includes("single");
-            const tips = [];
-            let advice = void 0;
-            if (isTgPost) {
-              tips.push("telegram_mediagroup_dual_order_recommended");
-              advice = isSinglePhoto ? "\u0412\u044B \u0443\u043A\u0430\u0437\u0430\u043B\u0438 \u0441\u0441\u044B\u043B\u043A\u0443 \u043D\u0430 \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u043E\u0435 \u043C\u0435\u0434\u0438\u0430. \u0414\u043B\u044F \u0441\u0438\u043D\u0445\u0440\u043E\u043D\u0438\u0437\u0430\u0446\u0438\u0438 \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u043E\u0432 \u043D\u0430 iOS \u0438 Android \u043E\u0444\u043E\u0440\u043C\u0438\u0442\u0435 \u0432\u0442\u043E\u0440\u043E\u0439 \u0437\u0430\u043A\u0430\u0437 \u043D\u0430 \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0435\u0435 \u0444\u043E\u0442\u043E \u0430\u043B\u044C\u0431\u043E\u043C\u0430." : "\u0415\u0441\u043B\u0438 \u043F\u043E\u0441\u0442 \u0441\u043E\u0434\u0435\u0440\u0436\u0438\u0442 \u0430\u043B\u044C\u0431\u043E\u043C (\u043D\u0435\u0441\u043A\u043E\u043B\u044C\u043A\u043E \u0444\u043E\u0442\u043E), \u043E\u0444\u043E\u0440\u043C\u0438\u0442\u0435 \u0437\u0430\u043A\u0430\u0437\u044B \u043D\u0430 \u043F\u0435\u0440\u0432\u043E\u0435 \u0438 \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0435\u0435 \u0444\u043E\u0442\u043E \u0434\u043B\u044F \u0441\u0438\u043D\u0445\u0440\u043E\u043D\u0438\u0437\u0430\u0446\u0438\u0438 \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u043E\u0432 \u043D\u0430 \u0432\u0441\u0435\u0445 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430\u0445.";
-            }
-            return {
-              platform: rule.platform,
-              type: rule.type,
-              id: match[1] || match[2] || match[3] || "unknown",
-              canonicalUrl: decodedUrl,
-              metadata: {
-                isLive: decodedUrl.includes("/live/") || decodedUrl.includes("/reel/"),
-                context: rule.context,
-                isPrivateInvite: rule.context === "private_invite" || decodedUrl.includes("/joinchat/") || decodedUrl.includes("/+"),
-                isAlbum: isSinglePhoto,
-                isMediaGroupCandidate: isTgPost,
-                advice
-              },
-              suggestedCategories: rule.suggestedCategories,
-              warnings: [],
-              tips: tips.length > 0 ? tips : void 0
-            };
-          }
-        }
-        return this.getFallbackResult(decodedUrl, "UNSUPPORTED_PLATFORM");
-      }
-      getFallbackResult(url, errorCode, userHint) {
-        return {
-          platform: "OTHER" /* OTHER */,
-          type: "generic_link",
-          id: "none",
-          canonicalUrl: url,
-          metadata: {},
-          suggestedCategories: [],
-          warnings: errorCode ? [errorCode] : ["platform_not_supported"],
-          errorCode,
-          userHint
-        };
-      }
-    };
-  }
-});
-
-// src/services/users/loyalty.service.ts
-var loyalty_service_exports = {};
-__export2(loyalty_service_exports, {
-  LoyaltyService: () => LoyaltyService
-});
-var LoyaltyService;
-var init_loyalty_service = __esm({
-  "src/services/users/loyalty.service.ts"() {
-    "use strict";
-    init_db();
-    LoyaltyService = class {
-      /**
-       * Retrieves the current referral percentage for a user based on REFERRAL_TIERS.
-       */
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      static async getReferralPercent(userId, projectId) {
-        const user = await db.user.findUnique({
-          where: { id: userId },
-          select: {
-            totalSpent: true,
-            createdAt: true,
-            _count: { select: { referrals: true } }
-          }
-        });
-        if (!user) return 5;
-        const isPioneer = user.createdAt.getTime() < (/* @__PURE__ */ new Date("2026-05-01")).getTime();
-        if (isPioneer) return 20;
-        const referralsCount = user._count?.referrals ?? 0;
-        const totalSpentRub = Number(user.totalSpent) / 100;
-        if (referralsCount >= 25 || totalSpentRub >= 5e4) return 15;
-        if (referralsCount >= 10 || totalSpentRub >= 3e4) return 10;
-        if (referralsCount >= 3 || totalSpentRub >= 1e4) return 7;
-        return 5;
-      }
-      /**
-       * Awards a commission to the referrer when a referred user makes a deposit.
-       * Safe to run inside an existing PostgreSQL transaction.
-       */
-      static async awardCommission(tx, referredUserId, depositAmountCents, orderId) {
-        const user = await tx.user.findUnique({
-          where: { id: referredUserId },
-          select: { referredById: true }
-        });
-        if (!user || !user.referredById) return;
-        const referrer = await tx.user.findUnique({
-          where: { id: user.referredById },
-          select: { referredById: true, isActive: true, isDeleted: true }
-        });
-        if (!referrer) return;
-        if (referrer.isDeleted || !referrer.isActive) {
-          return;
-        }
-        if (referrer.referredById === referredUserId) {
-          console.warn(`[SECURITY] Cyclic referral detected between ${referredUserId} and ${user.referredById}. Commission rejected.`);
-          return;
-        }
-        const percent = await this.getReferralPercent(user.referredById);
-        const commissionCents = Math.round(depositAmountCents * percent / 100);
-        if (commissionCents <= 0) return;
-        const existingComm = await tx.commission.findFirst({
-          where: { orderId, referrerId: user.referredById }
-        });
-        if (existingComm) return;
-        await tx.commission.create({
-          data: {
-            orderId,
-            referrerId: user.referredById,
-            amount: commissionCents,
-            status: "PENDING"
-          }
-        });
-        await tx.auditLog.create({
-          data: {
-            userId: user.referredById,
-            action: "REFERRAL_PENDING",
-            details: `\u041E\u0436\u0438\u0434\u0430\u0435\u0442\u0441\u044F \u043A\u043E\u043C\u0438\u0441\u0441\u0438\u044F ${percent}% (${commissionCents / 100} \u0440\u0443\u0431) \u0437\u0430 \u043F\u043E\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u0435 \u043E\u0442 \u043F\u0440\u0438\u0432\u043B\u0435\u0447\u0435\u043D\u043D\u043E\u0433\u043E \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044F.`
-          }
-        });
-      }
-      /**
-       * Confirms a pending commission when an order completes.
-       * Moves it from PENDING to CONFIRMED.
-       */
-      static async confirmCommission(tx, orderId) {
-        const commissions = await tx.commission.findMany({
-          where: { orderId, status: "PENDING" }
-        });
-        for (const comm of commissions) {
-          await tx.commission.update({
-            where: { id: comm.id },
-            data: { status: "CONFIRMED" }
-          });
-          await tx.user.update({
-            where: { id: comm.referrerId },
-            data: { referralBalance: { increment: Number(comm.amount) } }
-          });
-          await tx.auditLog.create({
-            data: {
-              userId: comm.referrerId,
-              action: "REFERRAL_CONFIRMED",
-              details: `\u041A\u043E\u043C\u0438\u0441\u0441\u0438\u044F \u0437\u0430 \u0437\u0430\u043A\u0430\u0437 \u043F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043D\u0430 \u0438 \u043D\u0430\u0447\u0438\u0441\u043B\u0435\u043D\u0430: ${(Number(comm.amount) / 100).toFixed(2)} \u0440\u0443\u0431.`
-            }
-          });
-        }
-      }
-      /**
-       * Partially confirms a commission proportional to the delivered quantity.
-       */
-      static async handlePartialCommission(tx, orderId, remains, quantity) {
-        const commissions = await tx.commission.findMany({
-          where: { orderId, status: "PENDING" }
-        });
-        for (const comm of commissions) {
-          if (quantity <= 0 || remains >= quantity) {
-            await tx.commission.update({
-              where: { id: comm.id },
-              data: { status: "REVERSED" }
-            });
-            await tx.auditLog.create({
-              data: {
-                userId: comm.referrerId,
-                action: "REFERRAL_REVERSED",
-                details: `\u041A\u043E\u043C\u0438\u0441\u0441\u0438\u044F \u043E\u0442\u043E\u0437\u0432\u0430\u043D\u0430 \u043F\u043E\u043B\u043D\u043E\u0441\u0442\u044C\u044E (0 \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u043D\u044B\u0445 \u0437\u0430\u043F\u0443\u0441\u043A\u043E\u0432).`
-              }
-            });
-            continue;
-          }
-          const originalAmount = Number(comm.amount);
-          const confirmedAmount = Math.round(originalAmount * (quantity - remains) / quantity);
-          if (confirmedAmount > 0) {
-            await tx.commission.update({
-              where: { id: comm.id },
-              data: {
-                status: "CONFIRMED",
-                amount: confirmedAmount
-              }
-            });
-            await tx.user.update({
-              where: { id: comm.referrerId },
-              data: { referralBalance: { increment: confirmedAmount } }
-            });
-            await tx.auditLog.create({
-              data: {
-                userId: comm.referrerId,
-                action: "REFERRAL_CONFIRMED",
-                details: `\u041A\u043E\u043C\u0438\u0441\u0441\u0438\u044F \u0437\u0430 \u0437\u0430\u043A\u0430\u0437 \u043F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043D\u0430 \u0447\u0430\u0441\u0442\u0438\u0447\u043D\u043E: ${confirmedAmount / 100} \u0440\u0443\u0431 (\u043E\u0440\u0438\u0433\u0438\u043D\u0430\u043B\u044C\u043D\u0430\u044F \u0441\u0443\u043C\u043C\u0430: ${originalAmount / 100} \u0440\u0443\u0431).`
-              }
-            });
-          } else {
-            await tx.commission.update({
-              where: { id: comm.id },
-              data: { status: "REVERSED" }
-            });
-          }
-        }
-      }
-      /**
-       * Reverses a pending or confirmed commission if the order fails.
-       * Moves it to REVERSED and decrements referralBalance only if it was confirmed.
-       */
-      static async reverseCommission(tx, orderId) {
-        const commissions = await tx.commission.findMany({
-          where: { orderId, status: { in: ["PENDING", "CONFIRMED"] } }
-        });
-        for (const comm of commissions) {
-          const wasConfirmed = comm.status === "CONFIRMED";
-          await tx.commission.update({
-            where: { id: comm.id },
-            data: { status: "REVERSED" }
-          });
-          if (wasConfirmed) {
-            await tx.user.update({
-              where: { id: comm.referrerId },
-              data: { referralBalance: { decrement: Number(comm.amount) } }
-            });
-          }
-          await tx.auditLog.create({
-            data: {
-              userId: comm.referrerId,
-              action: "REFERRAL_REVERSED",
-              details: `\u041A\u043E\u043C\u0438\u0441\u0441\u0438\u044F \u043E\u0442\u043E\u0437\u0432\u0430\u043D\u0430 \u0438\u0437-\u0437\u0430 \u043E\u0442\u043C\u0435\u043D\u044B/\u043E\u0448\u0438\u0431\u043A\u0438 \u0437\u0430\u043A\u0430\u0437\u0430.`
-            }
-          });
-        }
-      }
-    };
-  }
-});
-
 // node_modules/nodemailer/lib/punycode/index.js
 var require_punycode = __commonJS({
   "node_modules/nodemailer/lib/punycode/index.js"(exports2, module2) {
@@ -99981,6 +98286,1701 @@ var init_smtp = __esm({
       import_dns.default.setDefaultResultOrder("ipv4first");
     }
     log2 = logger.child({ component: "SMTP" });
+  }
+});
+
+// src/utils/target-type-mapper.ts
+var target_type_mapper_exports = {};
+__export2(target_type_mapper_exports, {
+  LinkType: () => LinkType,
+  TargetTypeEnum: () => TargetTypeEnum,
+  getCompatibilityError: () => getCompatibilityError,
+  inferTargetTypeFromName: () => inferTargetTypeFromName,
+  isLinkServiceCompatible: () => isLinkServiceCompatible,
+  isTargetTypeCompatible: () => isTargetTypeCompatible,
+  normalizeTargetType: () => normalizeTargetType,
+  resolveServiceTargetType: () => resolveServiceTargetType
+});
+function normalizeTargetType(rawType) {
+  if (!rawType) return "CUSTOM" /* CUSTOM */;
+  const clean = rawType.trim().toUpperCase();
+  switch (clean) {
+    case "CHANNEL":
+    case "GROUP":
+    case "CHAT":
+    case "PUBLIC":
+    case "COMMUNITY":
+    case "COMMUNITIES":
+    case "SUBSCRIBERS":
+    case "MEMBERS":
+    case "BOOST":
+      return "CHANNEL" /* CHANNEL */;
+    case "POST":
+    case "PRIVATE_POST":
+    case "PHOTO":
+    case "WALL":
+    case "TWEET":
+    case "STATUS":
+    case "TRACK":
+    case "POST_INTERACTION":
+    case "LIKES":
+    case "REACTIONS":
+    case "VIEWS":
+    case "REPOSTS":
+    case "SHARES":
+      return "POST" /* POST */;
+    case "PROFILE":
+    case "USER":
+    case "ACCOUNT":
+    case "ARTIST":
+    case "FOLLOWERS":
+    case "FRIENDS":
+      return "PROFILE" /* PROFILE */;
+    case "VIDEO":
+    case "SHORT_VIDEO":
+    case "SHORT_LINK":
+    case "CLIP":
+    case "REEL":
+    case "SHORTS":
+    case "VK_VIDEO":
+    case "VK_CLIP":
+    case "VK_PLAY":
+    case "PHOTO_MODE":
+    case "VIDEO_INTERACTION":
+    case "WATCH_TIME":
+    case "LIVESTREAM":
+      return "VIDEO" /* VIDEO */;
+    case "STORY":
+    case "STORIES":
+    case "HIGHLIGHT":
+    case "HIGHLIGHTS":
+    case "STORY_INTERACTION":
+      return "STORY" /* STORY */;
+    case "POLL":
+    case "VOTE":
+    case "VOTES":
+    case "POLL_VOTES":
+      return "POLL" /* POLL */;
+    case "COMMENT":
+    case "COMMENTS":
+    case "REVIEWS":
+      return "COMMENTS" /* COMMENTS */;
+    case "BOT":
+    case "REFERRAL":
+    case "BOT_STARTS":
+      return "BOT" /* BOT */;
+    case "CHANNEL_POSTS":
+    case "AUTO_POSTS":
+    case "AUTO_VIEWS":
+    case "AUTO_LIKES":
+    case "AUTO":
+      return "CHANNEL_POSTS" /* CHANNEL_POSTS */;
+    case "CUSTOM":
+    case "GENERIC_LINK":
+    case "OTHER":
+    case "UNKNOWN":
+    default:
+      return "CUSTOM" /* CUSTOM */;
+  }
+}
+function inferTargetTypeFromName(name) {
+  if (!name) return "POST" /* POST */;
+  const n = name.toLowerCase().replace(/vexboost/gi, "").replace(/smmboost/gi, "");
+  const nNoPunct = n.replace(/[^a-zа-яё0-9]/gi, "");
+  if (nNoPunct.includes("\u0430\u0432\u0442\u043E\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || nNoPunct.includes("\u0430\u0432\u0442\u043E\u043B\u0430\u0439\u043A") || nNoPunct.includes("\u0430\u0432\u0442\u043E\u0440\u0435\u0430\u043A\u0446\u0438") || nNoPunct.includes("\u0430\u0432\u0442\u043E\u0440\u0435\u043F\u043E\u0441\u0442") || nNoPunct.includes("\u0430\u0432\u0442\u043E\u0430\u043A\u0442\u0438\u0432\u043D\u043E") || nNoPunct.includes("autoview") || nNoPunct.includes("autolike") || nNoPunct.includes("autoreact") || nNoPunct.includes("autoshare") || nNoPunct.includes("autorepost") || nNoPunct.includes("futureview") || nNoPunct.includes("futurelike") || n.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u043A\u0430") && !n.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A") && !n.includes("\u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A") || n.includes("\u0431\u0443\u0434\u0443\u0449\u0438\u0435 \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B") || n.includes("\u0431\u0443\u0434\u0443\u0449\u0438\u0445 \u043F\u043E\u0441\u0442\u043E\u0432") || n.includes("\u043C\u0430\u0441\u0441\u043E\u0432\u044B\u0435 \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B") || n.includes("channel posts") || /\d+-\d+\s*пост/i.test(n) || /\d+\s*пост/i.test(n) || /на\s+несколько\s+постов/i.test(n) || // "Просмотры на последних N постов" / "Последних 50 постов" — applies to channel, NOT post
+  n.includes("\u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0445 \u043F\u043E\u0441\u0442") || n.includes("\u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0445 \u043F\u0443\u0431\u043B\u0438\u043A") || n.includes("\u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0445 \u0437\u0430\u043F\u0438\u0441") || n.includes("\u043F\u043E\u0441\u043B\u0435\u0434\u043D") && (n.includes("\u043F\u043E\u0441\u0442") || n.includes("\u0437\u0430\u043F\u0438\u0441") || n.includes("\u043F\u0443\u0431\u043B\u0438\u043A")) || n.includes("last post") || n.includes("last 5 post") || n.includes("last 10 post") || n.includes("last 20 post") || n.includes("last 50 post") || // "Пакет охвата" — views package on last N posts of a channel
+  n.includes("\u043F\u0430\u043A\u0435\u0442") && n.includes("\u043E\u0445\u0432\u0430\u0442") || n.includes("\u043F\u0430\u043A\u0435\u0442") && n.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440")) {
+    return "CHANNEL_POSTS" /* CHANNEL_POSTS */;
+  }
+  if (n.includes("\u043E\u043F\u0440\u043E\u0441") || n.includes("\u0433\u043E\u043B\u043E\u0441") || n.includes("poll") || n.includes("vote")) {
+    return "POLL" /* POLL */;
+  }
+  if (n.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A") || n.includes("\u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A") || n.includes("\u0444\u043E\u043B\u043B\u043E\u0432\u0435\u0440") || n.includes("subscriber") || n.includes("member") || n.includes("follower") || n.includes("\u043A\u0430\u043D\u0430\u043B") || n.includes("channel") || n.includes("\u0433\u0440\u0443\u043F\u043F") || n.includes("group") || n.includes("\u0431\u0443\u0441\u0442") || n.includes("boost") || n.includes("\u0438\u043D\u0432\u0430\u0439\u0442") || n.includes("invite")) {
+    return "CHANNEL" /* CHANNEL */;
+  }
+  if (n.includes("\u0441\u0442\u043E\u0440\u0438") || n.includes("story") || n.includes("stories") || n.includes("\u0438\u0441\u0442\u043E\u0440\u0438")) {
+    return "STORY" /* STORY */;
+  }
+  if (n.includes("\u0432\u0438\u0434\u0435\u043E") || n.includes("video") || n.includes("shorts") || n.includes("reels") || n.includes("clip") || n.includes("\u043A\u043B\u0438\u043F") || n.includes("\u0441\u0442\u0440\u0438\u043C") || n.includes("stream") || n.includes("\u0437\u0440\u0438\u0442\u0435\u043B")) {
+    return "VIDEO" /* VIDEO */;
+  }
+  if (n.includes("\u043F\u0440\u043E\u0444\u0438\u043B\u044C") || n.includes("profile") || n.includes("\u0430\u043A\u043A\u0430\u0443\u043D\u0442") || n.includes("\u0434\u0440\u0443\u0433") || n.includes("friend")) {
+    return "PROFILE" /* PROFILE */;
+  }
+  if (n.includes("\u043A\u043E\u043C\u043C\u0435\u043D\u0442") || n.includes("comment") || n.includes("\u043E\u0442\u0437\u044B\u0432") || n.includes("review")) {
+    return "COMMENTS" /* COMMENTS */;
+  }
+  if (n.includes("\u0431\u043E\u0442") || n.includes("bot") || n.includes("\u0440\u0435\u0444\u0435\u0440\u0430\u043B") || n.includes("referral")) {
+    return "BOT" /* BOT */;
+  }
+  return "POST" /* POST */;
+}
+function resolveServiceTargetType(service) {
+  if (!service) return "POST" /* POST */;
+  const effectiveName = service.name || service.category?.name || "";
+  const inferred = inferTargetTypeFromName(effectiveName);
+  if ((!service.targetType || service.targetType === "POST" || service.targetType === "CUSTOM") && (inferred === "CHANNEL" /* CHANNEL */ || inferred === "CHANNEL_POSTS" /* CHANNEL_POSTS */ || inferred === "POLL" /* POLL */ || inferred === "VIDEO" /* VIDEO */ || inferred === "STORY" /* STORY */ || inferred === "BOT" /* BOT */)) {
+    return inferred;
+  }
+  return service.targetType || inferred;
+}
+function isTargetTypeCompatible(detectedLinkType, serviceTargetType) {
+  if (!detectedLinkType || !serviceTargetType) return true;
+  const detected = normalizeTargetType(detectedLinkType);
+  const service = normalizeTargetType(serviceTargetType);
+  if (detected === "CUSTOM" /* CUSTOM */ || service === "CUSTOM" /* CUSTOM */) return true;
+  if (detected === service) return true;
+  const allowedTargets = UNIFIED_COMPATIBILITY_MAP[detected];
+  if (!allowedTargets) return true;
+  return allowedTargets.has(service);
+}
+function getCompatibilityError(rawLinkType, rawTargetType, serviceName) {
+  const link = normalizeTargetType(rawLinkType);
+  const target = normalizeTargetType(rawTargetType);
+  const prefix = serviceName ? `\u0423\u0441\u043B\u0443\u0433\u0430 \xAB${serviceName}\xBB` : "\u0412\u044B\u0431\u0440\u0430\u043D\u043D\u0430\u044F \u0443\u0441\u043B\u0443\u0433\u0430";
+  if (link === "PROFILE" /* PROFILE */ && target === "POST" /* POST */) {
+    return `${prefix} \u043F\u0440\u0435\u0434\u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0430 \u0434\u043B\u044F \u043F\u0443\u0431\u043B\u0438\u043A\u0430\u0446\u0438\u0439 (\u043B\u0430\u0439\u043A\u0438/\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B/\u0440\u0435\u0430\u043A\u0446\u0438\u0438). \u0414\u043B\u044F \u0435\u0435 \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u044F \u0443\u043A\u0430\u0436\u0438\u0442\u0435 \u043F\u0440\u044F\u043C\u0443\u044E \u0441\u0441\u044B\u043B\u043A\u0443 \u043D\u0430 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u044B\u0439 \u043F\u043E\u0441\u0442 \u0438\u043B\u0438 \u0444\u043E\u0442\u043E, \u0430 \u043D\u0435 \u043D\u0430 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0443 \u043F\u0440\u043E\u0444\u0438\u043B\u044F.`;
+  }
+  if (link === "CHANNEL" /* CHANNEL */ && target === "POST" /* POST */) {
+    return `${prefix} \u043F\u0440\u0438\u043C\u0435\u043D\u044F\u0435\u0442\u0441\u044F \u043A \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u044B\u043C \u0437\u0430\u043F\u0438\u0441\u044F\u043C. \u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u0441\u0441\u044B\u043B\u043A\u0443 \u043D\u0430 \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u044B\u0439 \u043F\u043E\u0441\u0442 \u0432 \u043A\u0430\u043D\u0430\u043B\u0435 (\u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440, https://t.me/channel/123), \u0430 \u043D\u0435 \u043D\u0430 \u043A\u0430\u043D\u0430\u043B \u0446\u0435\u043B\u0438\u043A\u043E\u043C.`;
+  }
+  if (link === "POST" /* POST */ && target === "CHANNEL" /* CHANNEL */) {
+    return `${prefix} \u043F\u0440\u0435\u0434\u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0430 \u0434\u043B\u044F \u043F\u0440\u0438\u0432\u043B\u0435\u0447\u0435\u043D\u0438\u044F \u043F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A\u043E\u0432 \u0432 \u043A\u0430\u043D\u0430\u043B/\u0433\u0440\u0443\u043F\u043F\u0443. \u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u0443\u043A\u0430\u0436\u0438\u0442\u0435 \u0441\u0441\u044B\u043B\u043A\u0443 \u043D\u0430 \u0441\u0430\u043C \u043A\u0430\u043D\u0430\u043B (\u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440, https://t.me/channel), \u0430 \u043D\u0435 \u043D\u0430 \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u0443\u044E \u043F\u0443\u0431\u043B\u0438\u043A\u0430\u0446\u0438\u044E.`;
+  }
+  if (link === "POST" /* POST */ && target === "PROFILE" /* PROFILE */) {
+    return `${prefix} \u043F\u0440\u0435\u0434\u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0430 \u0434\u043B\u044F \u043F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A\u043E\u0432 \u043D\u0430 \u0430\u043A\u043A\u0430\u0443\u043D\u0442/\u043F\u0440\u043E\u0444\u0438\u043B\u044C. \u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u0441\u0441\u044B\u043B\u043A\u0443 \u043D\u0430 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0443 \u043F\u0440\u043E\u0444\u0438\u043B\u044F, \u0430 \u043D\u0435 \u043D\u0430 \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u044B\u0439 \u043F\u043E\u0441\u0442.`;
+  }
+  if (link === "POST" /* POST */ && target === "CHANNEL_POSTS" /* CHANNEL_POSTS */) {
+    return `${prefix} \u2014 \u044D\u0442\u043E \u043F\u0430\u043A\u0435\u0442 \u0430\u0432\u0442\u043E-\u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442\u0435\u0439 \u043D\u0430 \u0431\u0443\u0434\u0443\u0449\u0438\u0435 \u043F\u0443\u0431\u043B\u0438\u043A\u0430\u0446\u0438\u0438 \u043A\u0430\u043D\u0430\u043B\u0430. \u0414\u043B\u044F \u0435\u0435 \u0437\u0430\u043F\u0443\u0441\u043A\u0430 \u0442\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044F \u0441\u0441\u044B\u043B\u043A\u0430 \u043D\u0430 \u043A\u0430\u043D\u0430\u043B \u0446\u0435\u043B\u0438\u043A\u043E\u043C, \u0430 \u043D\u0435 \u043D\u0430 \u0440\u0430\u0437\u043E\u0432\u044B\u0439 \u043F\u043E\u0441\u0442.`;
+  }
+  if (link === "STORY" /* STORY */ && target !== "STORY" /* STORY */) {
+    return `${prefix} \u043D\u0435 \u0441\u043E\u0432\u043C\u0435\u0441\u0442\u0438\u043C\u0430 \u0441\u043E \u0441\u0441\u044B\u043B\u043A\u0430\u043C\u0438 \u043D\u0430 \u0418\u0441\u0442\u043E\u0440\u0438\u0438 (Stories). \u0414\u043B\u044F \u0438\u0441\u0442\u043E\u0440\u0438\u0439 \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u044B \u0442\u043E\u043B\u044C\u043A\u043E \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B \u0438 \u0440\u0435\u0430\u043A\u0446\u0438\u0438 \u043D\u0430 \u0441\u0442\u043E\u0440\u0438\u0437.`;
+  }
+  if (link !== "STORY" /* STORY */ && target === "STORY" /* STORY */) {
+    return `${prefix} \u0440\u0430\u0431\u043E\u0442\u0430\u0435\u0442 \u0438\u0441\u043A\u043B\u044E\u0447\u0438\u0442\u0435\u043B\u044C\u043D\u043E \u0441\u043E \u0441\u0441\u044B\u043B\u043A\u0430\u043C\u0438 \u043D\u0430 \u0418\u0441\u0442\u043E\u0440\u0438\u0438 (Stories). \u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u043F\u0440\u044F\u043C\u0443\u044E \u0441\u0441\u044B\u043B\u043A\u0443 \u043D\u0430 \u0430\u043A\u0442\u0438\u0432\u043D\u0443\u044E \u0438\u0441\u0442\u043E\u0440\u0438\u044E.`;
+  }
+  return `${prefix} (\u0442\u0438\u043F \u0446\u0435\u043B\u0438: ${target}) \u043D\u0435\u0441\u043E\u0432\u043C\u0435\u0441\u0442\u0438\u043C\u0430 \u0441 \u0443\u043A\u0430\u0437\u0430\u043D\u043D\u044B\u043C \u0442\u0438\u043F\u043E\u043C \u0441\u0441\u044B\u043B\u043A\u0438 (${link}). \u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u043F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u0444\u043E\u0440\u043C\u0430\u0442 \u0441\u0441\u044B\u043B\u043A\u0438.`;
+}
+var TargetTypeEnum, LinkType, UNIFIED_COMPATIBILITY_MAP, isLinkServiceCompatible;
+var init_target_type_mapper = __esm({
+  "src/utils/target-type-mapper.ts"() {
+    "use strict";
+    TargetTypeEnum = /* @__PURE__ */ ((TargetTypeEnum2) => {
+      TargetTypeEnum2["CHANNEL"] = "CHANNEL";
+      TargetTypeEnum2["POST"] = "POST";
+      TargetTypeEnum2["PROFILE"] = "PROFILE";
+      TargetTypeEnum2["STORY"] = "STORY";
+      TargetTypeEnum2["VIDEO"] = "VIDEO";
+      TargetTypeEnum2["CHANNEL_POSTS"] = "CHANNEL_POSTS";
+      TargetTypeEnum2["POLL"] = "POLL";
+      TargetTypeEnum2["COMMENTS"] = "COMMENTS";
+      TargetTypeEnum2["BOT"] = "BOT";
+      TargetTypeEnum2["CUSTOM"] = "CUSTOM";
+      TargetTypeEnum2["POST_INTERACTION"] = "POST_INTERACTION";
+      TargetTypeEnum2["VIDEO_INTERACTION"] = "VIDEO_INTERACTION";
+      TargetTypeEnum2["STORY_INTERACTION"] = "STORY_INTERACTION";
+      TargetTypeEnum2["POLL_VOTES"] = "POLL_VOTES";
+      TargetTypeEnum2["BOT_STARTS"] = "BOT_STARTS";
+      return TargetTypeEnum2;
+    })(TargetTypeEnum || {});
+    LinkType = TargetTypeEnum;
+    UNIFIED_COMPATIBILITY_MAP = {
+      ["CHANNEL" /* CHANNEL */]: /* @__PURE__ */ new Set([
+        "CHANNEL" /* CHANNEL */,
+        "CHANNEL_POSTS" /* CHANNEL_POSTS */,
+        "PROFILE" /* PROFILE */,
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["PROFILE" /* PROFILE */]: /* @__PURE__ */ new Set([
+        "PROFILE" /* PROFILE */,
+        "CHANNEL" /* CHANNEL */,
+        "CHANNEL_POSTS" /* CHANNEL_POSTS */,
+        // Anomaly 1.3: IG/TikTok profile post monitoring
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["POST" /* POST */]: /* @__PURE__ */ new Set([
+        "POST" /* POST */,
+        "VIDEO" /* VIDEO */,
+        "COMMENTS" /* COMMENTS */,
+        "POLL" /* POLL */,
+        // Anomaly 1.2: TG/VK polls inside posts
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["VIDEO" /* VIDEO */]: /* @__PURE__ */ new Set([
+        "VIDEO" /* VIDEO */,
+        "POST" /* POST */,
+        "COMMENTS" /* COMMENTS */,
+        // Anomaly 1.1: Comments on videos/clips
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["STORY" /* STORY */]: /* @__PURE__ */ new Set([
+        "STORY" /* STORY */,
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["POLL" /* POLL */]: /* @__PURE__ */ new Set([
+        "POLL" /* POLL */,
+        "POST" /* POST */,
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["BOT" /* BOT */]: /* @__PURE__ */ new Set([
+        "BOT" /* BOT */,
+        "CHANNEL" /* CHANNEL */,
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["COMMENTS" /* COMMENTS */]: /* @__PURE__ */ new Set([
+        "COMMENTS" /* COMMENTS */,
+        "POST" /* POST */,
+        "VIDEO" /* VIDEO */,
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["CHANNEL_POSTS" /* CHANNEL_POSTS */]: /* @__PURE__ */ new Set([
+        "CHANNEL_POSTS" /* CHANNEL_POSTS */,
+        "CHANNEL" /* CHANNEL */,
+        "PROFILE" /* PROFILE */,
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["CUSTOM" /* CUSTOM */]: /* @__PURE__ */ new Set([
+        "CHANNEL" /* CHANNEL */,
+        "PROFILE" /* PROFILE */,
+        "POST" /* POST */,
+        "VIDEO" /* VIDEO */,
+        "STORY" /* STORY */,
+        "POLL" /* POLL */,
+        "BOT" /* BOT */,
+        "COMMENTS" /* COMMENTS */,
+        "CHANNEL_POSTS" /* CHANNEL_POSTS */,
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["POST_INTERACTION" /* POST_INTERACTION */]: /* @__PURE__ */ new Set([
+        "POST" /* POST */,
+        "VIDEO" /* VIDEO */,
+        "COMMENTS" /* COMMENTS */,
+        "POLL" /* POLL */,
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["VIDEO_INTERACTION" /* VIDEO_INTERACTION */]: /* @__PURE__ */ new Set([
+        "VIDEO" /* VIDEO */,
+        "POST" /* POST */,
+        "COMMENTS" /* COMMENTS */,
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["STORY_INTERACTION" /* STORY_INTERACTION */]: /* @__PURE__ */ new Set([
+        "STORY" /* STORY */,
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["POLL_VOTES" /* POLL_VOTES */]: /* @__PURE__ */ new Set([
+        "POLL" /* POLL */,
+        "POST" /* POST */,
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["BOT_STARTS" /* BOT_STARTS */]: /* @__PURE__ */ new Set([
+        "BOT" /* BOT */,
+        "CHANNEL" /* CHANNEL */,
+        "CUSTOM" /* CUSTOM */
+      ])
+    };
+    isLinkServiceCompatible = isTargetTypeCompatible;
+  }
+});
+
+// src/utils/target-type.ts
+var target_type_exports = {};
+__export2(target_type_exports, {
+  LinkType: () => LinkType,
+  TargetTypeEnum: () => TargetTypeEnum,
+  getCompatibilityError: () => getCompatibilityError,
+  inferTargetTypeFromCategory: () => inferTargetTypeFromCategory,
+  inferTargetTypeFromName: () => inferTargetTypeFromName,
+  isCompatible: () => isCompatible,
+  isHybridViewCategory: () => isHybridViewCategory,
+  isLinkServiceCompatible: () => isLinkServiceCompatible,
+  isTargetTypeCompatible: () => isTargetTypeCompatible,
+  normalizeTargetType: () => normalizeTargetType,
+  resolveServiceTargetType: () => resolveServiceTargetType
+});
+function isCompatible(serviceType, linkType) {
+  return isTargetTypeCompatible(linkType, serviceType);
+}
+function isHybridViewCategory(categoryName) {
+  if (!categoryName) return false;
+  const n = categoryName.toLowerCase();
+  if (n.includes("\u0441\u0442\u043E\u0440\u0438") || n.includes("story") || n.includes("\u043A\u043B\u0438\u043F") || n.includes("clip") || n.includes("shorts") || n.includes("reel")) {
+    return false;
+  }
+  return n.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || n.includes("\u043E\u0445\u0432\u0430\u0442") || n.includes("view") || n.includes("watch");
+}
+function inferTargetTypeFromCategory(categoryName) {
+  if (isHybridViewCategory(categoryName)) {
+    return "CUSTOM" /* CUSTOM */;
+  }
+  return inferTargetTypeFromName(categoryName);
+}
+var init_target_type = __esm({
+  "src/utils/target-type.ts"() {
+    "use strict";
+    init_target_type_mapper();
+  }
+});
+
+// src/constants/link-service-compatibility.ts
+var link_service_compatibility_exports = {};
+__export2(link_service_compatibility_exports, {
+  LinkType: () => LinkType2,
+  ServiceTargetType: () => ServiceTargetType,
+  getCompatibilityError: () => getCompatibilityError2,
+  isLinkServiceCompatible: () => isLinkServiceCompatible2,
+  normalizeLinkType: () => normalizeLinkType,
+  normalizeServiceTargetType: () => normalizeServiceTargetType
+});
+function normalizeLinkType(rawType) {
+  return normalizeTargetType(rawType);
+}
+function normalizeServiceTargetType(rawType) {
+  return normalizeTargetType(rawType);
+}
+function isLinkServiceCompatible2(rawLinkType, rawTargetType) {
+  return isTargetTypeCompatible(rawLinkType, rawTargetType);
+}
+function getCompatibilityError2(rawLinkType, rawTargetType, serviceName) {
+  return getCompatibilityError(rawLinkType, rawTargetType, serviceName);
+}
+var LinkType2, ServiceTargetType;
+var init_link_service_compatibility = __esm({
+  "src/constants/link-service-compatibility.ts"() {
+    "use strict";
+    init_target_type();
+    LinkType2 = TargetTypeEnum;
+    ServiceTargetType = TargetTypeEnum;
+  }
+});
+
+// src/utils/description-sanitizer.ts
+var init_description_sanitizer = __esm({
+  "src/utils/description-sanitizer.ts"() {
+    "use strict";
+  }
+});
+
+// src/constants/geo-registry.ts
+var init_geo_registry = __esm({
+  "src/constants/geo-registry.ts"() {
+    "use strict";
+  }
+});
+
+// src/services/providers/name-tokenizer.service.ts
+var init_name_tokenizer_service = __esm({
+  "src/services/providers/name-tokenizer.service.ts"() {
+    "use strict";
+    init_geo_registry();
+  }
+});
+
+// src/utils/translation-dictionary.ts
+var QualityTiers, TranslationPatterns;
+var init_translation_dictionary = __esm({
+  "src/utils/translation-dictionary.ts"() {
+    "use strict";
+    QualityTiers = {
+      REAL: "\u0416\u0438\u0432\u044B\u0435",
+      PREMIUM: "\u041F\u0440\u0435\u043C\u0438\u0443\u043C",
+      STANDARD: "\u0421\u0442\u0430\u043D\u0434\u0430\u0440\u0442",
+      ECONOMY: "\u042D\u043A\u043E\u043D\u043E\u043C"
+    };
+    TranslationPatterns = [
+      // Гарантии (Refill)
+      { pattern: /no\s*drop/i, translation: "\u0411\u0435\u0437 \u043E\u0442\u043F\u0438\u0441\u043E\u043A", isRefill: true, warrantyDays: 30 },
+      { pattern: /r\s*30/i, translation: "\u0413\u0430\u0440\u0430\u043D\u0442\u0438\u044F 30 \u0434\u043D\u0435\u0439", isRefill: true, warrantyDays: 30 },
+      { pattern: /гарантия\s*30д/i, translation: "\u0413\u0430\u0440\u0430\u043D\u0442\u0438\u044F 30 \u0434\u043D\u0435\u0439", isRefill: true, warrantyDays: 30 },
+      { pattern: /гарантия\s*14д/i, translation: "\u0413\u0430\u0440\u0430\u043D\u0442\u0438\u044F 14 \u0434\u043D\u0435\u0439", isRefill: true, warrantyDays: 14 },
+      { pattern: /r\s*60/i, translation: "\u0413\u0430\u0440\u0430\u043D\u0442\u0438\u044F 60 \u0434\u043D\u0435\u0439", isRefill: true, warrantyDays: 60 },
+      { pattern: /r\s*99/i, translation: "\u0412\u0435\u0447\u043D\u0430\u044F \u0433\u0430\u0440\u0430\u043D\u0442\u0438\u044F (99 \u0434\u043D\u0435\u0439)", isRefill: true, warrantyDays: 99 },
+      { pattern: /refill\s*30/i, translation: "\u0413\u0430\u0440\u0430\u043D\u0442\u0438\u044F 30 \u0434\u043D\u0435\u0439", isRefill: true, warrantyDays: 30 },
+      { pattern: /lifetime/i, translation: "\u041F\u043E\u0436\u0438\u0437\u043D\u0435\u043D\u043D\u0430\u044F \u0433\u0430\u0440\u0430\u043D\u0442\u0438\u044F", isRefill: true, warrantyDays: 365 },
+      { pattern: /no\s*refill/i, translation: "\u0411\u0435\u0437 \u0433\u0430\u0440\u0430\u043D\u0442\u0438\u0438", isRefill: false, warrantyDays: 0 },
+      { pattern: /без\s*гарантии/i, translation: "\u0411\u0435\u0437 \u0433\u0430\u0440\u0430\u043D\u0442\u0438\u0438", isRefill: false, warrantyDays: 0 },
+      // Качество (Quality)
+      { pattern: /uhq/i, translation: "\u0421\u0432\u0435\u0440\u0445\u0432\u044B\u0441\u043E\u043A\u043E\u0435 \u043A\u0430\u0447\u0435\u0441\u0442\u0432\u043E (UHQ)", tier: QualityTiers.PREMIUM },
+      { pattern: /hq/i, translation: "\u0412\u044B\u0441\u043E\u043A\u043E\u0435 \u043A\u0430\u0447\u0435\u0441\u0442\u0432\u043E", tier: QualityTiers.PREMIUM },
+      { pattern: /high\s*quality/i, translation: "\u0412\u044B\u0441\u043E\u043A\u043E\u0435 \u043A\u0430\u0447\u0435\u0441\u0442\u0432\u043E", tier: QualityTiers.PREMIUM },
+      { pattern: /lq/i, translation: "\u041D\u0438\u0437\u043A\u043E\u0435 \u043A\u0430\u0447\u0435\u0441\u0442\u0432\u043E", tier: QualityTiers.ECONOMY },
+      { pattern: /low\s*quality/i, translation: "\u041D\u0438\u0437\u043A\u043E\u0435 \u043A\u0430\u0447\u0435\u0441\u0442\u0432\u043E", tier: QualityTiers.ECONOMY },
+      { pattern: /real/i, translation: "\u0420\u0435\u0430\u043B\u044C\u043D\u044B\u0435 \u0430\u043A\u043A\u0430\u0443\u043D\u0442\u044B", tier: QualityTiers.PREMIUM },
+      { pattern: /ру\s*сим/i, translation: "\u0420\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u044F \u043D\u0430 RU-\u0441\u0438\u043C\u043A\u0430\u0440\u0442\u044B", tier: QualityTiers.PREMIUM },
+      { pattern: /ии\s*ключевые\s*слова/i, translation: "\u0418\u043D\u0442\u0435\u043B\u043B\u0435\u043A\u0442\u0443\u0430\u043B\u044C\u043D\u0430\u044F \u043D\u0430\u043A\u0440\u0443\u0442\u043A\u0430 (\u0418\u0418)", tier: QualityTiers.PREMIUM },
+      { pattern: /active/i, translation: "\u0410\u043A\u0442\u0438\u0432\u043D\u044B\u0435 \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u0438", tier: QualityTiers.PREMIUM },
+      { pattern: /bots/i, translation: "\u0411\u043E\u0442\u044B", tier: QualityTiers.ECONOMY },
+      { pattern: /fake/i, translation: "\u0424\u0435\u0439\u043A\u0438", tier: QualityTiers.ECONOMY },
+      { pattern: /mix/i, translation: "\u0421\u043C\u0435\u0448\u0430\u043D\u043D\u043E\u0435 \u043A\u0430\u0447\u0435\u0441\u0442\u0432\u043E", tier: QualityTiers.STANDARD },
+      { pattern: /микс/i, translation: "\u0421\u043C\u0435\u0448\u0430\u043D\u043D\u043E\u0435 \u043A\u0430\u0447\u0435\u0441\u0442\u0432\u043E", tier: QualityTiers.STANDARD },
+      // Скорость (Speed)
+      { pattern: /instant/i, translation: "\u041C\u043E\u043C\u0435\u043D\u0442\u0430\u043B\u044C\u043D\u044B\u0439 \u0441\u0442\u0430\u0440\u0442", velocityScore: 100 },
+      { pattern: /fast/i, translation: "\u0412\u044B\u0441\u043E\u043A\u0430\u044F \u0441\u043A\u043E\u0440\u043E\u0441\u0442\u044C", velocityScore: 80 },
+      { pattern: /slow/i, translation: "\u041C\u0435\u0434\u043B\u0435\u043D\u043D\u0430\u044F \u0441\u043A\u043E\u0440\u043E\u0441\u0442\u044C", velocityScore: 20 },
+      { pattern: /gradual/i, translation: "\u041F\u043B\u0430\u0432\u043D\u043E\u0435 \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u0435", velocityScore: 40 },
+      { pattern: /\d+к\/д/i, translation: "\u0412\u044B\u0441\u043E\u043A\u0430\u044F \u0441\u043A\u043E\u0440\u043E\u0441\u0442\u044C (\u0434\u0435\u0441\u044F\u0442\u043A\u0438 \u0442\u044B\u0441\u044F\u0447 \u0432 \u0441\u0443\u0442\u043A\u0438)", velocityScore: 80 },
+      // Специфика / Исключения (Edge cases)
+      { pattern: /non?\s*drop/i, translation: "\u041C\u0438\u043D\u0438\u043C\u0430\u043B\u044C\u043D\u044B\u0435 \u043E\u0442\u043F\u0438\u0441\u043A\u0438", isRefill: true },
+      { pattern: /возможны\s*списания/i, translation: "\u0412\u043E\u0437\u043C\u043E\u0436\u043D\u044B \u0441\u043F\u0438\u0441\u0430\u043D\u0438\u044F (\u0431\u0435\u0437 \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u044F)" },
+      { pattern: /списания\s*возможны/i, translation: "\u0412\u043E\u0437\u043C\u043E\u0436\u043D\u044B \u0441\u043F\u0438\u0441\u0430\u043D\u0438\u044F (\u0431\u0435\u0437 \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u044F)" },
+      { pattern: /targeted/i, translation: "\u0426\u0435\u043B\u0435\u0432\u0430\u044F \u0430\u0443\u0434\u0438\u0442\u043E\u0440\u0438\u044F" },
+      { pattern: /auto/i, translation: "\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 (\u043D\u0430 \u043D\u043E\u0432\u044B\u0435 \u043F\u043E\u0441\u0442\u044B)" },
+      { pattern: /views\s*with\s*impressions/i, translation: "\u041F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B \u0441 \u043E\u0445\u0432\u0430\u0442\u043E\u043C" },
+      { pattern: /retention/i, translation: "\u0421 \u0443\u0434\u0435\u0440\u0436\u0430\u043D\u0438\u0435\u043C" }
+    ];
+  }
+});
+
+// src/services/providers/smart-analyzer.logic.ts
+var CATEGORY_LABELS;
+var init_smart_analyzer_logic = __esm({
+  "src/services/providers/smart-analyzer.logic.ts"() {
+    "use strict";
+    init_description_sanitizer();
+    init_geo_registry();
+    init_name_tokenizer_service();
+    init_translation_dictionary();
+    CATEGORY_LABELS = {
+      SUBSCRIBERS: "\u041F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A\u0438 / \u0423\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u0438",
+      GROUPS: "\u0412\u0441\u0442\u0443\u043F\u043B\u0435\u043D\u0438\u0435 \u0432 \u0433\u0440\u0443\u043F\u043F\u044B / \u0447\u0430\u0442\u044B",
+      LIKES: "\u041B\u0430\u0439\u043A\u0438 / \u041D\u0440\u0430\u0432\u0438\u0442\u0441\u044F",
+      VIEWS: "\u041F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B / \u041E\u0445\u0432\u0430\u0442",
+      COMMENTS: "\u041A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0438 / \u041E\u0442\u0437\u044B\u0432\u044B",
+      REACTIONS: "\u0420\u0435\u0430\u043A\u0446\u0438\u0438 / \u042D\u043C\u043E\u0434\u0437\u0438",
+      REPOSTS: "\u0420\u0435\u043F\u043E\u0441\u0442\u044B / \u041F\u043E\u0434\u0435\u043B\u0438\u0442\u044C\u0441\u044F",
+      AUTO_VIEWS: "\u0410\u0432\u0442\u043E\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B",
+      AUTO_LIKES: "\u0410\u0432\u0442\u043E\u043B\u0430\u0439\u043A\u0438",
+      AUTO_REACTIONS: "\u0410\u0432\u0442\u043E\u0440\u0435\u0430\u043A\u0446\u0438\u0438",
+      AUTO_REPOSTS: "\u0410\u0432\u0442\u043E\u0440\u0435\u043F\u043E\u0441\u0442\u044B",
+      AUTO_COMMENTS: "\u0410\u0432\u0442\u043E\u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0438",
+      BOOSTS: "\u0411\u0443\u0441\u0442\u044B (Telegram Levels)",
+      POLLS: "\u0413\u043E\u043B\u043E\u0441\u0430 / \u041E\u043F\u0440\u043E\u0441\u044B",
+      STORIES: "\u0421\u0442\u043E\u0440\u0438\u0437 / \u0418\u0441\u0442\u043E\u0440\u0438\u0438",
+      BOTS: "\u0420\u043E\u0431\u043E\u0442\u044B / \u0411\u043E\u0442\u044B",
+      REFERRALS: "\u0420\u0435\u0444\u0435\u0440\u0430\u043B\u044B (Apps/Bots)",
+      FRIENDS: "\u0417\u0430\u044F\u0432\u043A\u0438 \u0432 \u0434\u0440\u0443\u0437\u044C\u044F",
+      PLAYS: "\u041F\u0440\u043E\u0441\u043B\u0443\u0448\u0438\u0432\u0430\u043D\u0438\u044F (Music)",
+      TRAFFIC: "\u0422\u0440\u0430\u0444\u0438\u043A / \u041F\u043E\u0441\u0435\u0449\u0435\u043D\u0438\u044F",
+      DISLIKES: "\u0414\u0438\u0437\u043B\u0430\u0439\u043A\u0438",
+      STARS: "\u0417\u0432\u0435\u0437\u0434\u044B (Telegram Stars)",
+      SAVES: "\u0421\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F / Saves",
+      COMPLAINTS: "\u0416\u0430\u043B\u043E\u0431\u044B / Reports",
+      STREAMS: "\u0421\u0442\u0440\u0438\u043C\u044B",
+      PREMIUM: "Premium \u041F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A\u0438",
+      RECOVER: "\u0412\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 / \u0414\u043E\u043A\u0440\u0443\u0442\u043A\u0430",
+      OTHER: "\u0414\u0440\u0443\u0433\u043E\u0435 / \u0420\u0430\u0437\u043D\u043E\u0435"
+    };
+  }
+});
+
+// src/services/analyzer/link-rules.ts
+var LINK_RULES;
+var init_link_rules = __esm({
+  "src/services/analyzer/link-rules.ts"() {
+    "use strict";
+    init_smart_analyzer_logic();
+    LINK_RULES = [
+      // ===================== TELEGRAM =====================
+      {
+        platform: "TELEGRAM" /* TELEGRAM */,
+        type: "private_post",
+        pattern: /(?:t\.me|telegram\.me|telegram\.dog)\/c\/(\d+)\/(\d+)\/?(?:\?.*)?$/i,
+        suggestedCategories: [],
+        context: "private"
+      },
+      {
+        platform: "TELEGRAM" /* TELEGRAM */,
+        type: "story",
+        pattern: /(?:t\.me|telegram\.me|telegram\.dog)\/([\w-]+)\/s\/(\d+)\/?(?:\?.*)?$/i,
+        suggestedCategories: [CATEGORY_LABELS.STORIES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.REACTIONS],
+        context: "temporary_story"
+      },
+      {
+        platform: "TELEGRAM" /* TELEGRAM */,
+        type: "post",
+        pattern: /(?:t\.me|telegram\.me|telegram\.dog)\/(?:s\/)?[\w-]+\/(?:topic\/|\d+\/)?(\d+)\/?(?:\?.*)?$/i,
+        suggestedCategories: [CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.REACTIONS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.STARS],
+        context: "engagement"
+      },
+      {
+        platform: "TELEGRAM" /* TELEGRAM */,
+        type: "bot",
+        pattern: /(?:t\.me|telegram\.me|telegram\.dog)\/(?:[\w-]+bot|[\w-]+_bot)\/?(?:\?.*)?$/i,
+        suggestedCategories: [CATEGORY_LABELS.BOTS, CATEGORY_LABELS.REFERRALS, CATEGORY_LABELS.SUBSCRIBERS],
+        context: "automation"
+      },
+      {
+        platform: "TELEGRAM" /* TELEGRAM */,
+        type: "channel",
+        pattern: /(?:t\.me|telegram\.me|telegram\.dog)\/(?:boost\/(?:c\/)?@?([\w-]+)\/?(?:\?.*)?$|(?:s\/)?(?:c\/)?@?([\w-]+)(?:\/boost\/?(?:\?.*)?|\/?\?(?:.*&)?boost(?:[=&].*)?)$)/i,
+        suggestedCategories: [CATEGORY_LABELS.BOOSTS, CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.PREMIUM],
+        context: "channel_boost_target"
+      },
+      {
+        platform: "TELEGRAM" /* TELEGRAM */,
+        type: "channel",
+        pattern: /(?:t\.me|telegram\.me|telegram\.dog)\/(?:joinchat\/|\+)([\w-]+)\/?(?:\?.*)?$/i,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS],
+        context: "private_invite"
+      },
+      {
+        platform: "TELEGRAM" /* TELEGRAM */,
+        type: "channel",
+        pattern: /(?:t\.me|telegram\.me|telegram\.dog)\/(?:s\/)?@?([\w-]+)\/?(?:\?.*)?$|web\.telegram\.org\/(?:k|a)\/#@?([\w-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.PREMIUM, CATEGORY_LABELS.BOOSTS, CATEGORY_LABELS.GROUPS, CATEGORY_LABELS.STORIES, CATEGORY_LABELS.STARS, CATEGORY_LABELS.AUTO_VIEWS, CATEGORY_LABELS.AUTO_REACTIONS, CATEGORY_LABELS.AUTO_REPOSTS],
+        context: "global_search_optimization"
+      },
+      // ===================== YOUTUBE =====================
+      {
+        platform: "YOUTUBE" /* YOUTUBE */,
+        type: "video",
+        pattern: /(?:youtube\.com\/(?:watch\?.*v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{6,12})(?=[^\w-]|$|&)/i,
+        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.STREAMS],
+        context: "high_retention_target"
+      },
+      {
+        platform: "YOUTUBE" /* YOUTUBE */,
+        type: "channel",
+        pattern: /youtube\.com\/((?:@)[\w-.]+|channel\/[\w-.]+|user\/[\w-.]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS],
+        context: "authority_growth"
+      },
+      // ===================== INSTAGRAM =====================
+      {
+        platform: "INSTAGRAM" /* INSTAGRAM */,
+        type: "highlight",
+        pattern: /instagram\.com\/stories\/highlights\/([\w-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.STORIES, CATEGORY_LABELS.VIEWS],
+        context: "highlight_views"
+      },
+      {
+        platform: "INSTAGRAM" /* INSTAGRAM */,
+        type: "story",
+        pattern: /instagram\.com\/stories\/([\w._]+)\/(\d+)/i,
+        suggestedCategories: [CATEGORY_LABELS.STORIES, CATEGORY_LABELS.VIEWS],
+        context: "temporary_story"
+      },
+      {
+        platform: "INSTAGRAM" /* INSTAGRAM */,
+        type: "post",
+        pattern: /instagram\.com\/(?:p|reel|tv)\/([\w-]+)/,
+        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.SAVES, CATEGORY_LABELS.REACTIONS],
+        context: "viral_momentum"
+      },
+      {
+        platform: "INSTAGRAM" /* INSTAGRAM */,
+        type: "profile",
+        pattern: /(?:instagram\.com|ig\.me)\/([\w._]+)/,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.STORIES, CATEGORY_LABELS.STREAMS, CATEGORY_LABELS.AUTO_LIKES, CATEGORY_LABELS.AUTO_VIEWS],
+        context: "trust_building"
+      },
+      // ===================== TIKTOK =====================
+      {
+        platform: "TIKTOK" /* TIKTOK */,
+        type: "short_link",
+        pattern: /(?:vm\.tiktok\.com|vt\.tiktok\.com|tiktok\.com\/t)\/([\w-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.SAVES],
+        context: "mobile_viral"
+      },
+      {
+        platform: "TIKTOK" /* TIKTOK */,
+        type: "video",
+        pattern: /tiktok\.com\/@[\w.]+\/(?:video|photo)\/(\d+)/i,
+        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.SAVES],
+        context: "viral_reach"
+      },
+      {
+        platform: "TIKTOK" /* TIKTOK */,
+        type: "live",
+        pattern: /tiktok\.com\/@[\w.]+\/live/i,
+        suggestedCategories: [CATEGORY_LABELS.STREAMS],
+        context: "live_stream"
+      },
+      {
+        platform: "TIKTOK" /* TIKTOK */,
+        type: "profile",
+        pattern: /tiktok\.com\/(@[\w.]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.AUTO_LIKES],
+        context: "influence"
+      },
+      // ===================== VK =====================
+      {
+        platform: "VK" /* VK */,
+        type: "comment",
+        pattern: /(?:vk\.(?:com|ru)|vkvideo\.ru)\/(?:wall|video|photo|clip)(-?\d+_\d+)\?[^#]*\breply=(\d+)/i,
+        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.REACTIONS],
+        context: "social_reach"
+      },
+      {
+        platform: "VK" /* VK */,
+        type: "post",
+        pattern: /(?:vk\.(?:com|ru)|vkvideo\.ru)\/(?:wall|clip|video|photo)(-?\d+_\d+)/,
+        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.REACTIONS, CATEGORY_LABELS.POLLS],
+        context: "social_reach"
+      },
+      {
+        platform: "VK" /* VK */,
+        type: "profile",
+        pattern: /vk\.(?:com|ru)\/([\w._]+)/,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.FRIENDS, CATEGORY_LABELS.VIEWS],
+        context: "networking"
+      },
+      // ===================== TWITCH =====================
+      {
+        platform: "TWITCH" /* TWITCH */,
+        type: "clip",
+        pattern: /(?:clips\.twitch\.tv\/|twitch\.tv\/[\w]+\/clip\/)([\w-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.LIKES],
+        context: "viral_reach"
+      },
+      {
+        platform: "TWITCH" /* TWITCH */,
+        type: "video",
+        pattern: /twitch\.tv\/videos\/(\d+)/i,
+        suggestedCategories: [CATEGORY_LABELS.VIEWS],
+        context: "past_broadcast_views"
+      },
+      {
+        platform: "TWITCH" /* TWITCH */,
+        type: "channel",
+        pattern: /twitch\.tv\/([\w]+)/,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.STREAMS, CATEGORY_LABELS.BOTS, CATEGORY_LABELS.GROUPS, CATEGORY_LABELS.OTHER],
+        context: "streaming_growth"
+      },
+      // ===================== TWITTER / X =====================
+      {
+        platform: "TWITTER" /* TWITTER */,
+        type: "post",
+        // BUG-FIX (SIL-2026): anchor host with (?:^|[./]) to prevent substring match inside yandex.com etc.
+        pattern: /(?:(?:^|[./])twitter\.com|(?:^|[./])x\.com)\/([\w]+)\/status\/(\d+)/,
+        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.BOOKMARKS],
+        context: "social_reach"
+      },
+      {
+        platform: "TWITTER" /* TWITTER */,
+        type: "profile",
+        // BUG-FIX (SIL-2026): anchor host with (?:^|[./]) to prevent substring match inside yandex.com etc.
+        pattern: /(?:(?:^|[./])twitter\.com|(?:^|[./])x\.com)\/([\w]+)/,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.AUTO_VIEWS],
+        context: "social_presence"
+      },
+      // ===================== LIKEE =====================
+      {
+        platform: "LIKEE" /* LIKEE */,
+        type: "video",
+        pattern: /(?:l\.likee\.video\/v\/([\w-]+)|(?:likee\.video|likee\.com)\/@[\w.]+\/video\/(\d+))/i,
+        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS],
+        context: "mobile_viral"
+      },
+      {
+        platform: "LIKEE" /* LIKEE */,
+        type: "profile",
+        pattern: /(?:l\.likee\.video\/p\/([\w-]+)|(?:likee\.video|likee\.com)\/(@[\w.]+))/i,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.VIEWS],
+        context: "influencer_growth"
+      },
+      // ===================== OK =====================
+      {
+        platform: "OK" /* OK */,
+        type: "post",
+        pattern: /ok\.ru\/(?:group|profile)\/\d+\/(?:topic|statuses)\/(\d+)/i,
+        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.REACTIONS],
+        context: "social_reach"
+      },
+      {
+        platform: "OK" /* OK */,
+        type: "group",
+        pattern: /ok\.ru\/group\/(\d+)/i,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.VIEWS],
+        context: "community_authority"
+      },
+      {
+        platform: "OK" /* OK */,
+        type: "profile",
+        pattern: /ok\.ru\/(?:profile\/(\d+)|([\w.-]+))/i,
+        suggestedCategories: [CATEGORY_LABELS.FRIENDS, CATEGORY_LABELS.VIEWS],
+        context: "networking"
+      },
+      // ===================== RUTUBE =====================
+      {
+        platform: "RUTUBE" /* RUTUBE */,
+        type: "video",
+        pattern: /rutube\.ru\/(?:video\/(?:private\/)?|play\/embed\/)([\w-]{32})/i,
+        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS],
+        context: "authority_growth"
+      },
+      {
+        platform: "RUTUBE" /* RUTUBE */,
+        type: "channel",
+        pattern: /rutube\.ru\/(?:channel\/(\d+)|u\/([\w.-]+))/i,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS],
+        context: "viral_momentum"
+      },
+      // ===================== DZEN =====================
+      {
+        platform: "DZEN" /* DZEN */,
+        type: "post",
+        pattern: /(?:dzen\.ru|zen\.yandex\.ru)\/(?:a\/|b\/|shorts\/|video\/watch\/|media\/(?:[\w.-]+\/)?)([\w-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS],
+        context: "authority_growth"
+      },
+      {
+        platform: "DZEN" /* DZEN */,
+        type: "channel",
+        pattern: /(?:dzen\.ru|zen\.yandex\.ru)\/(?:id\/([\w-]+)|u\/([\w.-]+)|channel\/([\w-]+)|@?([\w.-]+))\/?(?:\?.*)?$/i,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.VIEWS],
+        context: "viral_momentum"
+      },
+      // ===================== DISCORD =====================
+      {
+        platform: "DISCORD" /* DISCORD */,
+        type: "invite",
+        pattern: /(?:discord\.gg|discord\.com\/invite)\/([\w-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.GROUPS],
+        context: "automation"
+      },
+      // ===================== KICK =====================
+      {
+        platform: "KICK" /* KICK */,
+        type: "channel",
+        pattern: /kick\.com\/([\w.-]+)$/i,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.STREAMS],
+        context: "live_stream"
+      },
+      // ===================== SPOTIFY =====================
+      {
+        platform: "SPOTIFY" /* SPOTIFY */,
+        type: "artist",
+        pattern: /open\.spotify\.com\/artist\/([\w-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.PLAYS],
+        context: "artist_listeners"
+      },
+      {
+        platform: "SPOTIFY" /* SPOTIFY */,
+        type: "track",
+        pattern: /open\.spotify\.com\/track\/([\w-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.PLAYS, CATEGORY_LABELS.SAVES],
+        context: "viral_reach"
+      },
+      {
+        platform: "SPOTIFY" /* SPOTIFY */,
+        type: "playlist",
+        pattern: /open\.spotify\.com\/(?:playlist|album)\/([\w-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.PLAYS],
+        context: "networking"
+      },
+      // ===================== SOUNDCLOUD =====================
+      {
+        platform: "SOUNDCLOUD" /* SOUNDCLOUD */,
+        type: "track",
+        pattern: /(?:soundcloud\.com\/[\w.-]+\/[\w.-]+|on\.soundcloud\.com\/([\w.-]+))/i,
+        suggestedCategories: [CATEGORY_LABELS.PLAYS, CATEGORY_LABELS.LIKES, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.COMMENTS],
+        context: "music_viral"
+      },
+      {
+        platform: "SOUNDCLOUD" /* SOUNDCLOUD */,
+        type: "artist",
+        pattern: /soundcloud\.com\/([\w.-]+)\/?$/i,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS],
+        context: "authority_growth"
+      },
+      // ===================== PINTEREST =====================
+      {
+        platform: "PINTEREST" /* PINTEREST */,
+        type: "pin",
+        pattern: /(?:pinterest\.[a-z.]+\/pin\/|pin\.it\/)([\w-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.SAVES, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.REACTIONS],
+        context: "visual_discovery"
+      },
+      {
+        platform: "PINTEREST" /* PINTEREST */,
+        type: "profile",
+        pattern: /pinterest\.[a-z.]+\/([\w.-]+)\/?$/i,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS],
+        context: "networking"
+      },
+      // ===================== REDDIT =====================
+      {
+        platform: "REDDIT" /* REDDIT */,
+        type: "post",
+        pattern: /reddit\.com\/r\/[\w.-]+\/comments\/([\w]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS],
+        context: "community_authority"
+      },
+      {
+        platform: "REDDIT" /* REDDIT */,
+        type: "subreddit",
+        pattern: /reddit\.com\/r\/([\w.-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS],
+        context: "community_growth"
+      },
+      {
+        platform: "REDDIT" /* REDDIT */,
+        type: "profile",
+        pattern: /reddit\.com\/user\/([\w.-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS],
+        context: "networking"
+      },
+      // ===================== LINKEDIN =====================
+      {
+        platform: "LINKEDIN" /* LINKEDIN */,
+        type: "post",
+        pattern: /linkedin\.com\/(?:posts|feed\/update)\/([\w.-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS],
+        context: "api_engagement"
+      },
+      {
+        platform: "LINKEDIN" /* LINKEDIN */,
+        type: "company",
+        pattern: /linkedin\.com\/company\/([\w.-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS],
+        context: "corporate_growth"
+      },
+      {
+        platform: "LINKEDIN" /* LINKEDIN */,
+        type: "profile",
+        pattern: /linkedin\.com\/(?:in|pub)\/([\w.-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.FRIENDS],
+        context: "professional_networking"
+      },
+      // ===================== SNAPCHAT =====================
+      {
+        platform: "SNAPCHAT" /* SNAPCHAT */,
+        type: "spotlight",
+        pattern: /snapchat\.com\/spotlight\/([\w.-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.LIKES, CATEGORY_LABELS.REPOSTS],
+        context: "viral_momentum"
+      },
+      {
+        platform: "SNAPCHAT" /* SNAPCHAT */,
+        type: "profile",
+        pattern: /(?:snapchat\.com\/add|story\.snapchat\.com\/u)\/([\w.-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.STORIES],
+        context: "networking"
+      },
+      // ===================== YANDEX (MUSIC / MAPS) =====================
+      {
+        platform: "YANDEX" /* YANDEX */,
+        type: "track",
+        pattern: /music\.yandex\.(?:ru|com)\/(?:album\/\d+\/track\/|track\/)(\d+)/i,
+        suggestedCategories: [CATEGORY_LABELS.PLAYS, CATEGORY_LABELS.LIKES],
+        context: "music_growth"
+      },
+      {
+        platform: "YANDEX" /* YANDEX */,
+        type: "artist",
+        pattern: /music\.yandex\.(?:ru|com)\/artist\/(\d+)/i,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.PLAYS],
+        context: "artist_growth"
+      },
+      {
+        platform: "YANDEX" /* YANDEX */,
+        type: "album",
+        pattern: /music\.yandex\.(?:ru|com)\/album\/(\d+)/i,
+        suggestedCategories: [CATEGORY_LABELS.PLAYS, CATEGORY_LABELS.LIKES],
+        context: "album_growth"
+      },
+      // ===================== APPLE (MUSIC / PODCASTS) =====================
+      {
+        platform: "APPLE" /* APPLE */,
+        type: "podcast",
+        pattern: /podcasts\.apple\.com\/[^/]+\/podcast\/[^/]+\/id(\d+)/i,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.PLAYS, CATEGORY_LABELS.REACTIONS],
+        context: "audio_authority"
+      },
+      {
+        platform: "APPLE" /* APPLE */,
+        type: "track",
+        pattern: /music\.apple\.com\/[^/]+\/album\/[^/]+\/\d+\?i=(\d+)/i,
+        suggestedCategories: [CATEGORY_LABELS.PLAYS, CATEGORY_LABELS.LIKES],
+        context: "music_growth"
+      },
+      {
+        platform: "APPLE" /* APPLE */,
+        type: "album",
+        pattern: /music\.apple\.com\/[^/]+\/album\/[^/]+\/(\d+)/i,
+        suggestedCategories: [CATEGORY_LABELS.PLAYS, CATEGORY_LABELS.LIKES],
+        context: "album_growth"
+      },
+      // ===================== FACEBOOK =====================
+      {
+        platform: "FACEBOOK" /* FACEBOOK */,
+        type: "post",
+        pattern: /facebook\.com\/[^/]+\/(?:posts|videos|photos)\/([\w.-]+)|permalink\.php\?story_fbid=([\w.-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.REACTIONS],
+        context: "social_reach"
+      },
+      {
+        platform: "FACEBOOK" /* FACEBOOK */,
+        type: "profile",
+        pattern: /facebook\.com\/([\w.-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.FRIENDS],
+        context: "networking"
+      },
+      // ===================== THREADS =====================
+      {
+        platform: "THREADS" /* THREADS */,
+        type: "post",
+        pattern: /threads\.net\/@[\w.-]+\/post\/([\w.-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS],
+        context: "viral_momentum"
+      },
+      {
+        platform: "THREADS" /* THREADS */,
+        type: "profile",
+        pattern: /threads\.net\/@[\w.-]+/,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS],
+        context: "networking"
+      },
+      // ===================== KWAI =====================
+      {
+        platform: "KWAI" /* KWAI */,
+        type: "video",
+        pattern: /kwai\.com\/(?:video|p)\/([\w.-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.REPOSTS],
+        context: "viral_reach"
+      },
+      {
+        platform: "KWAI" /* KWAI */,
+        type: "profile",
+        pattern: /kwai\.com\/@?([\w.-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS],
+        context: "networking"
+      },
+      // ===================== TUMBLR =====================
+      {
+        platform: "TUMBLR" /* TUMBLR */,
+        type: "post",
+        pattern: /(?:[\w.-]+\.tumblr\.com\/post\/\d+|tumblr\.com\/[\w.-]+\/(\d+))/i,
+        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.REPOSTS],
+        context: "blog_growth"
+      },
+      {
+        platform: "TUMBLR" /* TUMBLR */,
+        type: "profile",
+        pattern: /([\w.-]+)\.tumblr\.com/i,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS],
+        context: "networking"
+      },
+      // ===================== MEDIUM =====================
+      {
+        platform: "MEDIUM" /* MEDIUM */,
+        type: "post",
+        pattern: /medium\.com\/(?:@[\w.-]+\/|p\/)([\w.-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.VIEWS],
+        context: "blog_reach"
+      },
+      {
+        platform: "MEDIUM" /* MEDIUM */,
+        type: "profile",
+        pattern: /medium\.com\/@([\w.-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS],
+        context: "networking"
+      },
+      // ===================== QUORA =====================
+      {
+        platform: "QUORA" /* QUORA */,
+        type: "profile",
+        pattern: /quora\.com\/profile\/([\w.-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS],
+        context: "networking"
+      },
+      {
+        platform: "QUORA" /* QUORA */,
+        type: "question",
+        pattern: /quora\.com\/(?:q\/)?([\w.-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS],
+        context: "expert_authority"
+      },
+      // ===================== VIMEO =====================
+      {
+        platform: "VIMEO" /* VIMEO */,
+        type: "video",
+        pattern: /vimeo\.com\/(?:video\/|channels\/[\w.-]+\/)?(\d+)/i,
+        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS],
+        context: "video_growth"
+      },
+      {
+        platform: "VIMEO" /* VIMEO */,
+        type: "channel",
+        pattern: /vimeo\.com\/([\w.-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.VIEWS],
+        context: "video_growth"
+      },
+      // ===================== RUMBLE =====================
+      {
+        platform: "RUMBLE" /* RUMBLE */,
+        type: "video",
+        pattern: /rumble\.com\/([\w.-]+\.html|v[\w.-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS],
+        context: "video_growth"
+      },
+      {
+        platform: "RUMBLE" /* RUMBLE */,
+        type: "channel",
+        pattern: /rumble\.com\/(?:c\/|user\/)?([\w.-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.VIEWS],
+        context: "video_growth"
+      },
+      // ===================== SHAZAM =====================
+      {
+        platform: "SHAZAM" /* SHAZAM */,
+        type: "track",
+        pattern: /shazam\.com\/track\/(\d+)/i,
+        suggestedCategories: [CATEGORY_LABELS.PLAYS, CATEGORY_LABELS.LIKES],
+        context: "music_discovery"
+      },
+      // ===================== WHATSAPP =====================
+      {
+        platform: "WHATSAPP" /* WHATSAPP */,
+        type: "group",
+        pattern: /(?:chat\.whatsapp\.com|wa\.me)\/([\w.-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.GROUPS],
+        context: "messenger_community"
+      },
+      // ===================== MAX MESSENGER =====================
+      {
+        platform: "MAX" /* MAX */,
+        type: "channel",
+        pattern: /(?:max\.ru)\/c\/(-?\d+(?:\/[\w-]+)?|[\w.-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.GROUPS],
+        context: "automation"
+      },
+      {
+        platform: "MAX" /* MAX */,
+        type: "profile",
+        pattern: /(?:max\.ru)\/([\w_.-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.BOTS],
+        context: "networking"
+      },
+      // ===================== STEAM =====================
+      {
+        platform: "STEAM" /* STEAM */,
+        type: "post",
+        pattern: /steamcommunity\.com\/sharedfiles\/filedetails\/\?id=(\d+)/i,
+        suggestedCategories: [CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.LIKES],
+        context: "social_reach"
+      },
+      {
+        platform: "STEAM" /* STEAM */,
+        type: "profile",
+        pattern: /steamcommunity\.com\/(?:id\/([\w.-]+)|profiles\/(\d+))/i,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.FRIENDS],
+        context: "networking"
+      },
+      // ===================== WIBES =====================
+      {
+        platform: "WIBES" /* WIBES */,
+        type: "post",
+        pattern: /wibes\.ru\/[\w.-]+\/([\w.-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.SAVES],
+        context: "social_reach"
+      },
+      {
+        platform: "WIBES" /* WIBES */,
+        type: "profile",
+        pattern: /wibes\.ru\/([\w.-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS],
+        context: "networking"
+      },
+      // ===================== TROVO =====================
+      {
+        platform: "TROVO" /* TROVO */,
+        type: "live",
+        pattern: /trovo\.live\/(?:s\/[\w.-]+\/|[\w.-]+\/)(\d+)/i,
+        suggestedCategories: [CATEGORY_LABELS.STREAMS],
+        context: "live_stream"
+      },
+      {
+        platform: "TROVO" /* TROVO */,
+        type: "channel",
+        pattern: /trovo\.live\/(?:s\/)?([\w.-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.STREAMS],
+        context: "streaming_growth"
+      },
+      // ===================== FALLBACK WEBSITE & TRAFFIC =====================
+      {
+        platform: "WEBSITE" /* WEBSITE */,
+        type: "seo_traffic",
+        pattern: /^https?:\/\/[^/\s]+\.[a-z]{2,}/i,
+        suggestedCategories: [CATEGORY_LABELS.TRAFFIC],
+        context: "seo_authority"
+      },
+      {
+        platform: "WEBSITE" /* WEBSITE */,
+        type: "direct_traffic",
+        pattern: /^https?:\/\//,
+        suggestedCategories: [CATEGORY_LABELS.OTHER, CATEGORY_LABELS.VIEWS],
+        context: "visibility"
+      }
+    ];
+  }
+});
+
+// src/utils/link-normalizer.ts
+function stripQueryParams(url) {
+  if (!url) return "";
+  const bounded = url.length > MAX_SAFE_URL_LENGTH ? url.slice(0, MAX_SAFE_URL_LENGTH) : url;
+  const trimmed = bounded.trim();
+  try {
+    const parsed = new URL(trimmed);
+    const searchParams = parsed.searchParams;
+    const exactBlocklist = /* @__PURE__ */ new Set(["igsh", "igshid", "fbclid", "gclid", "yclid", "ttref", "feature", "si", "ref"]);
+    const prefixBlocklist = ["utm_"];
+    const keysToDelete = [];
+    searchParams.forEach((_, key) => {
+      if (exactBlocklist.has(key) || prefixBlocklist.some((p) => key.startsWith(p))) {
+        keysToDelete.push(key);
+      }
+    });
+    keysToDelete.forEach((k) => searchParams.delete(k));
+    let result = parsed.toString();
+    if (parsed.search === "" && result.endsWith("/")) {
+      result = result.slice(0, -1);
+    }
+    return result;
+  } catch (e) {
+    let cleaned = trimmed;
+    cleaned = cleaned.replace(/[?&](igsh|igshid|utm_[a-z0-9_]+|fbclid|yclid|gclid|feature|si|ref)=[^&\s]+/gi, "");
+    cleaned = cleaned.replace(/[?&]$/, "");
+    return cleaned;
+  }
+}
+var MAX_SAFE_URL_LENGTH;
+var init_link_normalizer = __esm({
+  "src/utils/link-normalizer.ts"() {
+    "use strict";
+    MAX_SAFE_URL_LENGTH = 2048;
+  }
+});
+
+// src/lib/log-safe.ts
+function safeUrlForLog(url) {
+  if (!url || typeof url !== "string") return "[unparseable-url]";
+  try {
+    const raw = url.trim();
+    if (raw.length === 0) return "[unparseable-url]";
+    const formatted = raw.includes("://") ? raw : `https://${raw}`;
+    const parsed = new URL(formatted);
+    return `${parsed.protocol}//${parsed.host}${parsed.pathname}`;
+  } catch {
+    return "[unparseable-url]";
+  }
+}
+var init_log_safe = __esm({
+  "src/lib/log-safe.ts"() {
+    "use strict";
+  }
+});
+
+// src/lib/ssrf-guard.ts
+var ssrf_guard_exports = {};
+__export2(ssrf_guard_exports, {
+  SHORT_LINK_HOSTS: () => SHORT_LINK_HOSTS,
+  isPublicHost: () => isPublicHost,
+  isPublicIp: () => isPublicIp,
+  isUrlSafeForFetch: () => isUrlSafeForFetch,
+  resolveShortLink: () => resolveShortLink
+});
+function isPublicIp(rawIp) {
+  let ip = rawIp.trim().toLowerCase();
+  if (ip.startsWith("[") && ip.endsWith("]")) {
+    ip = ip.slice(1, -1);
+  }
+  if (ip.startsWith("::ffff:")) {
+    const rem = ip.slice(7);
+    if (rem.includes(".")) {
+      ip = rem;
+    } else {
+      const parts = rem.split(":");
+      if (parts.length === 2) {
+        const high = parseInt(parts[0], 16);
+        const low = parseInt(parts[1], 16);
+        if (!isNaN(high) && !isNaN(low)) {
+          const b1 = high >> 8 & 255;
+          const b2 = high & 255;
+          const b3 = low >> 8 & 255;
+          const b4 = low & 255;
+          ip = `${b1}.${b2}.${b3}.${b4}`;
+        } else {
+          return false;
+        }
+      } else {
+        return false;
+      }
+    }
+  }
+  if (ip.startsWith("127.") || ip.startsWith("10.") || ip.startsWith("169.254.") || ip.startsWith("192.168.") || ip === "0.0.0.0" || ip.startsWith("0.")) {
+    return false;
+  }
+  if (ip.startsWith("172.")) {
+    const parts = ip.split(".");
+    if (parts.length >= 2) {
+      const secondOctet = parseInt(parts[1], 10);
+      if (secondOctet >= 16 && secondOctet <= 31) {
+        return false;
+      }
+    }
+  }
+  if (ip === "::1" || ip === "::" || ip.startsWith("fc00:") || ip.startsWith("fd00:") || ip.startsWith("fe80:") || ip === "fd00:ec2::254") {
+    return false;
+  }
+  return true;
+}
+function isUrlSafeForFetch(urlString) {
+  if (!urlString || typeof urlString !== "string") return false;
+  let parsedUrl;
+  try {
+    const hasExplicitScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(urlString);
+    parsedUrl = new import_url.URL(hasExplicitScheme ? urlString : `https://${urlString}`);
+  } catch {
+    return false;
+  }
+  if (!["http:", "https:"].includes(parsedUrl.protocol)) return false;
+  const rawHost = parsedUrl.hostname.toLowerCase().trim();
+  const host = rawHost.startsWith("[") && rawHost.endsWith("]") ? rawHost.slice(1, -1) : rawHost;
+  if (host === "localhost" || host.endsWith(".local") || host.endsWith(".internal") || host === "metadata.google.internal" || host.endsWith(".metadata.internal")) {
+    return false;
+  }
+  if (!isPublicIp(host)) {
+    return false;
+  }
+  return true;
+}
+async function isPublicHost(hostname) {
+  const cleanHost = hostname.toLowerCase().trim();
+  if (cleanHost === "localhost" || cleanHost.endsWith(".local") || cleanHost.endsWith(".internal")) {
+    return false;
+  }
+  if (!isPublicIp(cleanHost)) {
+    return false;
+  }
+  try {
+    const dns4 = await import("dns/promises");
+    const records = await dns4.lookup(cleanHost, { all: true });
+    if (!records || records.length === 0) return false;
+    for (const record of records) {
+      if (!isPublicIp(record.address)) {
+        return false;
+      }
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+async function resolveShortLink(rawUrl) {
+  let currentUrl = rawUrl.trim();
+  if (!currentUrl) return rawUrl;
+  try {
+    const initialTest = new import_url.URL(currentUrl.includes("://") ? currentUrl : `https://${currentUrl}`);
+    if (initialTest.protocol !== "http:" && initialTest.protocol !== "https:") {
+      return rawUrl;
+    }
+  } catch {
+    return rawUrl;
+  }
+  if (!currentUrl.startsWith("http")) {
+    currentUrl = `https://${currentUrl}`;
+  }
+  const maxHops = 5;
+  for (let hop = 0; hop < maxHops; hop++) {
+    try {
+      const parsed = new import_url.URL(currentUrl);
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        return currentUrl;
+      }
+      const isAllowedHost2 = await isPublicHost(parsed.hostname);
+      if (!isAllowedHost2) {
+        return currentUrl;
+      }
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5e3);
+      const res = await fetch(currentUrl, {
+        method: "HEAD",
+        redirect: "manual",
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      const location = res.headers.get("location");
+      if (res.status >= 300 && res.status < 400 && location) {
+        const nextUrl = new import_url.URL(location, currentUrl).toString();
+        currentUrl = nextUrl;
+      } else {
+        break;
+      }
+    } catch {
+      break;
+    }
+  }
+  return currentUrl;
+}
+var import_url, SHORT_LINK_HOSTS;
+var init_ssrf_guard = __esm({
+  "src/lib/ssrf-guard.ts"() {
+    "use strict";
+    import_url = require("url");
+    SHORT_LINK_HOSTS = /* @__PURE__ */ new Set([
+      "bit.ly",
+      "youtu.be",
+      "vm.tiktok.com",
+      // NOTE: vt.tiktok.com is NOT here — it's handled directly by LINK_RULES pattern
+      // without needing HTTP resolution (adding it here would cause real HTTP fetches in tests)
+      "t.co",
+      "cutt.ly",
+      "clck.ru",
+      "tinyurl.com",
+      "is.gd"
+    ]);
+  }
+});
+
+// src/services/analyzer/link-analyzer.ts
+var link_analyzer_exports = {};
+__export2(link_analyzer_exports, {
+  IntelligenceLinkAnalyzer: () => IntelligenceLinkAnalyzer
+});
+var IntelligenceLinkAnalyzer;
+var init_link_analyzer = __esm({
+  "src/services/analyzer/link-analyzer.ts"() {
+    "use strict";
+    init_link_rules();
+    init_link_normalizer();
+    init_log_safe();
+    IntelligenceLinkAnalyzer = class {
+      async analyze(rawUrl) {
+        if (!rawUrl || rawUrl.trim() === "") {
+          return this.getFallbackResult(rawUrl, "EMPTY_INPUT");
+        }
+        const boundedRaw = rawUrl.length > 2048 ? rawUrl.slice(0, 2048) : rawUrl;
+        const cleanUrl = boundedRaw.trim();
+        const isBareHandle = cleanUrl.startsWith("@");
+        const hasNoDomainOrDot = !cleanUrl.includes(".") && !cleanUrl.includes("/");
+        if (isBareHandle || hasNoDomainOrDot) {
+          const rawHandle = cleanUrl.startsWith("@") ? cleanUrl.substring(1) : cleanUrl;
+          const hintHandle = rawHandle.trim() || "username";
+          return this.getFallbackResult(
+            cleanUrl,
+            "MISSING_DOMAIN",
+            `\u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u043F\u043E\u043B\u043D\u0443\u044E \u0441\u0441\u044B\u043B\u043A\u0443 \u0441 \u0430\u0434\u0440\u0435\u0441\u043E\u043C \u0441\u0430\u0439\u0442\u0430 (\u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440: t.me/${hintHandle}, vk.com/${hintHandle} \u0438\u043B\u0438 instagram.com/${hintHandle})`
+          );
+        }
+        const hasSingleParam = rawUrl.toLowerCase().includes("single");
+        const sanitizedUrl = this.sanitize(cleanUrl);
+        const expandedUrl = await this.resolve(sanitizedUrl);
+        const normalizedVk = this.normalizeVkUrl(expandedUrl);
+        const normalizedForMatch = this.normalizeForMatch(normalizedVk);
+        return this.match(normalizedForMatch, hasSingleParam);
+      }
+      normalizeVkUrl(url) {
+        if (!url.includes("vk.com") && !url.includes("vk.ru") && !url.includes("vkvideo.ru")) return url;
+        try {
+          const parsed = new URL(url.startsWith("http") ? url : `https://${url}`);
+          const wParam = parsed.searchParams.get("w");
+          const zParam = parsed.searchParams.get("z");
+          if (wParam && /^(wall|clip|video)-?\d+_\d+/.test(wParam)) {
+            return `${parsed.origin}/${wParam}`;
+          }
+          if (zParam && /^(wall|clip|video)-?\d+_\d+/.test(zParam)) {
+            return `${parsed.origin}/${zParam}`;
+          }
+          return url;
+        } catch {
+          return url;
+        }
+      }
+      normalizeForMatch(url) {
+        try {
+          const parsed = new URL(url.startsWith("http") ? url : `https://${url}`);
+          parsed.hostname = parsed.hostname.toLowerCase();
+          let decodedPath = parsed.pathname;
+          try {
+            decodedPath = decodeURIComponent(parsed.pathname);
+          } catch {
+          }
+          parsed.pathname = decodedPath;
+          return parsed.toString().replace(/%40/g, "@");
+        } catch {
+          return url.replace(/%40/g, "@");
+        }
+      }
+      sanitize(url) {
+        try {
+          let cleanUrl = url.trim();
+          cleanUrl = cleanUrl.replace(/(?:%20|\s)+$/, "");
+          const urlPattern = /(https?:\/\/[^\s!,;()]+|www\.[^\s!,;()]+|[a-zA-Z0-9-]+\.[a-zA-Z]{2,}\/[^\s!,;()]*)/i;
+          const match = cleanUrl.match(urlPattern);
+          if (match) {
+            cleanUrl = match[0];
+            cleanUrl = cleanUrl.split("%20")[0].split(" ")[0];
+            cleanUrl = cleanUrl.replace(/[?.,!;:]+$/, "");
+          } else {
+            cleanUrl = cleanUrl.split(" ")[0];
+            cleanUrl = cleanUrl.split("%20")[0];
+            cleanUrl = cleanUrl.replace(/[?.,!;:]+$/, "");
+          }
+          cleanUrl = stripQueryParams(cleanUrl);
+          if (!cleanUrl.startsWith("http://") && !cleanUrl.startsWith("https://") && cleanUrl.includes(".")) {
+            cleanUrl = "https://" + cleanUrl;
+          }
+          const urlObj = new URL(cleanUrl);
+          return urlObj.toString().replace(/%40/g, "@");
+        } catch (_e) {
+          return url.trim().replace(/%40/g, "@");
+        }
+      }
+      async resolve(url) {
+        try {
+          const parsed = new URL(url.startsWith("http") ? url : `https://${url}`);
+          const { SHORT_LINK_HOSTS: SHORT_LINK_HOSTS2, resolveShortLink: resolveShortLink2 } = await Promise.resolve().then(() => (init_ssrf_guard(), ssrf_guard_exports));
+          if (SHORT_LINK_HOSTS2.has(parsed.hostname.toLowerCase())) {
+            if (url.includes("youtu.be/")) {
+              return url.replace("youtu.be/", "youtube.com/watch?v=");
+            }
+            return await resolveShortLink2(url);
+          }
+        } catch (e) {
+          console.warn(`[LinkAnalyzer] Resolution skipped for ${safeUrlForLog(url)}`);
+        }
+        return url;
+      }
+      match(url, isSingleParam = false) {
+        const decodedUrl = url.replace(/%40/g, "@");
+        for (const rule of LINK_RULES) {
+          const match = decodedUrl.match(rule.pattern);
+          if (match) {
+            const isTgPost = rule.platform === "TELEGRAM" /* TELEGRAM */ && rule.type === "post";
+            const isSinglePhoto = isSingleParam || decodedUrl.toLowerCase().includes("single");
+            const tips = [];
+            let advice = void 0;
+            if (isTgPost) {
+              tips.push("telegram_mediagroup_dual_order_recommended");
+              advice = isSinglePhoto ? "\u0412\u044B \u0443\u043A\u0430\u0437\u0430\u043B\u0438 \u0441\u0441\u044B\u043B\u043A\u0443 \u043D\u0430 \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u043E\u0435 \u043C\u0435\u0434\u0438\u0430. \u0414\u043B\u044F \u0441\u0438\u043D\u0445\u0440\u043E\u043D\u0438\u0437\u0430\u0446\u0438\u0438 \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u043E\u0432 \u043D\u0430 iOS \u0438 Android \u043E\u0444\u043E\u0440\u043C\u0438\u0442\u0435 \u0432\u0442\u043E\u0440\u043E\u0439 \u0437\u0430\u043A\u0430\u0437 \u043D\u0430 \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0435\u0435 \u0444\u043E\u0442\u043E \u0430\u043B\u044C\u0431\u043E\u043C\u0430." : "\u0415\u0441\u043B\u0438 \u043F\u043E\u0441\u0442 \u0441\u043E\u0434\u0435\u0440\u0436\u0438\u0442 \u0430\u043B\u044C\u0431\u043E\u043C (\u043D\u0435\u0441\u043A\u043E\u043B\u044C\u043A\u043E \u0444\u043E\u0442\u043E), \u043E\u0444\u043E\u0440\u043C\u0438\u0442\u0435 \u0437\u0430\u043A\u0430\u0437\u044B \u043D\u0430 \u043F\u0435\u0440\u0432\u043E\u0435 \u0438 \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0435\u0435 \u0444\u043E\u0442\u043E \u0434\u043B\u044F \u0441\u0438\u043D\u0445\u0440\u043E\u043D\u0438\u0437\u0430\u0446\u0438\u0438 \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u043E\u0432 \u043D\u0430 \u0432\u0441\u0435\u0445 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430\u0445.";
+            }
+            return {
+              platform: rule.platform,
+              type: rule.type,
+              id: match[1] || match[2] || match[3] || "unknown",
+              canonicalUrl: decodedUrl,
+              metadata: {
+                isLive: decodedUrl.includes("/live/") || decodedUrl.includes("/reel/"),
+                context: rule.context,
+                isPrivateInvite: rule.context === "private_invite" || decodedUrl.includes("/joinchat/") || decodedUrl.includes("/+"),
+                isAlbum: isSinglePhoto,
+                isMediaGroupCandidate: isTgPost,
+                advice
+              },
+              suggestedCategories: rule.suggestedCategories,
+              warnings: [],
+              tips: tips.length > 0 ? tips : void 0
+            };
+          }
+        }
+        return this.getFallbackResult(decodedUrl, "UNSUPPORTED_PLATFORM");
+      }
+      getFallbackResult(url, errorCode, userHint) {
+        return {
+          platform: "OTHER" /* OTHER */,
+          type: "generic_link",
+          id: "none",
+          canonicalUrl: url,
+          metadata: {},
+          suggestedCategories: [],
+          warnings: errorCode ? [errorCode] : ["platform_not_supported"],
+          errorCode,
+          userHint
+        };
+      }
+    };
+  }
+});
+
+// src/services/users/loyalty.service.ts
+var loyalty_service_exports = {};
+__export2(loyalty_service_exports, {
+  LoyaltyService: () => LoyaltyService
+});
+var LoyaltyService;
+var init_loyalty_service = __esm({
+  "src/services/users/loyalty.service.ts"() {
+    "use strict";
+    init_db();
+    LoyaltyService = class {
+      /**
+       * Retrieves the current referral percentage for a user based on REFERRAL_TIERS.
+       */
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      static async getReferralPercent(userId, projectId) {
+        const user = await db.user.findUnique({
+          where: { id: userId },
+          select: {
+            totalSpent: true,
+            createdAt: true,
+            _count: { select: { referrals: true } }
+          }
+        });
+        if (!user) return 5;
+        const isPioneer = user.createdAt.getTime() < (/* @__PURE__ */ new Date("2026-05-01")).getTime();
+        if (isPioneer) return 20;
+        const referralsCount = user._count?.referrals ?? 0;
+        const totalSpentRub = Number(user.totalSpent) / 100;
+        if (referralsCount >= 25 || totalSpentRub >= 5e4) return 15;
+        if (referralsCount >= 10 || totalSpentRub >= 3e4) return 10;
+        if (referralsCount >= 3 || totalSpentRub >= 1e4) return 7;
+        return 5;
+      }
+      /**
+       * Awards a commission to the referrer when a referred user makes a deposit.
+       * Safe to run inside an existing PostgreSQL transaction.
+       */
+      static async awardCommission(tx, referredUserId, depositAmountCents, orderId) {
+        const user = await tx.user.findUnique({
+          where: { id: referredUserId },
+          select: { referredById: true }
+        });
+        if (!user || !user.referredById) return;
+        const referrer = await tx.user.findUnique({
+          where: { id: user.referredById },
+          select: { referredById: true, isActive: true, isDeleted: true }
+        });
+        if (!referrer) return;
+        if (referrer.isDeleted || !referrer.isActive) {
+          return;
+        }
+        if (referrer.referredById === referredUserId) {
+          console.warn(`[SECURITY] Cyclic referral detected between ${referredUserId} and ${user.referredById}. Commission rejected.`);
+          return;
+        }
+        const percent = await this.getReferralPercent(user.referredById);
+        const commissionCents = Math.round(depositAmountCents * percent / 100);
+        if (commissionCents <= 0) return;
+        const existingComm = await tx.commission.findFirst({
+          where: { orderId, referrerId: user.referredById }
+        });
+        if (existingComm) return;
+        await tx.commission.create({
+          data: {
+            orderId,
+            referrerId: user.referredById,
+            amount: commissionCents,
+            status: "PENDING"
+          }
+        });
+        await tx.auditLog.create({
+          data: {
+            userId: user.referredById,
+            action: "REFERRAL_PENDING",
+            details: `\u041E\u0436\u0438\u0434\u0430\u0435\u0442\u0441\u044F \u043A\u043E\u043C\u0438\u0441\u0441\u0438\u044F ${percent}% (${commissionCents / 100} \u0440\u0443\u0431) \u0437\u0430 \u043F\u043E\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u0435 \u043E\u0442 \u043F\u0440\u0438\u0432\u043B\u0435\u0447\u0435\u043D\u043D\u043E\u0433\u043E \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044F.`
+          }
+        });
+      }
+      /**
+       * Confirms a pending commission when an order completes.
+       * Moves it from PENDING to CONFIRMED.
+       */
+      static async confirmCommission(tx, orderId) {
+        const commissions = await tx.commission.findMany({
+          where: { orderId, status: "PENDING" }
+        });
+        for (const comm of commissions) {
+          await tx.commission.update({
+            where: { id: comm.id },
+            data: { status: "CONFIRMED" }
+          });
+          await tx.user.update({
+            where: { id: comm.referrerId },
+            data: { referralBalance: { increment: Number(comm.amount) } }
+          });
+          await tx.auditLog.create({
+            data: {
+              userId: comm.referrerId,
+              action: "REFERRAL_CONFIRMED",
+              details: `\u041A\u043E\u043C\u0438\u0441\u0441\u0438\u044F \u0437\u0430 \u0437\u0430\u043A\u0430\u0437 \u043F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043D\u0430 \u0438 \u043D\u0430\u0447\u0438\u0441\u043B\u0435\u043D\u0430: ${(Number(comm.amount) / 100).toFixed(2)} \u0440\u0443\u0431.`
+            }
+          });
+        }
+      }
+      /**
+       * Partially confirms a commission proportional to the delivered quantity.
+       */
+      static async handlePartialCommission(tx, orderId, remains, quantity) {
+        const commissions = await tx.commission.findMany({
+          where: { orderId, status: "PENDING" }
+        });
+        for (const comm of commissions) {
+          if (quantity <= 0 || remains >= quantity) {
+            await tx.commission.update({
+              where: { id: comm.id },
+              data: { status: "REVERSED" }
+            });
+            await tx.auditLog.create({
+              data: {
+                userId: comm.referrerId,
+                action: "REFERRAL_REVERSED",
+                details: `\u041A\u043E\u043C\u0438\u0441\u0441\u0438\u044F \u043E\u0442\u043E\u0437\u0432\u0430\u043D\u0430 \u043F\u043E\u043B\u043D\u043E\u0441\u0442\u044C\u044E (0 \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u043D\u044B\u0445 \u0437\u0430\u043F\u0443\u0441\u043A\u043E\u0432).`
+              }
+            });
+            continue;
+          }
+          const originalAmount = Number(comm.amount);
+          const confirmedAmount = Math.round(originalAmount * (quantity - remains) / quantity);
+          if (confirmedAmount > 0) {
+            await tx.commission.update({
+              where: { id: comm.id },
+              data: {
+                status: "CONFIRMED",
+                amount: confirmedAmount
+              }
+            });
+            await tx.user.update({
+              where: { id: comm.referrerId },
+              data: { referralBalance: { increment: confirmedAmount } }
+            });
+            await tx.auditLog.create({
+              data: {
+                userId: comm.referrerId,
+                action: "REFERRAL_CONFIRMED",
+                details: `\u041A\u043E\u043C\u0438\u0441\u0441\u0438\u044F \u0437\u0430 \u0437\u0430\u043A\u0430\u0437 \u043F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043D\u0430 \u0447\u0430\u0441\u0442\u0438\u0447\u043D\u043E: ${confirmedAmount / 100} \u0440\u0443\u0431 (\u043E\u0440\u0438\u0433\u0438\u043D\u0430\u043B\u044C\u043D\u0430\u044F \u0441\u0443\u043C\u043C\u0430: ${originalAmount / 100} \u0440\u0443\u0431).`
+              }
+            });
+          } else {
+            await tx.commission.update({
+              where: { id: comm.id },
+              data: { status: "REVERSED" }
+            });
+          }
+        }
+      }
+      /**
+       * Reverses a pending or confirmed commission if the order fails.
+       * Moves it to REVERSED and decrements referralBalance only if it was confirmed.
+       */
+      static async reverseCommission(tx, orderId) {
+        const commissions = await tx.commission.findMany({
+          where: { orderId, status: { in: ["PENDING", "CONFIRMED"] } }
+        });
+        for (const comm of commissions) {
+          const wasConfirmed = comm.status === "CONFIRMED";
+          await tx.commission.update({
+            where: { id: comm.id },
+            data: { status: "REVERSED" }
+          });
+          if (wasConfirmed) {
+            await tx.user.update({
+              where: { id: comm.referrerId },
+              data: { referralBalance: { decrement: Number(comm.amount) } }
+            });
+          }
+          await tx.auditLog.create({
+            data: {
+              userId: comm.referrerId,
+              action: "REFERRAL_REVERSED",
+              details: `\u041A\u043E\u043C\u0438\u0441\u0441\u0438\u044F \u043E\u0442\u043E\u0437\u0432\u0430\u043D\u0430 \u0438\u0437-\u0437\u0430 \u043E\u0442\u043C\u0435\u043D\u044B/\u043E\u0448\u0438\u0431\u043A\u0438 \u0437\u0430\u043A\u0430\u0437\u0430.`
+            }
+          });
+        }
+      }
+    };
   }
 });
 
@@ -131417,6 +131417,27 @@ var init_notifications = __esm({
 });
 
 // src/services/core/order.service.ts
+async function sendOrderDebitNotificationSafe(userId, serviceId, numericOrderId, chargeCents, prismaDb = db, smtpSender) {
+  try {
+    const sender = smtpSender ?? (await Promise.resolve().then(() => (init_smtp(), smtp_exports))).sendOrderBalanceDebitMail;
+    const [u, s] = await Promise.all([
+      prismaDb.user.findUnique({ where: { id: userId }, select: { email: true, balance: true, tenantId: true } }),
+      prismaDb.service.findUnique({ where: { id: serviceId }, select: { name: true } })
+    ]);
+    if (u?.email && s?.name) {
+      await sender({
+        email: u.email,
+        orderId: numericOrderId.toString(),
+        serviceName: s.name,
+        chargedCents: chargeCents,
+        remainingBalanceCents: u.balance,
+        tenantId: u.tenantId
+      });
+    }
+  } catch (err) {
+    console.error("[OrderService] Non-blocking debit email notification failed:", err);
+  }
+}
 var import_client2, OrderService, orderService;
 var init_order_service = __esm({
   "src/services/core/order.service.ts"() {
@@ -131587,23 +131608,7 @@ var init_order_service = __esm({
           } catch (queueError) {
             console.error("[OrderService] Non-fatal queue dispatch error:", queueError instanceof Error ? queueError.message : String(queueError));
           }
-          Promise.resolve().then(() => (init_smtp(), smtp_exports)).then(({ sendOrderBalanceDebitMail: sendOrderBalanceDebitMail2 }) => {
-            db.user.findUnique({ where: { id: userId }, select: { email: true, balance: true, tenantId: true } }).then((u) => {
-              if (u?.email) {
-                db.service.findUnique({ where: { id: input.serviceId }, select: { name: true } }).then((s) => {
-                  if (s?.name) {
-                    sendOrderBalanceDebitMail2({
-                      email: u.email,
-                      orderId: newOrder.numericId.toString(),
-                      serviceName: s.name,
-                      chargedCents: input.charge,
-                      remainingBalanceCents: u.balance,
-                      tenantId: u.tenantId
-                    }).catch(console.error);
-                  }
-                });
-              }
-            });
+          sendOrderDebitNotificationSafe(userId, input.serviceId, newOrder.numericId, input.charge).catch(() => {
           });
           return { success: true, orderId: newOrder.id };
         } catch (e) {

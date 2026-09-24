@@ -24,6 +24,34 @@ async function safeUpdateOrderStatus(
   });
 }
 
+/**
+ * Idempotently re-enqueues an orphaned order to BullMQ.
+ * If a job with jobId already exists in a stale state (failed, completed),
+ * removes it first before re-enqueueing to prevent BullMQ duplicate-id rejection.
+ * If job is live (waiting, active, delayed, prioritized), skips re-enqueueing.
+ */
+export async function reEnqueueOrphanOrder(
+  ordersQueue: any,
+  orphan: { id: string; numericId?: number | bigint }
+): Promise<boolean> {
+  const jobId = `dispatch-${orphan.id}`;
+  try {
+    const existingJob = await ordersQueue.getJob(jobId);
+    if (existingJob) {
+      const state = await existingJob.getState();
+      if (['waiting', 'active', 'delayed', 'prioritized', 'waiting-children'].includes(state)) {
+        return false;
+      }
+      await existingJob.remove().catch(() => {});
+    }
+    await ordersQueue.add('order-dispatch', { orderId: orphan.id }, { jobId });
+    return true;
+  } catch (err) {
+    log.error(`[SyncProcessor] Failed to re-enqueue orphan order #${orphan.numericId ?? orphan.id}`, { error: err });
+    return false;
+  }
+}
+
 export default async function syncProcessor(job: Job<SyncJobPayload>) {
   if (job.name === 'dripfeed-tick') {
     log.info('Starting Smart Dripfeed Tick processing...');
@@ -121,15 +149,19 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
             log.error(`Failed to update SLA error metrics for ${providerDef.id}`, { cause: slaErr });
           }
 
-          // Fallback: poll sequentially so 1 broken ID does not break remaining 49 orders
-          for (const extId of allExtIds) {
+          // Fallback: poll with bounded concurrency and timeout so 1 broken batch does not stall worker
+          const fallbackCandidates = allExtIds.slice(0, 50);
+          await Promise.allSettled(fallbackCandidates.map(async (extId) => {
             try {
-              const single = await provider.getOrderStatus(extId);
+              const single = await Promise.race([
+                provider.getOrderStatus(extId),
+                new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000))
+              ]);
               if (single && typeof single === 'object') {
                 statuses[extId] = single;
               }
             } catch { /* skip individual failure */ }
-          }
+          }));
         }
 
         // 3. Update orders based on responses
@@ -226,17 +258,23 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
         const startCountNum = statusObj.start_count !== undefined ? parseInt(String(statusObj.start_count), 10) : undefined;
 
         if (targetStatus === 'COMPLETED') {
+          let orderCompletedSuccessfully = false;
           await db.$transaction(async (tx) => {
             const updated = await safeUpdateOrderStatus(tx, order.id, {
               status: 'COMPLETED',
               remains: 0,
               startCount: startCountNum !== undefined && !isNaN(startCountNum) ? startCountNum : undefined
             });
-
-            if (updated && order.email) {
-              await sendOrderCompletedMail(order.email, String(order.numericId || order.id), order.service.name, order.tenantId).catch(err => log.error('Failed to send order completed email', { error: err }));
+            if (updated) {
+              orderCompletedSuccessfully = true;
             }
           });
+
+          // Zero Network I/O inside DB Transactions (DB-02)
+          if (orderCompletedSuccessfully && order.email) {
+            void sendOrderCompletedMail(order.email, String(order.numericId || order.id), order.service.name, order.tenantId)
+              .catch(err => log.error('Failed to send order completed email', { error: err }));
+          }
         } else if (targetStatus === 'CANCELED') {
           const rawRemains = (remainsNum !== undefined && !isNaN(remainsNum) && remainsNum > 0) ? remainsNum : order.quantity;
           const safeCancelRemains = Math.min(order.quantity, Math.max(0, rawRemains));
@@ -323,11 +361,9 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
       log.warn(`Found ${orphanOrders.length} orphaned PENDING orders. Re-enqueuing to dispatch queue...`);
       const { ordersQueue } = await import('@/lib/queue-manager');
       for (const orphan of orphanOrders) {
-        try {
-          await ordersQueue.add('order-dispatch', { orderId: orphan.id }, { jobId: `dispatch-${orphan.id}` });
+        const enqueued = await reEnqueueOrphanOrder(ordersQueue, orphan);
+        if (enqueued) {
           log.info(`[SyncProcessor] Re-enqueued orphan order #${orphan.numericId} (ID: ${orphan.id})`);
-        } catch (enqueueErr) {
-          log.error(`[SyncProcessor] Failed to re-enqueue orphan order #${orphan.numericId}`, { error: enqueueErr });
         }
       }
     }

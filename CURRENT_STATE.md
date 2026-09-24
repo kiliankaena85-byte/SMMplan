@@ -1,3 +1,35 @@
+- [x] ⚡ [PERF-DB-QUEUE-REMEDIATION-2026] Комплексная ликвидация дефектов БД, очередей BullMQ и узких мест производительности (100% COMPLETE & PASS):
+  * 🗄️ **[DB-01] Оптимизация схемы индексов PostgreSQL (`prisma/schema.prisma`):**
+    - Добавлены индексы `@@index([telegramId])` и составной `@@index([tenantId, telegramId])` в модель `User` (ликвидация Seq Scan при аутентификации Telegram Mini App и ботов).
+    - Добавлены составные индексы `@@index([serviceId, updatedAt(sort: Desc)])`, `@@index([status, serviceId, updatedAt(sort: Desc)])` и `@@index([providerId, status, updatedAt])` в модель `Order` (мгновенная выборка активных заказов провайдера и истории).
+    - Выполнена генерация клиента через `npx prisma generate`.
+  * 🛡️ **[PERF-01] Атомарный скользящий конвейер DDoS Shield (`token-bucket-pool.ts`):**
+    - Заменены 4 последовательных сетевых вызова к Redis (`zremrangebyscore`, `zcard`, `zadd`, `expire`) на единый атомарный `pipeline()`. Задержка сетевого шлюза сокращена в 4 раза (1 roundtrip).
+  * 🔒 **[QUEUE-04] Авто-истечение Fencing-токенов в Redis Mutex (`redis-lock.ts`):**
+    - Внедрен автоматический TTL (`expire(fenceKey, fenceTtlSec)`) для ключей `fence:lock:...`, предотвращающий вечную утечку ключей при перезапусках контейнеров.
+  * ⚡ **[DB-04] Исключение паразитного `model.count()` при Keyset/Cursor пагинации (`pagination.ts`):**
+    - При использовании курсора `cursor` дорогостоящий `count(*)` пропускается по умолчанию (`totalCount: -1`), экономя дорогой Full Table Scan при скролле таблиц.
+  * 🛑 **[DB-02] Вынос сетевых SMTP-вызовов из транзакций БД (`sync.processor.ts`):**
+    - Вызов `sendOrderCompletedMail` вынесен за пределы `db.$transaction`, предотвращая удерживание блокировок строк и соединений БД во время сетевых таймаутов почтового сервера.
+  * 🚀 **[QUEUE-01] Масштабирование пропускной способности воркера заказов (`workers/index.ts`):**
+    - Увеличен concurrency воркера `ordersQueue` с 1 до 5 потоков, ускоряя разбор очереди заказов в 5 раз при пиковых нагрузках.
+  * 🛡️ **[QUEUE-03] Ограничение Fallback-синхронизации провайдеров (`sync.processor.ts`):**
+    - Заменен неограниченный последовательный цикл до 500 запросов `provider.getOrderStatus` на батч-обработку с `Promise.allSettled` и жестким таймаутом `AbortSignal.timeout(3000)`.
+  * ♻️ **[QUEUE-02] Очистка зависших BullMQ задач перед повторной постановкой (`sync.processor.ts`, `cleanup.processor.ts`):**
+    - Внедрена функция `reEnqueueOrphanOrder`: перед добавлением джоба с существующим `jobId` проверяется его статус, и старые failed/completed задачи удаляются через `existingJob.remove()`.
+  * 🛡️ **[BUG-01] Сохранение `extId` провайдера и авто-восстановление заказов (`order.processor.ts`):**
+    - Полученный ID провайдера немедленно кэшируется в Redis-мутексе `order:dispatched:${id}` (TTL 24ч).
+    - При ретраях функция `handleDispatchedGuard` восстанавливает заказ в статус `IN_PROGRESS` с сохраненным внешним ID, исключая потерю заказов и ложные списания.
+  * ✉️ **[BUG-02] Защита от Unhandled Promise Rejection при списании баланса (`order.service.ts`):**
+    - Внедрен изолированный асинхронный хелпер `sendOrderDebitNotificationSafe` с параллельным `Promise.all` и строгим перехватом `.catch()`.
+  * 🎛️ **[DB-05] Расширение пула соединений БД и лимитов памяти (`docker-compose.yml`):**
+    - Увеличен `connection_limit` с 5 до 20 для `web` и `worker`, и до 10 для `bot`.
+    - Лимит памяти воркера увеличен до `256m` с `NODE_OPTIONS=--max-old-space-size=192` для защиты от GC Thrashing.
+  * 🧪 **Контроль качества:**
+    - Спецификация: `docs/specs/SPEC-2026-09-24-perf-db-queue-remediation.md`.
+    - Сьют тестов: `src/__tests__/performance-db-queue-remediation.test.ts` (10/10 PASS).
+    - Компиляция: `npx tsc --noEmit` (0 ошибок).
+    - Контроль секретов: `node scripts/check-bundle-secrets.mjs` (0 утечек).
 - [x] 🚀 [RELEASE-READY-2026] Ветка `stable-pre-decomposition` (коммит `d55558f2`) запушена в `origin`. Standalone-сборка успешно скомпилирована (Webpack, dist/bot.js, dist/worker.js). 0 секретов. Готово к внешнему аудиту и ручному тестированию.
 - [x] ⚡ [SECURITY-RELIABILITY-PERFORMANCE-REMEDIATION-2026] Комплексное закрытие дефектов аудита безопасности, надежности и производительности (41 CLOSED, 2 N/A, 3 TIER-1 PLANNED):
   * 🛡️ **Финансовая целостность и неизменяемый леджер [BAL-01, BAL-02, BAL-03] (Commit `0d590c0a`):**

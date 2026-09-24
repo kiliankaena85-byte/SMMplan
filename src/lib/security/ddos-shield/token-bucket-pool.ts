@@ -1,4 +1,4 @@
-﻿import { logger } from '@/lib/logger';
+import { logger } from '@/lib/logger';
 
 const log = logger.child({ component: 'FingerprintTokenBucketPool' });
 
@@ -45,6 +45,28 @@ export async function checkFingerprintPoolLimit(
   const windowStart = now - windowSeconds * 1000;
 
   try {
+    const uniqueMember = `${now}-${Math.random().toString(36).substring(2, 9)}`;
+
+    if (typeof (redis as any).pipeline === 'function') {
+      const pipe = (redis as any).pipeline();
+      pipe.zremrangebyscore(key, 0, windowStart);
+      pipe.zcard(key);
+      pipe.zadd(key, now, uniqueMember);
+      pipe.expire(key, windowSeconds * 2);
+      const results = await pipe.exec();
+      const currentCount = typeof results?.[1]?.[1] === 'number' ? results[1][1] : 0;
+
+      if (currentCount >= maxRequests) {
+        return { isAllowed: false, remaining: 0 };
+      }
+
+      return {
+        isAllowed: true,
+        remaining: Math.max(0, maxRequests - (currentCount + 1)),
+      };
+    }
+
+    // Fallback if pipeline is unavailable (mock or basic client)
     // 1. Remove expired entries older than sliding window start
     await redis.zremrangebyscore(key, 0, windowStart);
 
@@ -56,7 +78,6 @@ export async function checkFingerprintPoolLimit(
     }
 
     // 3. Add current request unique member
-    const uniqueMember = `${now}-${Math.random().toString(36).substring(2, 9)}`;
     await redis.zadd(key, now, uniqueMember);
     await redis.expire(key, windowSeconds * 2);
 

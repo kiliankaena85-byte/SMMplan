@@ -5,6 +5,7 @@ export interface PaginationParams {
   where?: Record<string, unknown>;
   orderBy?: Record<string, unknown> | Array<Record<string, unknown>>;
   include?: Record<string, unknown>;
+  countTotal?: boolean;
 }
 
 export interface PaginatedResult<T> {
@@ -76,10 +77,19 @@ export async function paginatedQuery<T>(
     queryOptions.include = include;
   }
 
-  const [items, totalCount] = await Promise.all([
-    (model.findMany as (opts: unknown) => Promise<T[]>)(queryOptions),
-    (model.count as (opts: unknown) => Promise<number>)({ where }),
-  ]);
+  let totalCount = -1;
+  let items: T[];
+
+  if (params.countTotal) {
+    const [fetchedItems, count] = await Promise.all([
+      (model.findMany as (opts: unknown) => Promise<T[]>)(queryOptions),
+      (model.count as (opts: unknown) => Promise<number>)({ where }),
+    ]);
+    items = fetchedItems;
+    totalCount = count;
+  } else {
+    items = await (model.findMany as (opts: unknown) => Promise<T[]>)(queryOptions);
+  }
 
   const hasNextPage = items.length > pageSize;
   const paginatedItems = hasNextPage ? items.slice(0, pageSize) : items;
@@ -87,7 +97,7 @@ export async function paginatedQuery<T>(
     ? (paginatedItems[paginatedItems.length - 1] as unknown as { id: string })?.id
     : undefined;
 
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const totalPages = totalCount >= 0 ? Math.max(1, Math.ceil(totalCount / pageSize)) : -1;
 
   return {
     items: paginatedItems,

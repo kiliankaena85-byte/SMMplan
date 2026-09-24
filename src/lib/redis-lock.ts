@@ -54,6 +54,8 @@ export class MutexManager {
         let fencingToken = 1;
         try {
           fencingToken = await redis.incr(fenceKey);
+          const fenceTtlSec = Math.max(300, Math.ceil(ttlMs / 1000) * 5);
+          await redis.expire(fenceKey, fenceTtlSec);
         } catch {
           fencingToken = Date.now();
         }

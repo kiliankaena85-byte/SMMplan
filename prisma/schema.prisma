@@ -119,6 +119,8 @@ model User {
   allowedTenants String[] @default(["smmplan"])
 
   @@unique([email, tenantId])
+  @@index([telegramId])
+  @@index([tenantId, telegramId])
   @@index([tenantId])
   @@index([customerGroupId])
   @@index([createdAt(sort: Desc), id(sort: Desc)])
@@ -581,6 +583,9 @@ model Order {
   @@index([tenantId, createdAt(sort: Desc)]) // Brand admin sorted
   @@index([tenantId, userId, status, createdAt])
   @@index([paymentId]) // Fast lookup for orders by payment (Order.paymentId foreign key)
+  @@index([serviceId, updatedAt(sort: Desc)])
+  @@index([status, serviceId, updatedAt(sort: Desc)])
+  @@index([providerId, status, updatedAt])
   userNotes UserNote[]
   orderRecoveryIncidents OrderRecoveryIncident[]
   cxCompensations        CxApologyCompensation[]
