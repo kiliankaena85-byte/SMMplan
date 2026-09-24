@@ -1,4 +1,4 @@
-- [x] ⚡ [SECURITY-RELIABILITY-PERFORMANCE-REMEDIATION-2026] Комплексное закрытие 21 дефекта безопасности, надежности и производительности (100% COMPLETE, TESTED & COMMITTED):
+- [x] ⚡ [SECURITY-RELIABILITY-PERFORMANCE-REMEDIATION-2026] Комплексное закрытие дефектов аудита безопасности, надежности и производительности (41 CLOSED, 2 N/A, 3 TIER-1 PLANNED):
   * 🛡️ **Финансовая целостность и неизменяемый леджер [BAL-01, BAL-02, BAL-03] (Commit `0d590c0a`):**
     - Внедрен класс `ImmutableLedgerError` в `wallet.service.ts`, перехватывающий триггеры PostgreSQL `immutability violation`.
     - В `user.service.ts` метод `updateBalance` переведен на строгий `BigInt(amountCents)` и `WalletOps.adminAdjust` с Ledger-First инвариантом.
@@ -8,6 +8,19 @@
     - Реализован `src/lib/security/webhook-rate-limiter.ts` с лимитом 60 req/min на связку `IP:tenantId:subRoute`.
     - Подключен в `src/proxy.ts` до криптографических проверок и обращений к БД.
     - Тест `webhook-rate-limiter.test.ts` (2/2 PASS).
+  * 🚨 **Лимитирование и дедупликация CSP-отчётов [AUTH-02] (Commit `6483c668`):**
+    - В эндпоинте `/api/telemetry/csp-report` внедрен лимит размера тела (10 КБ) и IP rate limiting (30 req/min).
+    - Внедрена дедупликация идентичных нарушений (60с TTL) без паразитной записи в БД.
+    - Тест `auth-02-csp-report.test.ts` (4/4 PASS).
+  * 🛡️ **Нейтрализация Self-XSS в превью шаблонов Telegram [XSS-03] (Commit `0ffaecc5`):**
+    - В `telegram-live-preview.tsx` устранены 3 вхождения `dangerouslySetInnerHTML`. Внедрен безопасный токенизатор `renderSafeTelegramText()`, рендерящий разметку как типизированные React-элементы.
+    - Тест `xss-03-telegram-preview.test.tsx` (3/3 PASS).
+  * 🔒 **Fencing-токены и защита от Split-Brain в блокировках [OPS-02] (Commit `ef802e9c`):**
+    - В `MutexManager` (`redis-lock.ts`) добавлен метод `acquireLockWithFencing` с атомарным `redis.incr(fenceKey)`.
+    - Внедрен `LockContext` (`isLockValid()`, `assertLockValid()`) и автоматический выброс `LockLostError` при потере лока.
+    - Тест `ops-02-lock-fencing.test.ts` (3/3 PASS).
+  * 🧪 **Модернизация конфигурации Vitest 4 [R6-11] (Commit `0783e93e`):**
+    - Удалена устаревшая секция `poolOptions`, изолирован вспомогательный скрипт `test_round_table.ts`.
   * 📡 **Реконнект телеметрии и LRU-вытеснение [TEL-01] (Commit `f3251566`):**
     - В `p0-alert-debouncer.ts` внедрено ограничение емкости памяти (5000) с LRU-очисткой.
     - При переходе Redis в статус `ready` накопленные дельты атомарно синкаются в Redis (`redis.incrby`).
@@ -30,7 +43,7 @@
     - `npx tsc --noEmit` — 0 ошибок (PASS).
     - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов (PASS).
     - `npm run lint:tenant` — 0 блокеров (PASS).
-    - 21 доказательство в `audit/evidence/2026-09-24/`.
+    - Сводный отчет в `audit/report-2026-09-24-vuln-sweep.md`, 24 каталога доказательств в `audit/evidence/2026-09-24/`.
 - [x] ⚡ [CATALOG-LATENCY-ELIMINATION-PREFETCH-2026] Комплексная ликвидация задержек загрузки услуг и категорий каталога (100% COMPLETE & LIVE):
   * 🚀 **Кэширование готовых структур `PublicService[]` в Next.js `unstable_cache`:**
     - Маппинг и санитизация услуг (`mapRawServiceToPublicService`) перенесены внутрь `unstable_cache`. Устранен цикл регулярных выражений `SmartAnalyzerLogic.detectSync` и `sanitize-html` при каждом клике. Повторные клики и запросы отдаются за <1мс из памяти Next.js (0 обращений к БД).
