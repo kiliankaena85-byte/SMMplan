@@ -31,6 +31,45 @@ import {
 
 export type PreviewSimulatorState = 'WELCOME_MENU' | 'SUPPORT_CHAT' | 'CSAT_POLL' | 'REASONS_PICKER' | 'FEEDBACK_SUCCESS';
 
+// OWASP A03 / XSS-03: Safe rendering for Telegram previews via React elements
+export function renderSafeTelegramText(rawText: string): React.ReactNode {
+  if (!rawText) return null;
+  const parts: React.ReactNode[] = [];
+  const regex = /<(b|strong|i|em|code)>([\s\S]*?)<\/\1>|<br\s*\/?>/gi;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(rawText)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(rawText.slice(lastIndex, match.index));
+    }
+    if (match[0].toLowerCase().startsWith('<br')) {
+      parts.push('\n');
+    } else {
+      const tag = match[1].toLowerCase();
+      const content = match[2];
+      if (tag === 'b' || tag === 'strong') {
+        parts.push(<strong key={match.index} className="font-bold">{content}</strong>);
+      } else if (tag === 'i' || tag === 'em') {
+        parts.push(<em key={match.index} className="italic">{content}</em>);
+      } else if (tag === 'code') {
+        parts.push(<code key={match.index} className="bg-black/30 px-1 py-0.5 rounded font-mono text-[10px]">{content}</code>);
+      }
+    }
+    lastIndex = regex.lastIndex;
+  }
+
+  if (lastIndex < rawText.length) {
+    parts.push(rawText.slice(lastIndex));
+  }
+
+  return (
+    <div className="whitespace-pre-wrap break-words">
+      {parts}
+    </div>
+  );
+}
+
 interface TelegramLivePreviewProps {
   botUsername: string;
   siteName: string;
@@ -208,11 +247,7 @@ export function TelegramLivePreview({
             {activeState === 'WELCOME_MENU' && (
               <div className="space-y-2 animate-in fade-in duration-200">
                 <div className="max-w-[85%] bg-[#182533] p-3 rounded-2xl rounded-tl-sm text-[#f5f5f5] text-[11px] leading-relaxed shadow-sm border border-[#232e3c]/40 space-y-2">
-                  <div 
-                    dangerouslySetInnerHTML={{ 
-                      __html: formattedWelcome.replace(/\n/g, '<br/>') 
-                    }} 
-                  />
+                  {renderSafeTelegramText(formattedWelcome)}
                   <div className="text-[9px] text-[#708499] text-right font-mono">12:00</div>
                 </div>
               </div>
@@ -242,11 +277,7 @@ export function TelegramLivePreview({
             {activeState === 'CSAT_POLL' && (
               <div className="space-y-2 animate-in fade-in duration-200">
                 <div className="max-w-[88%] bg-[#182533] p-3 rounded-2xl rounded-tl-sm text-[#f5f5f5] text-[11px] leading-relaxed shadow-sm border border-[#232e3c]/40 space-y-3">
-                  <div 
-                    dangerouslySetInnerHTML={{ 
-                      __html: formattedClosed.replace(/\n/g, '<br/>') 
-                    }} 
-                  />
+                  {renderSafeTelegramText(formattedClosed)}
 
                   {/* 5 Stars Inline Buttons */}
                   <div className="grid grid-cols-5 gap-1 pt-1 border-t border-[#232e3c]/60">
@@ -310,11 +341,7 @@ export function TelegramLivePreview({
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     Отзыв сохранен: «{selectedReason}»
                   </div>
-                  <div 
-                    dangerouslySetInnerHTML={{ 
-                      __html: formattedThanks.replace(/\n/g, '<br/>') 
-                    }} 
-                  />
+                  {renderSafeTelegramText(formattedThanks)}
                   <div className="text-[9px] text-[#708499] text-right font-mono">12:10</div>
                 </div>
               </div>
