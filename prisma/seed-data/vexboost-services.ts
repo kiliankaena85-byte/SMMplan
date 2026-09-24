@@ -38,31 +38,24 @@ async function main() {
     where: { name: { contains: "Test" } }
   });
 
-  const catIdStr = category ? `'${category.id}'` : `(SELECT id FROM "Category" LIMIT 1)`;
+  const targetCategory = category || (await prisma.category.findFirst());
+  if (!targetCategory) {
+    console.log("No category found, skipping seed.");
+    return;
+  }
 
   for (const item of rawServices) {
-    const idStr = `'${item.id}'`;
-    // Escape string using string replace to double quotes
-    const nameStr = "'" + item.service.replace(/'/g, "''") + "'";
     const rateInt = Math.round(parseFloat(item.rate));
     const markupInt = Math.round(parseFloat(item.resell));
     const minQty = Math.round(parseFloat(item.min_qty));
     const maxQty = Math.round(parseFloat(item.max_qty));
-    const extIdStr = `'${item.id}'`;
-
-    // To follow instruction logic for mathematically parsing numbers and using raw unsafe,
-    // we map pseudo-columns from the prompt into real Prisma columns.
-    
-    // Sort randomly as requested by user pseudo instructions for sorting inside insert order
     const randomNumericId = Math.floor(Math.random() * 1000000) + 10000;
 
-    const query = `
+    await prisma.$executeRaw`
       INSERT INTO "Service" ("id", "numericId", "name", "categoryId", "rate", "markup", "minQty", "maxQty", "externalId", "updatedAt") 
-      VALUES (${idStr}, ${randomNumericId}, ${nameStr}, ${catIdStr}, ${rateInt}, ${markupInt}, ${minQty}, ${maxQty}, ${extIdStr}, NOW()) 
+      VALUES (${item.id}, ${randomNumericId}, ${item.service}, ${targetCategory.id}, ${rateInt}, ${markupInt}, ${minQty}, ${maxQty}, ${item.id}, NOW()) 
       ON CONFLICT ("id") DO NOTHING;
     `;
-    
-    await prisma.$executeRawUnsafe(query);
   }
 
   console.log("VexBoost raw insert completed successfully.");

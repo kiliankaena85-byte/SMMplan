@@ -87,7 +87,7 @@ async function runEvidenceGeneration() {
 
   let triggerBlocked = false;
   try {
-    await prisma.$executeRawUnsafe(`DELETE FROM "LedgerEntry" WHERE id = '${ledger.id}'`);
+    await prisma.$executeRaw`DELETE FROM "LedgerEntry" WHERE id = ${ledger.id}`;
   } catch (err: any) {
     if (err.message.includes('P0001') || err.message.includes('immutable')) {
       triggerBlocked = true;

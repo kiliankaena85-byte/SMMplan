@@ -29,9 +29,7 @@ async function main() {
   console.log('--- Fixing numericId sequence ---');
   const maxId = await db.service.aggregate({ _max: { numericId: true } });
   const nextVal = (maxId._max.numericId || 0) + 1;
-  await db.$executeRawUnsafe(
-    `SELECT setval(pg_get_serial_sequence('"Service"', 'numericId'), ${nextVal}, false)`
-  );
+  await db.$executeRaw`SELECT setval(pg_get_serial_sequence('"Service"', 'numericId'), ${nextVal}, false)`;
   console.log(`  Sequence reset to ${nextVal}`);
 
   // 2. Load curated and find missing ones
@@ -104,11 +102,9 @@ async function main() {
     } catch (err: any) {
       console.error(`  ❌ ${cs.name.substring(0, 40)}: ${err.message.substring(0, 60)}`);
       errors++;
-      // Reset sequence on each error
       const max2 = await db.service.aggregate({ _max: { numericId: true } });
-      await db.$executeRawUnsafe(
-        `SELECT setval(pg_get_serial_sequence('"Service"', 'numericId'), ${(max2._max.numericId || 0) + 1}, false)`
-      );
+      const nextVal2 = (max2._max.numericId || 0) + 1;
+      await db.$executeRaw`SELECT setval(pg_get_serial_sequence('"Service"', 'numericId'), ${nextVal2}, false)`;
     }
   }
 
