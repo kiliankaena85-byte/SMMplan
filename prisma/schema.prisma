@@ -345,6 +345,7 @@ model Service {
   @@index([providerId])
   @@index([providerId, externalId])
   @@index([tenantId, categoryId, isActive, sortOrder])
+  @@index([tenantId, categoryId, isActive, isQuarantined, rate])
   @@index([tenantId, categoryId, isActive])
   @@index([tenantId, providerId, isActive])
   @@index([tenantId, isActive, qualityTier])

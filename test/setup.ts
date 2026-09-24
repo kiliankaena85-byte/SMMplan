@@ -509,7 +509,9 @@ beforeEach(async () => {
         'sensitive-data-filter',
         'cors-01',
         'bal-immutable',
-        'sec-rel-noopener'
+        'sec-rel-noopener',
+        'zero-latency',
+        'catalog-and-admin'
       ];
       if (skipPatterns.some(pattern => testPath.toLowerCase().includes(pattern.toLowerCase()))) {
         shouldReset = false;

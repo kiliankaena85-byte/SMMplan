@@ -1091,7 +1091,9 @@ class AdminOrderService {
    */
   async getTopServices(limit = 6, startDate?: Date, endDate?: Date, tenantId?: string) {
     const isSingleTenant = tenantId && tenantId !== 'all';
-    const where: Prisma.OrderWhereInput = { status: { notIn: ['AWAITING_PAYMENT', 'PENDING', 'ERROR'] } };
+    const where: Prisma.OrderWhereInput = {
+      status: { notIn: ['AWAITING_PAYMENT', 'PENDING', 'ERROR'] }
+    };
     if (startDate && endDate) {
       where.createdAt = { gte: startDate, lte: endDate };
     }
@@ -1099,71 +1101,55 @@ class AdminOrderService {
       where.tenantId = tenantId;
     }
 
-    const orders = await db.order.findMany({
+    const grouped = await db.order.groupBy({
+      by: ['serviceId'],
       where,
+      _count: { id: true },
+      _sum: { charge: true, providerCost: true },
+      orderBy: { _sum: { charge: 'desc' } },
+      take: limit,
+    });
+
+    if (grouped.length === 0) return [];
+
+    const serviceIds = grouped.map(g => g.serviceId).filter(Boolean) as string[];
+    const services = await db.service.findMany({
+      where: { id: { in: serviceIds } },
       select: {
-        serviceId: true,
-        charge: true,
-        providerCost: true,
-        service: {
+        id: true,
+        name: true,
+        category: {
           select: {
-            id: true,
             name: true,
-            category: {
-              select: {
-                name: true,
-                network: { select: { name: true, slug: true } }
-              }
-            }
+            network: { select: { name: true, slug: true } }
           }
         }
       }
     });
 
-    const map = new Map<string, {
-      id: string;
-      name: string;
-      networkName: string;
-      categoryName: string;
-      ordersCount: number;
-      revenueKopecks: bigint;
-      costKopecks: bigint;
-      profitKopecks: bigint;
-      marginPct: number;
-    }>();
+    const serviceMap = new Map(services.map(s => [s.id, s]));
 
-    for (const o of orders) {
-      const s = o.service;
-      if (!s) continue;
-      const existing = map.get(s.id) || {
-        id: s.id,
-        name: s.name,
-        networkName: s.category?.network?.name || '—',
-        categoryName: s.category?.name || '—',
-        ordersCount: 0,
-        revenueKopecks: BigInt(0),
-        costKopecks: BigInt(0),
-        profitKopecks: BigInt(0),
-        marginPct: 0,
-      };
-
-      existing.ordersCount += 1;
-      existing.revenueKopecks += BigInt(o.charge);
-      existing.costKopecks += BigInt(o.providerCost || 0);
-      existing.profitKopecks = existing.revenueKopecks - existing.costKopecks;
-      
-      map.set(s.id, existing);
-    }
-
-    const list = Array.from(map.values()).map(item => {
-      const rev = Number(item.revenueKopecks);
-      const profit = Number(item.profitKopecks);
+    return grouped.map(g => {
+      const s = serviceMap.get(g.serviceId!);
+      const revBig = BigInt(g._sum.charge ?? 0);
+      const costBig = BigInt(g._sum.providerCost ?? 0);
+      const profitBig = revBig - costBig;
+      const rev = Number(revBig);
+      const profit = Number(profitBig);
       const marginPct = rev > 0 ? Math.round((profit / rev) * 100) : 0;
-      return { ...item, marginPct };
-    });
 
-    list.sort((a, b) => Number(b.revenueKopecks - a.revenueKopecks));
-    return list.slice(0, limit);
+      return {
+        id: g.serviceId!,
+        name: s?.name || '—',
+        networkName: s?.category?.network?.name || '—',
+        categoryName: s?.category?.name || '—',
+        ordersCount: g._count.id,
+        revenueKopecks: revBig,
+        costKopecks: costBig,
+        profitKopecks: profitBig,
+        marginPct,
+      };
+    });
   }
 
   /**

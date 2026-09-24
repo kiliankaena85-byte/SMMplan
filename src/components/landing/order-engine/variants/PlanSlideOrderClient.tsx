@@ -28,7 +28,7 @@ import { validateDripFeedDuration, DRIP_FEED_MAX_ERROR_MESSAGE, detectNetworkByU
 import { analyzeUrl } from "@/actions/order/analyze-url";
 import { matchesSuggestedCategory } from "@/services/analyzer/category-matcher";
 import { isLinkServiceCompatible } from "@/constants/link-service-compatibility";
-import { inferTargetTypeFromName } from "@/utils/target-type";
+import { resolveServiceTargetType } from "@/utils/target-type-mapper";
 import { CategoryIcon, cleanCategoryName } from "@/components/ui/CategoryIcon";
 import { PlatformLinkGuideDrawer } from "@/components/landing/order-engine/PlatformLinkGuideDrawer";
 import { CheckoutAuthModal } from "@/components/landing/order-engine/modals/CheckoutAuthModal";
@@ -123,6 +123,17 @@ function PlanSlideOrderClientInner({
   const quantityRef = useRef<HTMLInputElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
   const linkRef = useRef<HTMLInputElement>(null);
+  const categoryServicesCache = useRef<Record<string, PublicService[]>>((() => {
+    const initialCache: Record<string, PublicService[]> = {};
+    for (const net of initialCatalog) {
+      for (const cat of net.categories) {
+        if (cat.services && cat.services.length > 0) {
+          initialCache[cat.id] = cat.services;
+        }
+      }
+    }
+    return initialCache;
+  })());
 
   const [isRequirementsConfirmed, setIsRequirementsConfirmed] = useState(false);
   const [isDripFeedEnabled, setIsDripFeedEnabled] = useState(false);
@@ -468,16 +479,33 @@ function PlanSlideOrderClientInner({
 
   const selectCategory = async (cat: PublicCategory) => {
     setActiveCategory(cat);
+    navigateTo('service');
+
+    if (categoryServicesCache.current[cat.id]?.length) {
+      let srvList: PublicService[] = categoryServicesCache.current[cat.id];
+      if (detectedType) {
+        const compatible = srvList.filter(s =>
+          isLinkServiceCompatible(detectedType, resolveServiceTargetType(s))
+        );
+        if (compatible.length > 0) {
+          srvList = compatible;
+        }
+      }
+      setServices(srvList);
+      setIsLoadingServices(false);
+      return;
+    }
+
     setIsLoadingServices(true);
     setServices([]);
-    navigateTo('service');
 
     try {
       const fetched = await getServicesByCategoryAction(cat.id, tenantId);
       let srvList: PublicService[] = fetched || [];
+      categoryServicesCache.current[cat.id] = srvList;
       if (detectedType) {
         const compatible = srvList.filter(s =>
-          isLinkServiceCompatible(detectedType, s.targetType || inferTargetTypeFromName(s.name))
+          isLinkServiceCompatible(detectedType, resolveServiceTargetType(s))
         );
         if (compatible.length > 0) {
           srvList = compatible;

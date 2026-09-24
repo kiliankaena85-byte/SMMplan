@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { resolveStorefrontContext } from '@/lib/storefront/storefront-auth';
-import { getServicesByCategoryAction } from '@/actions/order/catalog';
+import { getCachedNetworks, getServicesByCategoryAction } from '@/actions/order/catalog';
 import { db } from '@/lib/db';
 import { RateLimitService } from '@/services/core/rate-limit.service';
 import { runWithTenant } from '@/lib/tenant-context';
@@ -33,53 +33,53 @@ export async function GET(req: NextRequest) {
 
     // Скоупинг запроса к БД (BOLA Immunity)
     return await runWithTenant(ctx.tenantSlug, async () => {
-      // Ищем все категории тенанта
-      const categories = await db.category.findMany({
-        where: { tenantId: ctx.tenantId },
-        orderBy: { sort: 'asc' },
-        include: { network: true },
-      });
-
       const url = new URL(req.url);
       const filterCategory = url.searchParams.get('category');
       const filterTargetType = url.searchParams.get('targetType');
 
+      // Use pre-hydrated cached networks with embedded services to eliminate 84 sequential DB queries
+      const networks = await getCachedNetworks(ctx.tenantId);
       const resultCategories = [];
 
-      for (const cat of categories) {
-        if (filterCategory && cat.slug !== filterCategory) continue;
+      for (const net of networks) {
+        for (const cat of net.categories) {
+          if (filterCategory && cat.slug !== filterCategory) continue;
 
-        const services = await getServicesByCategoryAction(cat.id, ctx.tenantId);
-        
-        let filteredServices = services;
-        if (filterTargetType) {
-          filteredServices = filteredServices.filter(s => resolveServiceTargetType(s) === filterTargetType);
-        }
+          let services = cat.services;
+          if (!services || services.length === 0) {
+            services = await getServicesByCategoryAction(cat.id, ctx.tenantId);
+          }
 
-        if (filteredServices.length > 0) {
-          resultCategories.push({
-            id: cat.id,
-            name: cat.name,
-            slug: cat.slug,
-            icon: cat.icon || cat.network?.icon || 'globe',
-            network: cat.network?.name || 'OTHER',
-            services: filteredServices.map(s => ({
-              id: s.id,
-              name: s.name,
-              description: s.description,
-              minQuantity: s.minQty,
-              maxQuantity: s.maxQty,
-              pricePerUnitRub: s.pricePerUnitRub,
-              pricePer1000Rub: s.pricePer1kRub,
-              dripFeedSupported: s.isDripFeedEnabled,
-              targetType: resolveServiceTargetType(s),
-              speed: s.speedDisplay || s.speed,
-              startTime: s.startTime,
-              qualityLabel: s.qualityLabel,
-              warrantyDays: s.warrantyDays,
-              badge: s.badge
-            })),
-          });
+          let filteredServices = services || [];
+          if (filterTargetType) {
+            filteredServices = filteredServices.filter(s => resolveServiceTargetType(s) === filterTargetType);
+          }
+
+          if (filteredServices.length > 0) {
+            resultCategories.push({
+              id: cat.id,
+              name: cat.name,
+              slug: cat.slug,
+              icon: net.icon || 'globe',
+              network: net.name || 'OTHER',
+              services: filteredServices.map(s => ({
+                id: s.id,
+                name: s.name,
+                description: s.description,
+                minQuantity: s.minQty,
+                maxQuantity: s.maxQty,
+                pricePerUnitRub: s.pricePerUnitRub,
+                pricePer1000Rub: s.pricePer1kRub,
+                dripFeedSupported: s.isDripFeedEnabled,
+                targetType: resolveServiceTargetType(s),
+                speed: s.speedDisplay || s.speed,
+                startTime: s.startTime,
+                qualityLabel: s.qualityLabel,
+                warrantyDays: s.warrantyDays,
+                badge: s.badge
+              })),
+            });
+          }
         }
       }
 

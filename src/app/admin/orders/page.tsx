@@ -107,48 +107,57 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
   const resolvedTenant = resolveAdminTenantContext(user, params.tenant);
   const tenantFilter = resolvedTenant !== 'all' ? resolvedTenant : undefined;
 
-  const networks = await getCachedNetworks();
-  const providers = await getCachedProviders();
-
   const isDripFeed = params.isDripFeed === 'true';
   const noProvider = params.noProvider === 'true';
   const staleMinutes = params.stale ? parseInt(params.stale, 10) : undefined;
   const page = Math.max(1, parseInt(params.page || '1', 10) || 1);
   const pageSize = Math.max(10, Math.min(200, parseInt(params.pageSize || '50', 10) || 50));
 
-  const { items: orders, totalCount, totalPages, currentPage } = await adminOrderService.searchOrders({
-    query: query || undefined,
-    status: statusFilter,
-    activityType: params.activityType || undefined,
-    datePreset: params.datePreset || undefined,
-    cursor,
-    page,
-    pageSize,
-    userId: userId || undefined,
-    clientEmail: params.clientEmail || undefined,
-    orderId: params.orderId ? parseInt(params.orderId, 10) : undefined,
-    externalId: params.externalId || undefined,
-    serviceName: params.serviceName || undefined,
-    networkSlug: networkSlug || undefined,
-    link: params.link || undefined,
-    minPrice: params.minPrice ? parseFloat(params.minPrice) : undefined,
-    maxPrice: params.maxPrice ? parseFloat(params.maxPrice) : undefined,
-    minQuantity: params.minQuantity ? parseInt(params.minQuantity, 10) : undefined,
-    maxQuantity: params.maxQuantity ? parseInt(params.maxQuantity, 10) : undefined,
-    tenantId: tenantFilter,
-    isDripFeed: params.isDripFeed ? isDripFeed : undefined,
-    noProvider: params.noProvider ? noProvider : undefined,
-    providerId: params.providerId || undefined,
-    errorCategory: params.errorCategory || undefined,
-    dateFrom: params.dateFrom || undefined,
-    dateTo: params.dateTo || undefined,
-    environmentMode: params.environmentMode || undefined,
-    staleMinutes: !isNaN(staleMinutes || NaN) ? staleMinutes : undefined,
-    sortField: params.sort || params.sortBy || undefined,
-    sortOrder: (params.order === 'asc' || params.order === 'desc' || params.sortOrder === 'asc' || params.sortOrder === 'desc')
-      ? ((params.order || params.sortOrder) as 'asc' | 'desc')
-      : undefined,
-  });
+  const [
+    networks,
+    providers,
+    searchResult,
+    stats
+  ] = await Promise.all([
+    getCachedNetworks(),
+    getCachedProviders(),
+    adminOrderService.searchOrders({
+      query: query || undefined,
+      status: statusFilter,
+      activityType: params.activityType || undefined,
+      datePreset: params.datePreset || undefined,
+      cursor,
+      page,
+      pageSize,
+      userId: userId || undefined,
+      clientEmail: params.clientEmail || undefined,
+      orderId: params.orderId ? parseInt(params.orderId, 10) : undefined,
+      externalId: params.externalId || undefined,
+      serviceName: params.serviceName || undefined,
+      networkSlug: networkSlug || undefined,
+      link: params.link || undefined,
+      minPrice: params.minPrice ? parseFloat(params.minPrice) : undefined,
+      maxPrice: params.maxPrice ? parseFloat(params.maxPrice) : undefined,
+      minQuantity: params.minQuantity ? parseInt(params.minQuantity, 10) : undefined,
+      maxQuantity: params.maxQuantity ? parseInt(params.maxQuantity, 10) : undefined,
+      tenantId: tenantFilter,
+      isDripFeed: params.isDripFeed ? isDripFeed : undefined,
+      noProvider: params.noProvider ? noProvider : undefined,
+      providerId: params.providerId || undefined,
+      errorCategory: params.errorCategory || undefined,
+      dateFrom: params.dateFrom || undefined,
+      dateTo: params.dateTo || undefined,
+      environmentMode: params.environmentMode || undefined,
+      staleMinutes: !isNaN(staleMinutes || NaN) ? staleMinutes : undefined,
+      sortField: params.sort || params.sortBy || undefined,
+      sortOrder: (params.order === 'asc' || params.order === 'desc' || params.sortOrder === 'asc' || params.sortOrder === 'desc')
+        ? ((params.order || params.sortOrder) as 'asc' | 'desc')
+        : undefined,
+    }),
+    adminOrderService.getOrderStats(undefined, undefined, tenantFilter)
+  ]);
+
+  const { items: orders, totalCount, totalPages, currentPage } = searchResult;
 
   // Если передан edit_order_id, гарантируем, что этот заказ есть на первой странице (в начале списка)
   if (editOrderId) {
@@ -180,8 +189,6 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
       }
     }
   }
-
-  const stats = await adminOrderService.getOrderStats(undefined, undefined, tenantFilter);
 
   // Helper to build the query string for pagination preserving all filters
   const buildQueryString = (extraParams: Record<string, string> = {}) => {

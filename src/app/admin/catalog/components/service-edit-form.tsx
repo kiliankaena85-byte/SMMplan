@@ -17,6 +17,7 @@ import {
   inferTargetTypeFromCategory,
   isTargetTypeCompatible,
 } from '@/utils/target-type';
+import { resolveServiceTargetType } from '@/utils/target-type-mapper';
 
 interface NetworkOption {
   id: string;
@@ -110,7 +111,7 @@ export function ServiceEditForm({
   const [icon, setIcon] = useState<string | null>(initialData.icon || null);
   const [categoryId, setCategoryId] = useState(initialData.categoryId);
   const [targetType, setTargetType] = useState<string>(
-    initialData.targetType || inferTargetTypeFromName(initialData.name)
+    resolveServiceTargetType(initialData)
   );
   const [linkPlaceholder, setLinkPlaceholder] = useState(initialData.linkPlaceholder || '');
   const [linkHint, setLinkHint] = useState(initialData.linkHint || '');

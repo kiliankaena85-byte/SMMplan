@@ -4,6 +4,7 @@ import { OrderEngine } from "@/hooks/useOrderEngine";
 import { PlatformLinkGuideDrawer } from "./PlatformLinkGuideDrawer";
 import { getLinkValidator } from "@/validators/link-mutators";
 import { inferTargetTypeFromCategory, TargetTypeEnum } from "@/utils/target-type";
+import { resolveServiceTargetType } from "@/utils/target-type-mapper";
 import { getServiceFlags } from "@/utils/service-flags";
 import { IntelligencePlatform } from "@/services/analyzer/link-rules";
 
@@ -57,9 +58,7 @@ export function DynamicPayloadWarnings({ engine, minimalMode }: DynamicPayloadWa
   
   if (engine.url.trim().length > 3 && selectedService && validationPlatform) {
     const activeCatForVal = engine.catalog.flatMap(n => n.categories).find(c => c.id === selectedService.categoryId);
-    const targetType = selectedService.targetType === 'POST'
-      ? inferTargetTypeFromCategory(activeCatForVal?.name)
-      : (selectedService.targetType || inferTargetTypeFromCategory(activeCatForVal?.name));
+    const targetType = resolveServiceTargetType({ ...selectedService, category: activeCatForVal });
     
     try {
       const validator = getLinkValidator(validationPlatform, targetType);

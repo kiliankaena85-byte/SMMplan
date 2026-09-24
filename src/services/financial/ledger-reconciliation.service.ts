@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { Prisma } from '@prisma/client';
 import { auditAdminAwaitable } from '@/lib/admin-audit';
+import { redis } from '@/lib/redis';
 
 export interface ReconciliationSummaryDTO {
   totalUsersChecked: number;
@@ -57,8 +58,21 @@ export class LedgerReconciliationService {
    * Fast platform-wide summary statistics using high-performance SQL aggregation.
    * Compares User.balance with SUM(LedgerEntry.amount WHERE status = 'APPROVED').
    */
-  static async getSummary(tenantId?: string): Promise<ReconciliationSummaryDTO> {
+  static async getSummary(tenantId?: string, forceFresh: boolean = false): Promise<ReconciliationSummaryDTO> {
     const isSingleTenant = tenantId && tenantId !== 'all';
+    const cacheKey = `cache:reconciliation:summary:${tenantId || 'all'}`;
+
+    if (!forceFresh) {
+      try {
+        const cached = await redis.get(cacheKey);
+        if (cached) {
+          return JSON.parse(cached) as ReconciliationSummaryDTO;
+        }
+      } catch {
+        // Fallback to DB query on cache read error
+      }
+    }
+
     const tenantFilter = isSingleTenant ? Prisma.sql`AND u."tenantId" = ${tenantId}` : Prisma.empty;
 
     const rows = await db.$queryRaw<Array<{
@@ -104,7 +118,7 @@ export class LedgerReconciliationService {
     const discrepancy = Number(r.discrepancy_count);
     const pct = total > 0 ? (reconciled / total) * 100 : 100;
 
-    return {
+    const summary: ReconciliationSummaryDTO = {
       totalUsersChecked: total,
       reconciledUsersCount: reconciled,
       discrepancyUsersCount: discrepancy,
@@ -113,6 +127,14 @@ export class LedgerReconciliationService {
       netDiscrepancyCents: Number(r.net_discrepancy ?? 0),
       integrityPercentage: Number(pct.toFixed(2)),
     };
+
+    try {
+      await redis.set(cacheKey, JSON.stringify(summary), 'EX', 300);
+    } catch {
+      // Safe fallback if Redis write fails
+    }
+
+    return summary;
   }
 
   /**

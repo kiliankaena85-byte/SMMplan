@@ -25,6 +25,18 @@ function cleanEmoji(text: string): string {
   return text.replace(/[\p{Emoji}\u200d\uFE0F]+/gu, '').replace(/\s+/g, ' ').trim();
 }
 
+function matchCategoryBySlug<T extends { slug: string }>(categories: T[] = [], networkSlug: string, targetSlug: string): T | undefined {
+  return categories.find(c => {
+    if (c.slug === targetSlug || c.slug === `${networkSlug}-${targetSlug}` || c.slug.endsWith(`-${targetSlug}`)) {
+      return true;
+    }
+    if (targetSlug === 'busty' || targetSlug === 'boost' || targetSlug === 'boosts') {
+      return c.slug.includes('busty') || c.slug.includes('boost');
+    }
+    return false;
+  });
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ network: string; category: string }> }): Promise<Metadata> {
   const { network, category } = await params;
 
@@ -35,7 +47,7 @@ export async function generateMetadata({ params }: { params: Promise<{ network: 
 
   const catalogResult = await getPublicCatalogAction(tenantId);
   const net = catalogResult.data?.find(n => n.slug === network);
-  const cat = net?.categories.find(c => c.slug === category || c.slug === `${network}-${category}` || c.slug.endsWith(`-${category}`));
+  const cat = matchCategoryBySlug(net?.categories, network, category);
 
   if (!net || !cat) return { title: "Страница не найдена" };
 
@@ -97,7 +109,7 @@ export default async function CategoryServicesPage({
   const catalog = catalogResult.success && catalogResult.data ? catalogResult.data : [];
 
   const currentNetwork = catalog.find(n => n.slug === network);
-  const currentCategory = currentNetwork?.categories.find(c => c.slug === categorySlug || c.slug === `${network}-${categorySlug}` || c.slug.endsWith(`-${categorySlug}`));
+  const currentCategory = matchCategoryBySlug(currentNetwork?.categories, network, categorySlug);
 
   if (!currentNetwork || !currentCategory) notFound();
 

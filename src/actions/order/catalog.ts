@@ -50,46 +50,47 @@ export async function getCachedNetworks(rawTenantId: string): Promise<PublicNetw
   const tenantId = normalizeTenantId(rawTenantId);
   return unstable_cache(
     async () => {
-      const rawNetworks = await db.network.findMany({
-        where: {
-          isActive: true,
-          tenantId: tenantVisibilityFilter(tenantId),
-          categories: { some: storefrontCategoryVisibility(tenantId) },
-        },
-        include: {
-          categories: {
-            where: storefrontCategoryVisibility(tenantId),
-            orderBy: { sort: 'asc' },
-            include: {
-              _count: {
-                select: {
-                  services: {
-                    where: {
-                      isActive: true,
-                      isQuarantined: false,
-                      tenantId: tenantVisibilityFilter(tenantId),
-                      OR: [{ cooldownUntil: null }, { cooldownUntil: { lt: new Date() } }],
+      const [rawNetworks, usdToRub] = await Promise.all([
+        db.network.findMany({
+          where: {
+            isActive: true,
+            tenantId: tenantVisibilityFilter(tenantId),
+            categories: { some: storefrontCategoryVisibility(tenantId) },
+          },
+          include: {
+            categories: {
+              where: storefrontCategoryVisibility(tenantId),
+              orderBy: { sort: 'asc' },
+              include: {
+                _count: {
+                  select: {
+                    services: {
+                      where: {
+                        isActive: true,
+                        isQuarantined: false,
+                        tenantId: tenantVisibilityFilter(tenantId),
+                        OR: [{ cooldownUntil: null }, { cooldownUntil: { lt: new Date() } }],
+                      }
                     }
                   }
-                }
-              },
-              services: {
-                where: {
-                  isActive: true,
-                  isQuarantined: false,
-                  tenantId: tenantVisibilityFilter(tenantId),
-                  OR: [{ cooldownUntil: null }, { cooldownUntil: { lt: new Date() } }],
                 },
-                select: {
-                  targetType: true,
-                  name: true
+                services: {
+                  where: {
+                    isActive: true,
+                    isQuarantined: false,
+                    tenantId: tenantVisibilityFilter(tenantId),
+                    OR: [{ cooldownUntil: null }, { cooldownUntil: { lt: new Date() } }],
+                  },
+                  select: catalogServiceSelect,
+                  orderBy: { rate: 'asc' }
                 }
               }
             }
-          }
-        },
-        orderBy: { sort: 'asc' }
-      });
+          },
+          orderBy: { sort: 'asc' }
+        }),
+        SettingsProvider.getExchangeRateUSD(tenantId)
+      ]);
 
       return rawNetworks.map(net => {
         const icon = `/brands/${net.slug}.svg`;
@@ -110,15 +111,19 @@ export async function getCachedNetworks(rawTenantId: string): Promise<PublicNetw
               ? countObj.services
               : (typeof rawServiceCount === 'number' ? rawServiceCount : 0);
 
-            const rawServices = 'services' in cat && Array.isArray((cat as { services?: Array<{ targetType?: string | null; name?: string }> }).services)
-              ? (cat as { services: Array<{ targetType?: string | null; name?: string }> }).services
+            const rawServices = 'services' in cat && Array.isArray((cat as { services?: unknown[] }).services)
+              ? (cat as { services: unknown[] }).services
               : [];
 
             const targetTypesSet = new Set<string>();
-            for (const s of rawServices) {
+            const publicServices: PublicService[] = [];
+
+            for (const rawS of rawServices) {
+              const s = rawS as RawCatalogService;
               if (s && typeof s.name === 'string') {
                 const resolved = resolveServiceTargetType({ name: s.name, targetType: s.targetType });
                 if (resolved) targetTypesSet.add(resolved);
+                publicServices.push(mapRawServiceToPublicService(s, usdToRub));
               }
             }
 
@@ -131,14 +136,15 @@ export async function getCachedNetworks(rawTenantId: string): Promise<PublicNetw
               warningMessage: cat.warningMessage,
               serviceCount,
               targetTypes: Array.from(targetTypesSet),
-              analyzerTags: 'analyzerTags' in cat ? (cat as { analyzerTags?: string | null }).analyzerTags : null
+              analyzerTags: 'analyzerTags' in cat ? (cat as { analyzerTags?: string | null }).analyzerTags : null,
+              services: publicServices
             };
           }).filter(cat => cat.serviceCount > 0)
         };
       }).filter(net => net.categories.length > 0);
     },
-    [`public-catalog-networks-v6-${tenantId}`],
-    { revalidate: 60, tags: ['catalog', `catalog-${tenantId}`, `networks-${tenantId}`] }
+    [`public-catalog-networks-v7-${tenantId}`],
+    { revalidate: 3600, tags: ['catalog', `catalog-${tenantId}`, `networks-${tenantId}`] }
   )();
 }
 
@@ -204,12 +210,14 @@ export type PublicCategory = {
   id: string;
   name: string;
   slug: string;
+  icon?: string | null;
   networkId: string | null;
   requireWarning?: boolean;
   warningMessage?: string | null;
   serviceCount?: number;
   targetTypes?: string[];
   analyzerTags?: string | null;
+  services?: PublicService[];
 };
 
 export type PublicNetwork = {
@@ -479,7 +487,7 @@ export async function getCachedServicesByCategory(categoryId: string, rawTenantI
       return slicedServices.map(s => mapRawServiceToPublicService(s as unknown as RawCatalogService, usdToRub));
     },
     [`public-services-by-category-v5-${categoryId}-${tenantId}`],
-    { revalidate: 60, tags: ['catalog', 'services', `catalog-${tenantId}`, `category-${categoryId}-${tenantId}`] }
+    { revalidate: 3600, tags: ['catalog', 'services', `catalog-${tenantId}`, `category-${categoryId}-${tenantId}`] }
   )();
 }
 

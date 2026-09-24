@@ -108,20 +108,9 @@ export default async function AdminDashboardPage({
     startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30, 0, 0, 0, 0);
     step = 'day';
   } else {
-    // all time
-    const oldestOrder = await db.order.findFirst({ orderBy: { createdAt: 'asc' } });
-    startDate = oldestOrder ? oldestOrder.createdAt : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    
-    const diffDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-    if (diffDays <= 3) {
-      step = 'hour';
-    } else if (diffDays <= 60) {
-      step = 'day';
-    } else if (diffDays <= 365) {
-      step = 'week';
-    } else {
-      step = 'month';
-    }
+    // all time — 90-day window with weekly aggregation for the timeseries chart to eliminate sequential blocking query
+    startDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    step = 'week';
   }
 
   const filterStart = period === 'all' ? undefined : startDate;

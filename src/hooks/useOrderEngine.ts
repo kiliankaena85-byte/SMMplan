@@ -315,9 +315,20 @@ export function useOrderEngine(
   const networkIdRef = useRef(networkId);
   const categoryIdRef = useRef(categoryId);
   const serviceRequestIdRef = useRef(0);
-  const categoryServicesCache = useRef<Record<string, PublicService[]>>(
-    initialCategoryId && initialServices.length > 0 ? { [initialCategoryId]: initialServices } : {}
-  );
+  const categoryServicesCache = useRef<Record<string, PublicService[]>>((() => {
+    const initialCache: Record<string, PublicService[]> = {};
+    if (initialCategoryId && initialServices.length > 0) {
+      initialCache[initialCategoryId] = initialServices;
+    }
+    for (const net of sortedInitialCatalog) {
+      for (const cat of net.categories) {
+        if (cat.services && cat.services.length > 0 && !initialCache[cat.id]) {
+          initialCache[cat.id] = cat.services;
+        }
+      }
+    }
+    return initialCache;
+  })());
   const prefetchingRef = useRef<Set<string>>(new Set());
 
   const prefetchCategory = useCallback((targetCatId: string) => {
@@ -359,6 +370,13 @@ export function useOrderEngine(
             ...net,
             categories: sortCategories(net.categories)
           }));
+          for (const net of sortedData) {
+            for (const cat of net.categories) {
+              if (cat.services && cat.services.length > 0 && !categoryServicesCache.current[cat.id]) {
+                categoryServicesCache.current[cat.id] = cat.services;
+              }
+            }
+          }
           setCatalog(sortedData);
           // Set defaults if they are still empty
           setNetworkId((current: string) => {
@@ -611,7 +629,9 @@ export function useOrderEngine(
       return;
     }
 
-    // Preserve existing services while fetching to prevent layout collapse and flickering skeletons (Stale-While-Revalidate)
+    // ZERO-ZOMBIE-TARIFFS INVARIANT:
+    // When switching to an uncached category, clear stale services immediately to prevent showing previous network's services
+    setServices([]);
     if (!selectedServiceRef.current) {
       setSelectedService(null);
     }

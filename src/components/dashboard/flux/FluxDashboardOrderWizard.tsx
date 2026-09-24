@@ -26,7 +26,7 @@ import { validateDripFeedDuration, validateDripFeedLimits, getDripFeedFloor, DRI
 import { analyzeUrl } from "@/actions/order/analyze-url";
 import { matchesSuggestedCategory } from "@/services/analyzer/category-matcher";
 import { isLinkServiceCompatible } from "@/constants/link-service-compatibility";
-import { inferTargetTypeFromName } from "@/utils/target-type";
+import { resolveServiceTargetType } from "@/utils/target-type-mapper";
 import { FluxNetwork, FluxCategory, FluxService } from "@/types/flux";
 import { FluxCyberLinkDrawer } from "@/components/orders/flux/FluxCyberLinkDrawer";
 import { toast } from "sonner";
@@ -332,7 +332,7 @@ function FluxDashboardOrderWizardInner({
 
       if (detectedType) {
         const compatible = srvList.filter(s =>
-          isLinkServiceCompatible(detectedType, s.targetType || inferTargetTypeFromName(s.name))
+          isLinkServiceCompatible(detectedType, resolveServiceTargetType(s))
         );
         if (compatible.length > 0) {
           srvList = compatible;

@@ -37,8 +37,8 @@ const legacyRedirects: Record<string, string> = {
   '/p/privacy': ROUTES.LEGAL.PRIVACY,
   '/p/refund': ROUTES.LEGAL.REFUND,
   '/p/faq': ROUTES.FAQ,
-  '/boost': '/services/telegram/busty',
-  '/telegram/boost': '/services/telegram/busty',
+  '/boost': '/services/telegram/telegram-busty-dlya-kanalov',
+  '/telegram/boost': '/services/telegram/telegram-busty-dlya-kanalov',
 };
 
 // N-10.3: Strict Trusted Contour Domain Allowlist

@@ -77,8 +77,8 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
   const selectedTenant = resolvedTenant !== 'all' ? resolvedTenant : (headerTenant || 'smmplan');
   const search = params.q?.trim() || undefined;
   const pageNum = params.page ? Math.max(1, parseInt(params.page, 10) || 1) : 1;
-  const rawPageSize = params.pageSize ? parseInt(params.pageSize, 10) : 50;
-  const pageSize = [20, 50, 100, 200].includes(rawPageSize) ? rawPageSize : 50;
+  const rawPageSize = params.pageSize ? parseInt(params.pageSize, 10) : 25;
+  const pageSize = [20, 25, 50, 100, 200].includes(rawPageSize) ? rawPageSize : 25;
   const cursor = params.cursor || undefined;
   const categoryId = (params.category && params.category !== 'all') ? params.category : undefined;
   const providerId = (params.providerId && params.providerId !== 'all') ? params.providerId : undefined;

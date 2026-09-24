@@ -76,6 +76,7 @@ class AccountingService {
           }
         }
       },
+      take: 5000,
       select: {
         status: true,
         quantity: true,

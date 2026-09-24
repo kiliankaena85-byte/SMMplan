@@ -2144,12 +2144,25 @@ class AdminCatalogService {
   /**
    * Markup Analytics: returns distribution of markups across all services.
    */
-  async getMarkupAnalytics(tenantId?: string): Promise<{
+  async getMarkupAnalytics(tenantId?: string, forceFresh: boolean = false): Promise<{
     stats: { total: number; loss: number; thin: number; normal: number; high: number; extreme: number };
     worstServices: { id: string; name: string; rate: number; markup: number; category: string }[];
     averageMarkup: number;
   }> {
-        const where: Prisma.ServiceWhereInput = { isActive: true };
+    const cacheKey = `cache:catalog:markup-analytics:${tenantId || 'all'}`;
+
+    if (!forceFresh) {
+      try {
+        const cached = await redis.get(cacheKey);
+        if (cached) {
+          return JSON.parse(cached);
+        }
+      } catch {
+        // Fallback to DB query on cache read error
+      }
+    }
+
+    const where: Prisma.ServiceWhereInput = { isActive: true };
     if (tenantId) where.tenantId = { in: [tenantId, 'all'] };
 
     const services = await db.service.findMany({
@@ -2185,8 +2198,15 @@ class AdminCatalogService {
     }
 
     const averageMarkup = services.length > 0 ? totalMarkup / services.length : 0;
+    const result = { stats, worstServices: lossList.slice(0, 20), averageMarkup };
 
-    return { stats, worstServices: lossList.slice(0, 20), averageMarkup };
+    try {
+      await redis.set(cacheKey, JSON.stringify(result), 'EX', 300);
+    } catch {
+      // Safe fallback
+    }
+
+    return result;
   }
 
   async listCategories(tenantId?: string) {

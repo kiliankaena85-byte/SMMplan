@@ -11,7 +11,7 @@ import { validateDripFeedDuration, DRIP_FEED_MAX_ERROR_MESSAGE, detectNetworkByU
 import { analyzeUrl } from "@/actions/order/analyze-url";
 import { matchesSuggestedCategory } from "@/services/analyzer/category-matcher";
 import { isLinkServiceCompatible } from "@/constants/link-service-compatibility";
-import { inferTargetTypeFromName } from "@/utils/target-type";
+import { resolveServiceTargetType } from "@/utils/target-type-mapper";
 import { FluxNetwork, FluxCategory, FluxService } from "@/types/flux";
 import { FluxCyberLinkDrawer } from "@/components/orders/flux/FluxCyberLinkDrawer";
 import { LinkGuideService } from "@/services/catalog/link-guide.service";
@@ -381,7 +381,7 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux',
       let srvList: FluxService[] = fetched || [];
       if (detectedType) {
         const compatible = srvList.filter(s =>
-          isLinkServiceCompatible(detectedType, s.targetType || inferTargetTypeFromName(s.name))
+          isLinkServiceCompatible(detectedType, resolveServiceTargetType(s))
         );
         if (compatible.length > 0) {
           srvList = compatible;
@@ -909,7 +909,7 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux',
                 <div id="field-link" className="mb-3 space-y-1.5">
                   <div className="flex items-center justify-between flex-wrap gap-1 px-1">
                     <label className="block text-xs font-bold text-foreground/80 uppercase tracking-wider">
-                      Ссылка на {selectedService.targetType === 'CHANNEL' ? 'канал/профиль' : selectedService.targetType === 'POST' ? 'пост' : 'объект'}
+                      Ссылка на {resolveServiceTargetType(selectedService) === 'CHANNEL' ? 'канал/профиль' : resolveServiceTargetType(selectedService) === 'POST' ? 'пост' : 'объект'}
                     </label>
                     {LinkGuideService.isTelegramViewsService(activeNetwork?.slug || 'telegram', activeCategory?.slug, selectedService.name) && (
                       <button

@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { auditAdminAwaitable } from '@/lib/admin-audit';
 import { inferTargetTypeFromName, isTargetTypeCompatible } from '@/utils/target-type';
+import { resolveServiceTargetType } from '@/utils/target-type-mapper';
 import { assertSafeOutboundUrl } from '@/lib/security/ssrf-guard';
 import { UPPER_SANITY_LIMIT_RUB } from '@/lib/financial-constants';
 
@@ -86,7 +87,7 @@ export class ServicesLifecycleService {
     const markup = input.markup ?? 3.0;
 
     const retailPriceRub = this.calculateRetailPrice(procurementRate, markup, usdRate, currency);
-    const targetType = input.targetType || inferTargetTypeFromName(input.name);
+    const targetType = resolveServiceTargetType({ name: input.name, targetType: input.targetType });
 
     const draft = await db.serviceDraft.create({
       data: {
