@@ -7,16 +7,11 @@ export default defineConfig({
   test: {
     environment: 'node',
     exclude: ['**/node_modules/**', '**/dist/**', '**/.temp/**', '**/.git/**', '**/e2e/**', '**/.agents/**', '**/.planning/**'],
-    include: ['**/*.{test,spec}.?(c|m)[jt]s?(x)', '**/test_round_table.ts'],
+    include: ['**/*.{test,spec}.?(c|m)[jt]s?(x)'],
     clearMocks: true,
     restoreMocks: true,
     unstubGlobals: true,
     pool: 'forks',
-    poolOptions: {
-      forks: {
-        singleFork: true
-      }
-    },
     maxWorkers: 1,
     minWorkers: 1,
     retry: 3,
