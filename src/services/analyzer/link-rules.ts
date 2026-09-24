@@ -81,7 +81,7 @@ export const LINK_RULES: LinkRule[] = [
   {
       platform: IntelligencePlatform.TELEGRAM,
       type: 'channel',
-      pattern: /(?:t\.me|telegram\.me|telegram\.dog)\/(?:boost\/(?:c\/)?@?([\w-]+)\/?(?:\?.*)?$|boost\/?\?(?:.*&)?c=@?([\w-]+)(?:&.*)?$|(?:s\/)?(?:c\/)?@?([\w-]+)(?:\/boost\/?(?:\?.*)?|\/?\?(?:.*&)?boost(?:[=&].*)?)$)/i,
+      pattern: /(?:t\.me|telegram\.me|telegram\.dog)\/(?:boost\/(?:c\/)?@?([\w-]+)\/?(?:\?.*)?$|boost\/?\?(?:.*&)?c=@?([\w-]+)(?:[&#].*)?$|(?:s\/)?(?:c\/)?@?([\w-]+)(?:\/boost\/?(?:\?.*)?|\/?\?(?:.*&)?boost(?:[=&].*)?)$)/i,
       suggestedCategories: [CATEGORY_LABELS.BOOSTS, CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.PREMIUM],
       context: 'channel_boost_target'
   },

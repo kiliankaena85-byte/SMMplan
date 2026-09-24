@@ -39,6 +39,8 @@ const legacyRedirects: Record<string, string> = {
   '/p/faq': ROUTES.FAQ,
   '/boost': '/services/telegram/telegram-busty-dlya-kanalov',
   '/telegram/boost': '/services/telegram/telegram-busty-dlya-kanalov',
+  '/telegram/busty': '/services/telegram/telegram-busty-dlya-kanalov',
+  '/telegram/boosts': '/services/telegram/telegram-busty-dlya-kanalov',
   '/services/telegram/busty': '/services/telegram/telegram-busty-dlya-kanalov',
   '/services/telegram/boost': '/services/telegram/telegram-busty-dlya-kanalov',
   '/services/telegram/boosts': '/services/telegram/telegram-busty-dlya-kanalov',

@@ -358,7 +358,7 @@ export const SmartAnalyzerLogic = class {
             let bestCatMatch: { category: Category, index: number } | null = null;
             for (const [c, keywords] of Object.entries(CATEGORY_MAP)) {
                 for (const k of keywords) {
-                    const searchContent = (c === 'BOOSTS' || k === 'boost') ? fullContent.replace(/vexboost|smmboost/gi, '') : fullContent;
+                    const searchContent = (c === 'BOOSTS' || k === 'boost') ? fullContent.replace(/vex[\s-_]?boost|smm[\s-_]?boost/gi, '') : fullContent;
                     const idx = searchContent.indexOf(k);
                     if (idx !== -1) {
                         if (!bestCatMatch || idx < bestCatMatch.index) {
@@ -394,8 +394,8 @@ export const SmartAnalyzerLogic = class {
             const isStory = nameNode.includes('истори') || nameNode.includes('story');
             const isAutoViews = !isReactionsPrimary && (nameNode.includes('подписк') || nameNode.includes('auto') || nameNode.includes('авто')) && (nameNode.includes('просмотр') || nameNode.includes('view') || nameNode.includes('глаз'));
             const isSubscribers = (/подписч|member|follower|читател|фолловер/i.test(nameNode) || (nameNode.includes('участник') && !nameNode.includes('опрос') && !nameNode.includes('голос'))) && !isAutoViews;
-            const sanitizedBoostName = nameNode.replace(/vexboost|smmboost/gi, '');
-            const sanitizedBoostContent = fullContent.replace(/vexboost|smmboost/gi, '');
+            const sanitizedBoostName = nameNode.replace(/vex[\s-_]?boost|smm[\s-_]?boost/gi, '');
+            const sanitizedBoostContent = fullContent.replace(/vex[\s-_]?boost|smm[\s-_]?boost/gi, '');
             const isBoost = (sanitizedBoostName.includes('boost') || sanitizedBoostName.includes('буст') || sanitizedBoostContent.includes('голос для буст') || sanitizedBoostContent.includes('голоса для буст')) && !isSubscribers;
             const isStars = (fullContent.includes('stars') || nameNode.includes('звезд') || nameNode.includes('star')) && !isSubscribers;
 

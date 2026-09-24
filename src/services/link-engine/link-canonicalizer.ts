@@ -44,7 +44,8 @@ export function stripTrackingParams(urlObj: URL, platform?: IntelligencePlatform
     const hasSingle = urlObj.searchParams.has('single');
     const isPrivate = urlObj.pathname.includes('/+') || urlObj.pathname.includes('/joinchat/');
 
-    if (normTarget === 'CHANNEL' || normTarget === 'PROFILE' || normTarget === 'CHANNEL_POSTS') {
+    const isBoostRoute = urlObj.pathname.startsWith('/boost');
+    if (normTarget === 'CHANNEL' || normTarget === 'PROFILE' || normTarget === 'CHANNEL_POSTS' || normTarget === 'BOOST' || normTarget === 'BOOSTS' || isBoostRoute) {
       const hasBoostParam = urlObj.searchParams.has('boost');
       const cParam = urlObj.searchParams.get('c');
       if (!isPrivate) {
@@ -267,8 +268,8 @@ export function canonicalizeUrl(rawUrl: string, platform?: IntelligencePlatform 
       urlObj.pathname = urlObj.pathname.replace(/^\/@/, '/');
       // t.me/boost/@channel -> t.me/boost/channel
       urlObj.pathname = urlObj.pathname.replace(/^\/boost\/@/, '/boost/');
-      if (urlObj.pathname === '/boost/') {
-        urlObj.pathname = '/boost';
+      if (urlObj.pathname.startsWith('/boost')) {
+        urlObj.pathname = urlObj.pathname.replace(/\/+$/, '');
       }
       // t.me/group/topic/100/250 -> t.me/group/100/250
       urlObj.pathname = urlObj.pathname.replace(/\/topic\/(\d+)\/(\d+)/i, '/$1/$2');
@@ -306,6 +307,7 @@ export function canonicalizeUrl(rawUrl: string, platform?: IntelligencePlatform 
     stripTrackingParams(urlObj, intellPlatform, targetType);
 
     // 4. URL string post-cleanups
+    const isBoostRoute = urlObj.pathname.startsWith('/boost');
     let result = urlObj.toString();
 
     // Instagram path cleanups: /share/p/123/ -> /p/123/, /share/reel/123/ -> /reel/123/
@@ -316,7 +318,7 @@ export function canonicalizeUrl(rawUrl: string, platform?: IntelligencePlatform 
     }
 
     // Remove trailing slash for profile and channel URLs if there are no search params
-    if ((normTarget === 'CHANNEL' || normTarget === 'PROFILE' || normTarget === 'STORY') && urlObj.search === '') {
+    if ((normTarget === 'CHANNEL' || normTarget === 'PROFILE' || normTarget === 'STORY' || normTarget === 'BOOST' || normTarget === 'BOOSTS' || isBoostRoute) && urlObj.search === '') {
       result = result.replace(/\/+$/, '');
     }
 

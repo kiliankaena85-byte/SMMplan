@@ -176,6 +176,13 @@ describe('Telegram Boost Link Recognition, Validation & Canonicalization Suite',
       expect(canonical).not.toContain('boost=');
     });
 
+    it('preserves ?c= parameter when targetType is omitted or empty', () => {
+      expect(canonicalizeUrl('https://t.me/boost?c=1234567890')).toBe('https://t.me/boost?c=1234567890');
+      expect(canonicalizeUrl('https://t.me/boost/?c=1234567890')).toBe('https://t.me/boost?c=1234567890');
+      expect(canonicalizeUrl('https://t.me/boost?c=@1234567890')).toBe('https://t.me/boost?c=1234567890');
+      expect(canonicalizeUrl('https://t.me/boost/c/1234567890/')).toBe('https://t.me/boost/c/1234567890');
+    });
+
     it('canonicalizes @channelname boost URLs cleanly without @ symbol', () => {
       expect(canonicalizeUrl('https://t.me/boost/@channelname', IntelligencePlatform.TELEGRAM, 'CHANNEL'))
         .toBe('https://t.me/boost/channelname');
@@ -231,13 +238,41 @@ describe('Telegram Boost Link Recognition, Validation & Canonicalization Suite',
       expect(res4.status).toBe(301);
       expect(res4.headers.get('location')).toBe('https://smmplan.pro/services/telegram/telegram-busty-dlya-kanalov');
 
-      // Additional legacy redirects
+      // Additional legacy redirects: /services/telegram/busty, /services/telegram/boost, /services/telegram/boosts
       const req5 = new NextRequest('https://smmplan.pro/services/telegram/busty', {
         headers: { host: 'smmplan.pro', 'x-forwarded-proto': 'https' }
       });
       const res5 = await proxy(req5);
       expect(res5.status).toBe(301);
       expect(res5.headers.get('location')).toBe('https://smmplan.pro/services/telegram/telegram-busty-dlya-kanalov');
+
+      const req6 = new NextRequest('https://smmplan.pro/services/telegram/boost', {
+        headers: { host: 'smmplan.pro', 'x-forwarded-proto': 'https' }
+      });
+      const res6 = await proxy(req6);
+      expect(res6.status).toBe(301);
+      expect(res6.headers.get('location')).toBe('https://smmplan.pro/services/telegram/telegram-busty-dlya-kanalov');
+
+      const req7 = new NextRequest('https://smmplan.pro/services/telegram/boosts', {
+        headers: { host: 'smmplan.pro', 'x-forwarded-proto': 'https' }
+      });
+      const res7 = await proxy(req7);
+      expect(res7.status).toBe(301);
+      expect(res7.headers.get('location')).toBe('https://smmplan.pro/services/telegram/telegram-busty-dlya-kanalov');
+
+      const req8 = new NextRequest('https://smmplan.pro/telegram/busty', {
+        headers: { host: 'smmplan.pro', 'x-forwarded-proto': 'https' }
+      });
+      const res8 = await proxy(req8);
+      expect(res8.status).toBe(301);
+      expect(res8.headers.get('location')).toBe('https://smmplan.pro/services/telegram/telegram-busty-dlya-kanalov');
+
+      const req9 = new NextRequest('https://smmplan.pro/telegram/boosts', {
+        headers: { host: 'smmplan.pro', 'x-forwarded-proto': 'https' }
+      });
+      const res9 = await proxy(req9);
+      expect(res9.status).toBe(301);
+      expect(res9.headers.get('location')).toBe('https://smmplan.pro/services/telegram/telegram-busty-dlya-kanalov');
 
       // Query string preservation in 301 redirects
       const reqWithQuery = new NextRequest('https://smmplan.pro/boost?ref=tg&source=banner', {

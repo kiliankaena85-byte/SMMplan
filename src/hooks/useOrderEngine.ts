@@ -245,21 +245,21 @@ export function useOrderEngine(
   useEffect(() => {
     const prevUrl = prevUrlRef.current;
     if (url.trim().length >= 5 && prevUrl.trim().length < 5 && !selectedServiceRef.current) {
-      const currentCat = sortedInitialCatalog.flatMap(n => n.categories).find(c => c.id === categoryIdRef.current);
+      const currentCatId = categoryId || categoryIdRef.current;
+      const currentCat = sortedInitialCatalog.flatMap(n => n.categories).find(c => c.id === currentCatId);
       const isCurrentBoost = Boolean(currentCat && (
         currentCat.name.toLowerCase().includes('буст') || 
         currentCat.name.toLowerCase().includes('boost') ||
         currentCat.slug?.toLowerCase().includes('boost') ||
         currentCat.slug?.toLowerCase().includes('busty')
       ));
-      const isBoostUrlCandidate = url.toLowerCase().includes('boost') || /t\.me\/(?:boost|c\/|[\w-]+\/boost|\?.*boost)/i.test(url);
 
-      if (!(isCurrentBoost && isBoostUrlCandidate)) {
+      if (!isCurrentBoost) {
         setCategoryId("");
       }
     }
     prevUrlRef.current = url;
-  }, [url, sortedInitialCatalog]);
+  }, [url, sortedInitialCatalog, categoryId]);
   
   // Drip-feed states
   const [dripFeedEnabled, setDripFeedEnabled] = useState(false);
@@ -481,7 +481,8 @@ export function useOrderEngine(
                   if (filteredCats.length === 1) {
                     setCategoryId(filteredCats[0].id);
                   } else {
-                    const currentCat = catsForNet.find(c => c.id === categoryIdRef.current);
+                    const currentCatId = categoryIdRef.current || categoryId || initialCategoryId;
+                    const currentCat = catsForNet.find(c => c.id === currentCatId);
                     const isCurrentBoost = Boolean(currentCat && (
                       currentCat.name.toLowerCase().includes('буст') || 
                       currentCat.name.toLowerCase().includes('boost') ||
