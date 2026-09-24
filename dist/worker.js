@@ -164997,7 +164997,17 @@ ${anomalies.join("\n")}`,
   /**
    * Markup Analytics: returns distribution of markups across all services.
    */
-  async getMarkupAnalytics(tenantId) {
+  async getMarkupAnalytics(tenantId, forceFresh = false) {
+    const cacheKey = `cache:catalog:markup-analytics:${tenantId || "all"}`;
+    if (!forceFresh) {
+      try {
+        const cached = await redis.get(cacheKey);
+        if (cached) {
+          return JSON.parse(cached);
+        }
+      } catch {
+      }
+    }
     const where = { isActive: true };
     if (tenantId) where.tenantId = { in: [tenantId, "all"] };
     const services = await db.service.findMany({
@@ -165030,7 +165040,12 @@ ${anomalies.join("\n")}`,
       }
     }
     const averageMarkup = services.length > 0 ? totalMarkup / services.length : 0;
-    return { stats, worstServices: lossList.slice(0, 20), averageMarkup };
+    const result = { stats, worstServices: lossList.slice(0, 20), averageMarkup };
+    try {
+      await redis.set(cacheKey, JSON.stringify(result), "EX", 300);
+    } catch {
+    }
+    return result;
   }
   async listCategories(tenantId) {
     const tenantFilter = tenantId && tenantId !== "all" ? { in: [tenantId, "all"] } : void 0;
@@ -166104,13 +166119,24 @@ init_notifications();
 init_db();
 var import_client4 = require("@prisma/client");
 init_admin_audit();
+init_redis();
 var LedgerReconciliationService = class {
   /**
    * Fast platform-wide summary statistics using high-performance SQL aggregation.
    * Compares User.balance with SUM(LedgerEntry.amount WHERE status = 'APPROVED').
    */
-  static async getSummary(tenantId) {
+  static async getSummary(tenantId, forceFresh = false) {
     const isSingleTenant = tenantId && tenantId !== "all";
+    const cacheKey = `cache:reconciliation:summary:${tenantId || "all"}`;
+    if (!forceFresh) {
+      try {
+        const cached = await redis.get(cacheKey);
+        if (cached) {
+          return JSON.parse(cached);
+        }
+      } catch {
+      }
+    }
     const tenantFilter = isSingleTenant ? import_client4.Prisma.sql`AND u."tenantId" = ${tenantId}` : import_client4.Prisma.empty;
     const rows = await db.$queryRaw`
       WITH user_ledger_agg AS (
@@ -166145,7 +166171,7 @@ var LedgerReconciliationService = class {
     const reconciled = Number(r.reconciled_count);
     const discrepancy = Number(r.discrepancy_count);
     const pct = total > 0 ? reconciled / total * 100 : 100;
-    return {
+    const summary = {
       totalUsersChecked: total,
       reconciledUsersCount: reconciled,
       discrepancyUsersCount: discrepancy,
@@ -166154,6 +166180,11 @@ var LedgerReconciliationService = class {
       netDiscrepancyCents: Number(r.net_discrepancy ?? 0),
       integrityPercentage: Number(pct.toFixed(2))
     };
+    try {
+      await redis.set(cacheKey, JSON.stringify(summary), "EX", 300);
+    } catch {
+    }
+    return summary;
   }
   /**
    * Paginated list of accounts with discrepancies flagged & sorted first.
