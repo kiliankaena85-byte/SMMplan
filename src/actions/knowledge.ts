@@ -5,7 +5,7 @@ import { requireStaffPermission } from "@/lib/server/rbac";
 import { verifySession } from "@/lib/session";
 import { applyBeautifulRounding } from "@/lib/financial-constants";
 import { SettingsProvider } from "@/lib/settings";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, unstable_cache } from "next/cache";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { pillarPages, glossaryTerms, clusterArticles } from "@/data/seo";
@@ -64,41 +64,74 @@ async function isAdmin() {
   }
 }
 
+async function fetchPublishedArticles(categoryFilter?: string) {
+  const whereClause: Prisma.ArticleWhereInput = {
+    status: "PUBLISHED"
+  };
+
+  if (categoryFilter && categoryFilter !== "Все") {
+    whereClause.category = categoryFilter;
+  }
+
+  const articles = await prisma.article.findMany({
+    where: whereClause,
+    orderBy: {
+      createdAt: "desc"
+    }
+  });
+
+  const allPublished = await prisma.article.findMany({
+    where: { status: "PUBLISHED" },
+    select: { category: true }
+  });
+  const categories = Array.from(new Set(allPublished.map(a => a.category)));
+
+  return { articles, categories };
+}
+
 /**
  * @public Fetch all published articles with optional category filtering and search.
+ * Cached in memory when no live search query is specified.
  */
 export async function getArticles(categoryFilter?: string, searchQuery?: string) {
   try {
-    const whereClause: Prisma.ArticleWhereInput = {
-      status: "PUBLISHED"
-    };
-
-    if (categoryFilter && categoryFilter !== "Все") {
-      whereClause.category = categoryFilter;
-    }
-
     if (searchQuery) {
-      whereClause.OR = [
-        { title: { contains: searchQuery, mode: "insensitive" } },
-        { description: { contains: searchQuery, mode: "insensitive" } }
-      ];
+      const whereClause: Prisma.ArticleWhereInput = {
+        status: "PUBLISHED",
+        OR: [
+          { title: { contains: searchQuery, mode: "insensitive" } },
+          { description: { contains: searchQuery, mode: "insensitive" } }
+        ]
+      };
+
+      if (categoryFilter && categoryFilter !== "Все") {
+        whereClause.category = categoryFilter;
+      }
+
+      const articles = await prisma.article.findMany({
+        where: whereClause,
+        orderBy: {
+          createdAt: "desc"
+        }
+      });
+
+      const allPublished = await prisma.article.findMany({
+        where: { status: "PUBLISHED" },
+        select: { category: true }
+      });
+      const categories = Array.from(new Set(allPublished.map(a => a.category)));
+
+      return { success: true, articles, categories };
     }
 
-    const articles = await prisma.article.findMany({
-      where: whereClause,
-      orderBy: {
-        createdAt: "desc"
-      }
-    });
+    const catKey = categoryFilter || 'all';
+    const cachedData = await unstable_cache(
+      async () => fetchPublishedArticles(categoryFilter),
+      [`public-knowledge-articles-${catKey}`],
+      { revalidate: 300, tags: ['articles', `articles-${catKey}`] }
+    )();
 
-    // Extract unique categories for filter tabs/dropdowns
-    const allPublished = await prisma.article.findMany({
-      where: { status: "PUBLISHED" },
-      select: { category: true }
-    });
-    const categories = Array.from(new Set(allPublished.map(a => a.category)));
-
-    return { success: true, articles, categories };
+    return { success: true, ...cachedData };
   } catch (error) {
     console.error("Failed to get articles:", error);
     return { success: false, articles: [], categories: [], error: "Не удалось загрузить статьи" };

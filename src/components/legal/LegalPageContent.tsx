@@ -1,6 +1,4 @@
-import { db } from '@/lib/db';
-import { SettingsProvider } from '@/lib/settings';
-import { getLegalFallback } from '@/data/legal-fallbacks';
+import { getCachedLegalDoc } from '@/actions/order/legal';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, ShieldAlert, Sparkles, ShieldCheck } from 'lucide-react';
@@ -13,81 +11,16 @@ interface LegalPageContentProps {
 }
 
 export async function LegalPageContent({ slug }: LegalPageContentProps) {
-  let title: string | null = null;
-  let contentHtml: string | null = null;
-
   const reqHeaders = await headers();
   const tenantId = normalizeTenantId(reqHeaders.get('x-tenant-id'));
   const isFlux = tenantId === 'flux';
 
-  // 1. Пробуем из БД
-  try {
-    const post = await db.contentItem.findUnique({
-      where: { slug },
-      select: { title: true, contentHtml: true, isPublished: true },
-    });
-    if (post && post.isPublished && post.contentHtml) {
-      title = post.title;
-      contentHtml = post.contentHtml;
-    }
-  } catch {
-    // БД недоступна — переходим к fallback
-  }
-
-  // 2. Fallback из статического файла
-  if (!contentHtml) {
-    const fallback = getLegalFallback(slug);
-    if (fallback) {
-      title = fallback.title;
-      contentHtml = fallback.html;
-    }
-  }
-
-  // 3. Ничего нет — 404
-  if (!contentHtml) {
+  const doc = await getCachedLegalDoc(slug, tenantId);
+  if (!doc) {
     notFound();
   }
 
-  // 4. Замена {{тегов}} на реальные значения
-  const settings = await SettingsProvider.getContactAndLegalSettings(tenantId);
-  const defaultCompanyName = isFlux ? 'SMMflux' : 'SMMplan';
-  const companyName = settings.COMPANY_NAME || defaultCompanyName;
-  const inn = settings.COMPANY_INN || '';
-  const ogrnip = settings.COMPANY_OGRNIP || '';
-  const address = settings.COMPANY_ADDRESS || '';
-  const supportEmail = isFlux ? (settings.SUPPORT_EMAIL || 'support@smmflux.ru') : (settings.SUPPORT_EMAIL || 'support@smmplan.pro');
-  const privacyEmail = isFlux ? (settings.PRIVACY_EMAIL || 'privacy@smmflux.ru') : (settings.PRIVACY_EMAIL || 'privacy@smmplan.pro');
-  const siteName = isFlux ? 'SMMflux' : (settings.SITE_NAME || 'SMMplan');
-  const telegramBot = settings.TELEGRAM_SUPPORT_BOT 
-    ? (settings.TELEGRAM_SUPPORT_BOT.startsWith('@') ? settings.TELEGRAM_SUPPORT_BOT : `@${settings.TELEGRAM_SUPPORT_BOT}`) 
-    : (isFlux ? '@smmflux_support_bot' : '@smmplan_support_bot');
-
-  let rendered = contentHtml;
-
-  // Zero-Home-Address Disclosure Invariant (152-ФЗ / ст. 9 ЗоЗПП):
-  // Если адрес не задан, строка адреса физически удаляется из документа
-  if (!address.trim()) {
-    rendered = rendered.replace(/<p><strong>Адрес:<\/strong>\s*\{\{COMPANY_ADDRESS\}\}<\/p>\s*/g, '');
-    rendered = rendered.replace(/<p><strong>Адрес:<\/strong>[\s\S]*?<\/p>/g, '');
-  }
-
-  const replacements: Record<string, string> = {
-    '{{COMPANY_NAME}}': companyName,
-    '{{COMPANY_INN}}': inn || '—',
-    '{{COMPANY_OGRNIP}}': ogrnip || '—',
-    '{{COMPANY_ADDRESS}}': address,
-    '{{SUPPORT_EMAIL}}': supportEmail,
-    '{{PRIVACY_EMAIL}}': privacyEmail,
-    '{{SITE_NAME}}': siteName,
-    '{{TELEGRAM_BOT}}': telegramBot,
-  };
-
-  for (const [tag, value] of Object.entries(replacements)) {
-    rendered = rendered.replaceAll(tag, value);
-  }
-
-  const { sanitizeArticleHtml } = await import('@/lib/sanitize');
-  rendered = sanitizeArticleHtml(rendered);
+  const { title, html: rendered } = doc;
 
   if (isFlux) {
     return (

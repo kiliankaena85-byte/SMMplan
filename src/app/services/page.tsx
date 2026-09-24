@@ -49,7 +49,7 @@ export default async function ServicesCatalogPage() {
     ? (await db.user.findUnique({ where: { id: session.userId }, select: { email: true } }))?.email 
     : undefined;
 
-  const settings = await SettingsProvider.getContactAndLegalSettings();
+  const settings = await SettingsProvider.getContactAndLegalSettings(tenantId);
   const siteName = isFlux ? "SMMflux" : (getTenantSiteName(tenantId) || settings.SITE_NAME || "SMMplan");
 
   // Parallel fetch catalog networks and featured articles
