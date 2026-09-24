@@ -348,7 +348,7 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux',
         navigateTo('network');
       }
     } catch {
-      let matchedNetwork = detectNetworkByUrl(trimmedInput, initialCatalog || []);
+      const matchedNetwork = detectNetworkByUrl(trimmedInput, initialCatalog || []);
       if (matchedNetwork) {
         setActiveNetwork(matchedNetwork);
         setActiveCategory(null);
@@ -1199,7 +1199,7 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux',
                   {/* 152-ФЗ Implicit Consent */}
                   <div className="mt-4 text-center">
                   <p className="text-[10px] text-muted-foreground">
-                    Нажимая кнопку, вы соглашаетесь с <a href="/legal/privacy" className="underline hover:text-foreground transition-colors" target="_blank">Политикой конфиденциальности</a> и <a href="/legal/terms" className="underline hover:text-foreground transition-colors" target="_blank">Публичной офертой</a>
+                    Нажимая кнопку, вы соглашаетесь с <a href="/legal/privacy" className="underline hover:text-foreground transition-colors" target="_blank" rel="noopener noreferrer">Политикой конфиденциальности</a> и <a href="/legal/terms" className="underline hover:text-foreground transition-colors" target="_blank" rel="noopener noreferrer">Публичной офертой</a>
                   </p>
                   </div>
                 </div>

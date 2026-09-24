@@ -665,11 +665,11 @@ export function OrderSummaryCard({
             {/* Consent */}
             <div className="text-[10px] text-center text-muted-foreground mt-2 leading-relaxed select-none px-2">
               Нажимая кнопку «Оплатить заказ», вы соглашаетесь с{' '}
-              <Link href="/legal/terms" className="underline hover:text-foreground font-semibold" target="_blank">
+              <Link href="/legal/terms" className="underline hover:text-foreground font-semibold" target="_blank" rel="noopener noreferrer">
                 Договором публичной оферты
               </Link>{' '}
               и даете согласие на обработку данных согласно{' '}
-              <Link href="/legal/privacy" className="underline hover:text-foreground font-semibold" target="_blank">
+              <Link href="/legal/privacy" className="underline hover:text-foreground font-semibold" target="_blank" rel="noopener noreferrer">
                 Политике конфиденциальности
               </Link>.
             </div>

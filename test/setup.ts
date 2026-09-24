@@ -508,7 +508,8 @@ beforeEach(async () => {
         'pii-01',
         'sensitive-data-filter',
         'cors-01',
-        'bal-immutable'
+        'bal-immutable',
+        'sec-rel-noopener'
       ];
       if (skipPatterns.some(pattern => testPath.toLowerCase().includes(pattern.toLowerCase()))) {
         shouldReset = false;
