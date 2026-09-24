@@ -20,6 +20,7 @@ import { db } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { auditAdminAwaitable } from '@/lib/admin-audit';
 import { getClientIp } from '@/utils/ip';
+import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import {
   createButtonSchema,
@@ -1519,7 +1520,7 @@ export async function updateTelegramBotSettingsAction(formData: FormData) {
         try {
           bot.stop('Hot-Reload');
         } catch (e) {
-          console.warn('[Bot Hot-Reload] Could not stop existing bot', e);
+          logger.warn('[Bot Hot-Reload] Could not stop existing bot', { error: e });
         }
 
         (bot.telegram as any).token = token;
@@ -1527,12 +1528,12 @@ export async function updateTelegramBotSettingsAction(formData: FormData) {
         await new Promise(resolve => setTimeout(resolve, 500));
         
         bot.launch({ dropPendingUpdates: true }).catch(err => {
-          console.error('[Bot Hot-Reload] Failed to launch:', err);
+          logger.error('[Bot Hot-Reload] Failed to launch', { error: err });
         });
         
-        console.log(`[Bot Hot-Reload] Successfully reloaded daemon with new token for tenant ${tenantId}`);
+        logger.info(`[Bot Hot-Reload] Successfully reloaded daemon with new token for tenant ${tenantId}`, { tenantId });
       } catch (err) {
-        console.error('[Bot Hot-Reload] Error during hot reload:', err);
+        logger.error('[Bot Hot-Reload] Error during hot reload', { error: err });
       }
     }
 

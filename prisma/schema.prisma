@@ -125,6 +125,8 @@ model User {
   @@index([customerGroupId])
   @@index([createdAt(sort: Desc), id(sort: Desc)])
   @@index([tenantId, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([referredById])
+  @@index([staffRoleId])
 }
 
 model ApiConfig {
@@ -587,6 +589,7 @@ model Order {
   @@index([serviceId, updatedAt(sort: Desc)])
   @@index([status, serviceId, updatedAt(sort: Desc)])
   @@index([providerId, status, updatedAt])
+  @@index([promoCodeId])
   userNotes UserNote[]
   orderRecoveryIncidents OrderRecoveryIncident[]
   cxCompensations        CxApologyCompensation[]
@@ -1063,6 +1066,7 @@ model LedgerEntry {
   @@index([tenantId, createdAt(sort: Desc), id(sort: Desc)])
   @@index([createdAt(sort: Desc), id(sort: Desc)])
   @@index([userId, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([periodId])
 }
 
 model SupportTemplate {

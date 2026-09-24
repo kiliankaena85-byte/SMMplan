@@ -129038,8 +129038,8 @@ var init_order_service = __esm({
         } catch (e) {
           console.error(`[OrderService] failOrderTerminal failed for ${orderId}:`, e instanceof Error ? e.message : String(e));
           try {
-            const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
-            sendAdminAlert2(
+            const { sendAdminAlert: sendAdminAlert3 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+            sendAdminAlert3(
               `\u{1F6A8} failOrderTerminal ERROR
 
 orderId: ${orderId}
@@ -129102,8 +129102,8 @@ error: ${e instanceof Error ? e.message : String(e)}`,
           });
           if (txResult) {
             try {
-              const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
-              await sendAdminAlert2(
+              const { sendAdminAlert: sendAdminAlert3 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+              await sendAdminAlert3(
                 `\u{1F6A8} [FAIL-FAST] \u0417\u0430\u043A\u0430\u0437 #${txResult.numericId} \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u043E\u0442\u043C\u0435\u043D\u0435\u043D!
 \u0423\u0441\u043B\u0443\u0433\u0430: ${txResult.serviceName}
 \u041E\u0448\u0438\u0431\u043A\u0430 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0430: ${reason}`,
@@ -129130,8 +129130,8 @@ error: ${e instanceof Error ? e.message : String(e)}`,
         } catch (e) {
           console.error(`[OrderService] failOrderTerminalFast failed for ${orderId}:`, e instanceof Error ? e.message : String(e));
           try {
-            const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
-            sendAdminAlert2(
+            const { sendAdminAlert: sendAdminAlert3 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+            sendAdminAlert3(
               `\u{1F6A8} failOrderTerminalFast CRITICAL ERROR
 
 orderId: ${orderId}
@@ -130521,7 +130521,7 @@ var init_provider_balance_service = __esm({
             try {
               const alreadyAlerted = await redis.get(alertKey);
               if (!alreadyAlerted) {
-                const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+                const { sendAdminAlert: sendAdminAlert3 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
                 const emoji = status === "critical" ? "\u{1F6A8}" : "\u26A0\uFE0F";
                 const level = status === "critical" ? "CRITICAL" : "WARNING";
                 const thresholdUsd = status === "critical" ? 10 : 50;
@@ -130541,7 +130541,7 @@ var init_provider_balance_service = __esm({
                   formattedBalance = `${numBalance.toFixed(2)} ${currency} (~$${balanceUsd.toFixed(2)} / ~${balanceRub.toFixed(2)} \u20BD)`;
                   formattedThreshold = `$${thresholdUsd}.00 (~${thresholdRub.toLocaleString("ru-RU")} \u20BD)`;
                 }
-                await sendAdminAlert2(
+                await sendAdminAlert3(
                   `${emoji} \u0411\u0430\u043B\u0430\u043D\u0441 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0430 "${provider.name}" = ${formattedBalance} \u2014 \u043D\u0438\u0436\u0435 \u043F\u043E\u0440\u043E\u0433\u0430 ${formattedThreshold}. \u041F\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u0435 \u0434\u0435\u043F\u043E\u0437\u0438\u0442!`,
                   level
                 );
@@ -130606,8 +130606,8 @@ var init_provider_balance_service = __esm({
                 where: { id: provider.id },
                 data: { isActive: false }
               });
-              const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
-              await sendAdminAlert2(
+              const { sendAdminAlert: sendAdminAlert3 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+              await sendAdminAlert3(
                 `\u{1F534} \u041F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440 "${provider.name}" \u0410\u0412\u0422\u041E\u041C\u0410\u0422\u0418\u0427\u0415\u0421\u041A\u0418 \u041E\u0422\u041A\u041B\u042E\u0427\u0401\u041D: ${updated.errorCount5m} \u043E\u0448\u0438\u0431\u043E\u043A \u043F\u043E\u0434\u0440\u044F\u0434. \u0412\u043A\u043B\u044E\u0447\u0438\u0442\u0435 \u0432\u0440\u0443\u0447\u043D\u0443\u044E \u0432 /admin/providers \u043F\u043E\u0441\u043B\u0435 \u0443\u0441\u0442\u0440\u0430\u043D\u0435\u043D\u0438\u044F.`,
                 "CRITICAL"
               );
@@ -130616,8 +130616,8 @@ var init_provider_balance_service = __esm({
               const alertKey = `provider:${provider.id}:error_alert`;
               const alreadyAlerted = await redis.get(alertKey).catch(() => null);
               if (!alreadyAlerted) {
-                const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
-                await sendAdminAlert2(
+                const { sendAdminAlert: sendAdminAlert3 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+                await sendAdminAlert3(
                   `\u26A0\uFE0F \u041F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440 "${provider.name}" \u043D\u0430\u043A\u043E\u043F\u0438\u043B ${updated.errorCount5m} \u043E\u0448\u0438\u0431\u043E\u043A \u0437\u0430 5 \u043C\u0438\u043D. \u0422\u0440\u0435\u0431\u0443\u0435\u0442 \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0438. \u0410\u0432\u0442\u043E-\u043E\u0442\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u0435 \u0412\u042B\u041A\u041B\u042E\u0427\u0415\u041D\u041E \u2014 \u0434\u0435\u0439\u0441\u0442\u0432\u0443\u0439 \u0432\u0440\u0443\u0447\u043D\u0443\u044E \u0432 /admin/providers.`,
                   "WARNING"
                 );
@@ -142015,8 +142015,8 @@ var init_unified_payment_service = __esm({
           const msg = e instanceof Error ? e.message : String(e);
           console.error("[UnifiedPayment] System error:", msg);
           try {
-            const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
-            sendAdminAlert2(
+            const { sendAdminAlert: sendAdminAlert3 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+            sendAdminAlert3(
               `\u{1F4B3} <b>[FINANCE ALERT: \u041E\u0448\u0438\u0431\u043A\u0430 \u0441\u043E\u0437\u0434\u0430\u043D\u0438\u044F \u043F\u043B\u0430\u0442\u0435\u0436\u0430]</b>
 
 \u{1F464} <b>\u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044C:</b> <code>${userId}</code>
@@ -142426,8 +142426,8 @@ ${errorText}
             }
           );
           try {
-            const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
-            sendAdminAlert2(
+            const { sendAdminAlert: sendAdminAlert3 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+            sendAdminAlert3(
               `\u{1F4B3} <b>[BOT ALERT: \u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043F\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u044C \u0431\u0430\u043B\u0430\u043D\u0441]</b>
 
 \u{1F464} <b>TG ID:</b> <code>${tgId}</code> (@${ctx.from.username || "\u2014"})
@@ -142455,8 +142455,8 @@ ${errorText}
           }
         );
         try {
-          const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
-          sendAdminAlert2(
+          const { sendAdminAlert: sendAdminAlert3 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+          sendAdminAlert3(
             `\u{1F4A5} <b>[BOT CRITICAL: \u0418\u0441\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u0435 \u0432 DepositWizard]</b>
 
 \u{1F464} <b>TG ID:</b> <code>${ctx.from?.id || "\u2014"}</code> (@${ctx.from?.username || "\u2014"})
@@ -144391,8 +144391,8 @@ ${errMsg}
           ).catch(() => {
           });
           try {
-            const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
-            sendAdminAlert2(
+            const { sendAdminAlert: sendAdminAlert3 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+            sendAdminAlert3(
               `\u{1F4E6} <b>[BOT ALERT: \u041E\u0448\u0438\u0431\u043A\u0430 \u043E\u0444\u043E\u0440\u043C\u043B\u0435\u043D\u0438\u044F \u0437\u0430\u043A\u0430\u0437\u0430]</b>
 
 \u{1F464} <b>\u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044C:</b> TG ID <code>${tgId}</code> (@${ctx.from.username || "\u2014"})
@@ -144468,8 +144468,8 @@ ${errMsg}
         ).catch(() => {
         });
         try {
-          const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
-          sendAdminAlert2(
+          const { sendAdminAlert: sendAdminAlert3 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+          sendAdminAlert3(
             `\u{1F4B3} <b>[BOT ALERT: \u041E\u0448\u0438\u0431\u043A\u0430 \u0444\u043E\u0440\u043C\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u044F \u0434\u043E\u043F\u043B\u0430\u0442\u044B \u0437\u0430 \u0437\u0430\u043A\u0430\u0437]</b>
 
 \u{1F464} <b>\u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044C:</b> TG ID <code>${tgId}</code> (@${ctx.from.username || "\u2014"})
@@ -147461,8 +147461,8 @@ var init_bot = __esm({
         } catch {
         }
         try {
-          const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
-          sendAdminAlert2(
+          const { sendAdminAlert: sendAdminAlert3 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+          sendAdminAlert3(
             `\u{1F916} <b>[BOT ERROR: \u041D\u0435\u043E\u0431\u0440\u0430\u0431\u043E\u0442\u0430\u043D\u043D\u0430\u044F \u043E\u0448\u0438\u0431\u043A\u0430 \u0431\u043E\u0442\u0430]</b>
 
 \u{1F464} <b>TG ID:</b> <code>${contextObj?.from?.id || "\u2014"}</code>
@@ -160860,8 +160860,8 @@ async function orderProcessor(job) {
       }
     });
     try {
-      const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
-      await sendAdminAlert2(
+      const { sendAdminAlert: sendAdminAlert3 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+      await sendAdminAlert3(
         `\u{1F6E1}\uFE0F [\u0417\u0410\u0429\u0418\u0422\u0410 \u041E\u0422 \u0414\u0412\u041E\u0419\u041D\u041E\u0413\u041E \u0421\u041F\u0418\u0421\u0410\u041D\u0418\u042F] \u0417\u0430\u043A\u0430\u0437 #${order.numericId} (\u0423\u0441\u043B\u0443\u0433\u0430: ${order.service.name})
 \u0421\u0438\u0441\u0442\u0435\u043C\u0430 \u043F\u0440\u0435\u0434\u043E\u0442\u0432\u0440\u0430\u0442\u0438\u043B\u0430 \u043F\u043E\u0432\u0442\u043E\u0440\u043D\u0443\u044E \u043E\u0442\u043F\u0440\u0430\u0432\u043A\u0443 \u0437\u0430\u043A\u0430\u0437\u0430 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0443.
 \u0417\u0430\u043A\u0430\u0437 \u043F\u0435\u0440\u0435\u0432\u0435\u0434\u0451\u043D \u0432 \u0441\u0442\u0430\u0442\u0443\u0441 \xAB\u041D\u0430 \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0435\xBB (PENDING_CHECK). \u041F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u0432 \u043A\u0430\u0431\u0438\u043D\u0435\u0442\u0435 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430, \u0431\u044B\u043B \u043B\u0438 \u0441\u043E\u0437\u0434\u0430\u043D \u0437\u0430\u043A\u0430\u0437, \u0447\u0442\u043E\u0431\u044B \u043D\u0435 \u043F\u043B\u0430\u0442\u0438\u0442\u044C \u0434\u0432\u0430\u0436\u0434\u044B.`,
@@ -161072,14 +161072,16 @@ async function orderProcessor(job) {
           }
         });
         try {
-          const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
-          sendAdminAlert2(
+          const { sendAdminAlertSync: sendAdminAlertSync2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+          await sendAdminAlertSync2(
             `\u26A0\uFE0F [\u0422\u0410\u0419\u041C\u0410\u0423\u0422 \u0421\u0412\u042F\u0417\u0418 \u0421 \u041F\u041E\u0421\u0422\u0410\u0412\u0429\u0418\u041A\u041E\u041C] \u0417\u0430\u043A\u0430\u0437 #${order.numericId} (\u0423\u0441\u043B\u0443\u0433\u0430: ${order.service?.name || ""})
 \u041F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A ${route.provider.name} \u043D\u0435 \u043E\u0442\u0432\u0435\u0442\u0438\u043B \u0432\u043E\u0432\u0440\u0435\u043C\u044F (\u043E\u0431\u0440\u044B\u0432 \u0441\u0432\u044F\u0437\u0438 / \u0442\u0430\u0439\u043C\u0430\u0443\u0442).
 \u0417\u0430\u043A\u0430\u0437 \u043F\u0435\u0440\u0435\u0432\u0435\u0434\u0451\u043D \u0432 \u0441\u0442\u0430\u0442\u0443\u0441 \xAB\u041D\u0430 \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0435\xBB (PENDING_CHECK). \u041F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u0432 \u043A\u0430\u0431\u0438\u043D\u0435\u0442\u0435 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430, \u0443\u0441\u043F\u0435\u043B \u043B\u0438 \u043E\u043D \u043F\u0440\u0438\u043D\u044F\u0442\u044C \u0437\u0430\u043A\u0430\u0437, \u043F\u0440\u0435\u0436\u0434\u0435 \u0447\u0435\u043C \u043D\u0430\u0436\u0438\u043C\u0430\u0442\u044C \u043F\u043E\u0432\u0442\u043E\u0440!`,
-            "WARNING"
+            "WARNING",
+            order.tenantId
           );
-        } catch {
+        } catch (alertErr) {
+          log6.warn("[OrderProcessor] Failed to dispatch admin alert on provider timeout", { error: alertErr });
         }
         throw new import_bullmq2.UnrecoverableError(`Ambiguous Timeout: ${error instanceof Error ? error.message : String(error)}`);
       }
@@ -164990,8 +164992,8 @@ ${anomalies.join("\n")}`,
             reason: `Exchange rate fluctuation: Retail price ${pricePerUnitRub.toFixed(4)} < Cost ${purchaseCostPerUnitRub.toFixed(4)}`
           }
         });
-        const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
-        await sendAdminAlert2(alertMsg, "CRITICAL");
+        const { sendAdminAlert: sendAdminAlert3 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+        await sendAdminAlert3(alertMsg, "CRITICAL");
       } else {
         const newPriceCents = Math.round(pricePer1kRubRounded * 100);
         updatesBatch.push(
@@ -167553,7 +167555,7 @@ async function handleDeadLetter(queueName, job, err) {
       }
       const isFinancialQueue = ["ordersQueue", "paymentSyncQueue", "paymentGatewayQueue"].includes(queueName);
       if (isFinancialQueue && !isParkedForTriage) {
-        await sendAdminAlert(
+        await sendAdminAlertSync(
           `\u{1FAA6} *Dead Letter Job (P0 \u0424\u0438\u043D\u0430\u043D\u0441\u043E\u0432\u044B\u0439)*
 
 \u041E\u0447\u0435\u0440\u0435\u0434\u044C: \`${queueName}\`
@@ -167569,7 +167571,7 @@ Job ID: \`${job.id}\`
         const { shouldSend, occurrences } = await P0AlertDebouncer2.checkDeduplicatedAlert(errKey, 7200);
         if (shouldSend) {
           const occInfo = occurrences > 1 ? ` (\u041F\u043E\u0432\u0442\u043E\u0440\u043E\u0432 \u0437\u0430 2\u0447: ${occurrences})` : "";
-          await sendAdminAlert(
+          await sendAdminAlertSync(
             `\u26A0\uFE0F *\u0424\u043E\u043D\u043E\u0432\u0430\u044F \u0437\u0430\u0434\u0430\u0447\u0430 \u0432 DLQ (P1 \u041E\u0431\u0441\u043B\u0443\u0436\u0438\u0432\u0430\u043D\u0438\u0435)*${occInfo}
 
 \u041E\u0447\u0435\u0440\u0435\u0434\u044C: \`${queueName}\`
@@ -167673,8 +167675,15 @@ var shutdown = async () => {
 process.on("unhandledRejection", (reason, promise) => {
   log31.error("Unhandled Rejection in Worker process:", { reason, promise });
 });
-process.on("uncaughtException", (error) => {
+process.on("uncaughtException", async (error) => {
   log31.error("Uncaught Exception in Worker process:", { error: error.message, stack: error.stack });
+  try {
+    await shutdown();
+  } catch (shutdownErr) {
+    log31.error("Error during shutdown on uncaughtException:", { error: shutdownErr });
+  } finally {
+    process.exit(1);
+  }
 });
 process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);

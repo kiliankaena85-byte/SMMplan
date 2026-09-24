@@ -1202,7 +1202,10 @@ class AdminOrderService {
 
     const serviceIds = grouped.map(g => g.serviceId).filter(Boolean) as string[];
     const services = await db.service.findMany({
-      where: { id: { in: serviceIds } },
+      where: {
+        id: { in: serviceIds },
+        ...(tenantId && tenantId !== 'all' ? { tenantId } : {})
+      },
       select: {
         id: true,
         name: true,

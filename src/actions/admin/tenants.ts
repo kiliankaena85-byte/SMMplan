@@ -10,6 +10,7 @@ import { revalidatePath, revalidateTag } from 'next/cache';
 import { cookies } from 'next/headers';
 import { normalizeTenantId, registerValidTenant } from '@/lib/tenant-resolver-edge';
 import { sendAdminAlert } from '@/lib/notifications';
+import { logger } from '@/lib/logger';
 
 const CreateTenantSchema = z.object({
   name: z.string().min(2, 'Название бренда должно быть не менее 2 символов').max(60),
@@ -372,7 +373,9 @@ export async function switchAdminTenantAction(tenantId: string) {
     invalidateTag(`services-${normalized}`, 'default');
     invalidateTag('clients', 'default');
     invalidateTag(`clients-${normalized}`, 'default');
-  } catch {}
+  } catch (err) {
+    logger.warn('[switchActiveTenantAction] Tag revalidation failed', { error: err, tenantId: normalized });
+  }
 
   return { success: true, tenantId: normalized };
 }

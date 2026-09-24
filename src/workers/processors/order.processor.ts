@@ -396,14 +396,17 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
         });
 
         try {
-          const { sendAdminAlert } = await import('@/lib/notifications');
-          sendAdminAlert(
+          const { sendAdminAlertSync } = await import('@/lib/notifications');
+          await sendAdminAlertSync(
             `⚠️ [ТАЙМАУТ СВЯЗИ С ПОСТАВЩИКОМ] Заказ #${order.numericId} (Услуга: ${order.service?.name || ''})\n` +
             `Поставщик ${route.provider.name} не ответил вовремя (обрыв связи / таймаут).\n` +
             `Заказ переведён в статус «На проверке» (PENDING_CHECK). Проверьте в кабинете поставщика, успел ли он принять заказ, прежде чем нажимать повтор!`,
-            'WARNING'
+            'WARNING',
+            order.tenantId
           );
-        } catch { /* ignore */ }
+        } catch (alertErr) {
+          log.warn('[OrderProcessor] Failed to dispatch admin alert on provider timeout', { error: alertErr });
+        }
 
         throw new UnrecoverableError(`Ambiguous Timeout: ${error instanceof Error ? error.message : String(error)}`);
       }

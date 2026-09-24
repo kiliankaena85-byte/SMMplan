@@ -39,7 +39,7 @@ export async function logManualCompensation(formData: FormData) {
 
     const ticket = await db.ticket.findUnique({
       where: { id: ticketId },
-      select: { userId: true, id: true }
+      select: { userId: true, id: true, tenantId: true }
     });
 
     if (!ticket) {
@@ -108,6 +108,7 @@ export async function logManualCompensation(formData: FormData) {
         // Create SupportFinancialAction record
         const financialAction = await tx.supportFinancialAction.create({
           data: {
+            tenantId: ticket.tenantId || user.tenantId || 'smmplan',
             staffUserId: user.id,
             targetUserId: ticket.userId,
             direction: 'CREDIT',

@@ -34,6 +34,27 @@ vi.mock('@/services/system/feature-flag.service', () => {
   };
 });
 
+// Mock Next.js Cache invalidation methods to prevent 'static generation store missing' errors natively
+vi.mock('next/cache', () => ({
+  revalidatePath: vi.fn(),
+  revalidateTag: vi.fn(),
+  unstable_cache: (fn: any) => fn
+}));
+
+// Mock next/headers to avoid 'headers called outside request scope' errors in server actions
+vi.mock('next/headers', () => ({
+  headers: vi.fn().mockResolvedValue({
+    get: vi.fn().mockImplementation((key: string) => {
+      if (key === 'user-agent') return 'vitest';
+      if (key === 'x-forwarded-for') return '127.0.0.1';
+      return null;
+    }),
+  }),
+  cookies: vi.fn().mockResolvedValue({
+    get: vi.fn().mockReturnValue(null),
+  }),
+}));
+
 // Mock ioredis globally to prevent attempting actual Redis connections during tests
 export const mockRedisStore = new Map<string, any>();
 
@@ -297,27 +318,6 @@ beforeAll(async () => {
   
   // Mock external fetch to avoid real network requests to YooKassa/CryptoBot
   vi.stubGlobal('fetch', vi.fn());
-
-  // Mock Next.js Cache invalidation methods to prevent 'static generation store missing' errors natively
-  vi.mock('next/cache', () => ({
-    revalidatePath: vi.fn(),
-    revalidateTag: vi.fn(),
-    unstable_cache: (fn: any) => fn
-  }));
-
-  // Mock next/headers to avoid 'headers called outside request scope' errors in server actions
-  vi.mock('next/headers', () => ({
-    headers: vi.fn().mockResolvedValue({
-      get: vi.fn().mockImplementation((key: string) => {
-        if (key === 'user-agent') return 'vitest';
-        if (key === 'x-forwarded-for') return '127.0.0.1';
-        return null;
-      }),
-    }),
-    cookies: vi.fn().mockResolvedValue({
-      get: vi.fn().mockReturnValue(null),
-    }),
-  }));
 });
 
 async function sleep(ms: number) {

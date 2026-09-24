@@ -24,6 +24,7 @@ import { isLinkServiceCompatible, getCompatibilityError, normalizeServiceTargetT
 import { safeUrlForLog } from '@/lib/log-safe';
 import { isUrlSafeForFetch } from '@/lib/ssrf-guard';
 import { SmartDripService } from '@/services/dripfeed/smart-drip.service';
+import { logger } from '@/lib/logger';
 import { randomUUID } from 'crypto';
 
 import { Prisma } from '@prisma/client';
@@ -778,7 +779,9 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
         if (isAllowedHost(u.host)) {
           clientOrigin = `${u.protocol}//${u.host}`;
         }
-      } catch {}
+      } catch (e) {
+        logger.debug('[Checkout] Could not parse origin header as URL', { originHeader, error: e });
+      }
     }
     const fwdHost = reqHeaders?.get("x-forwarded-host");
     const host = fwdHost || reqHeaders?.get("host");
@@ -1225,7 +1228,9 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
         if (isAllowedHost(u.host)) {
           clientOrigin = `${u.protocol}//${u.host}`;
         }
-      } catch {}
+      } catch (e) {
+        logger.debug('[Checkout] Could not parse origin header as URL', { originHeader, error: e });
+      }
     }
     const fwdHost = reqHeaders.get("x-forwarded-host");
     const host = fwdHost || reqHeaders.get("host");

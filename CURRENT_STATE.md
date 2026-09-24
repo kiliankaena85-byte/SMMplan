@@ -1,3 +1,25 @@
+- [x] ⚡ [PROJECT-AUDIT-REMEDIATION-2026] Комплексное устранение дефектов сквозного аудита (100% COMPLETE & PASS):
+  * 🛡️ **[GATE-01] Ликвидация блокеров Production Readiness (`audit:prod`):**
+    - Устранены 4 пустых блока `catch {}` в `src/actions/order/checkout.ts`, `src/actions/admin/tenants.ts`, `src/actions/admin/users.ts` с добавлением структурированного логирования.
+    - В `src/app/api/admin/test-telegram-bot/route.ts` добавлен явный инлайн-параметр `signal: AbortSignal.timeout(8000)`.
+    - `npm run audit:prod` — 0 BLOCKERS, 0 MAJORS.
+  * 🏢 **[TENANT-01] Изоляция брендов и защита от утечек данных (`lint:tenant`):**
+    - В `src/services/admin/order.service.ts:1204` добавлен фильтр `tenantId` в `getTopServicesByRevenue`, устранив единственный BLOCKER в `lint:tenant` (BLOCKERS: 0).
+    - В `src/actions/support/compensation.ts:110` добавлена передача `tenantId` в `SupportFinancialAction.create` для бухгалтерского аудита ст. 54.1 НК РФ.
+  * ⚡ **[WORKER-01] Отказоустойчивость воркеров и синхронный алертинг BullMQ:**
+    - В `src/workers/index.ts` обработчик `uncaughtException` переведен на аварийное завершение с `shutdown()` и `process.exit(1)`, устраняя проблему «зомби-процессов».
+    - В `src/workers/index.ts` и `src/workers/processors/order.processor.ts` вызовы `sendAdminAlert` заменены на реальный `await sendAdminAlertSync(...)` с передачей `order.tenantId`.
+  * 🗄️ **[DB-01] Создание недостающих индексов внешних ключей (`prisma/schema.prisma`):**
+    - Добавлены индексы `User.referredById`, `User.staffRoleId`, `Order.promoCodeId`, `LedgerEntry.periodId`.
+    - Индексы сгенерированы в клиенте Prisma (`prisma generate`) и применены в СУБД PostgreSQL.
+  * 🧪 **[TEST-01] Актуализация тестов и устранение предупреждений хойстинга Vitest 4:**
+    - Заменен устаревший тест `smart-order-form.test.tsx` на актуальные проверки `OrderSummaryCard & PlatformSelectorFallback` (2/2 PASS).
+    - Вынесены `vi.mock('next/cache')` и `vi.mock('next/headers')` на верхний уровень `test/setup.ts`, полностью устранив предупреждения о хойстинге.
+  * 🧪 **Контроль качества:**
+    - Компиляция TypeScript: `npx tsc --noEmit` (0 ошибок).
+    - Контроль секретов: `node scripts/check-bundle-secrets.mjs` (0 утечек).
+    - Автотесты: `npx vitest run` (PASS).
+    - Бандлы: `dist/worker.js` (6.6 МБ) и `dist/bot.js` (5.7 МБ) собраны.
 - [x] ⚡ [ADMIN-ZERO-LATENCY-REMASTER-2026] Комплексная ликвидация задержек и оптимизация админ-панели OmniSMM (100% COMPLETE & PASS):
   * 🚀 **[DASH-01] Изолированное кэширование метрик дашборда в Redis (TTL 60-120с):**
     - В `accounting.service.ts`: `getMetrics` и `getGatewayBreakdown` обернуты в tenant-изолированный кэш (`admin:dashboard:metrics:*`, `admin:dashboard:gateways:*`) с безопасной сериализацией/десериализацией BigInt копеек.

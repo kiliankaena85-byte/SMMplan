@@ -178,7 +178,7 @@ async function handleDeadLetter(
       
       if (isFinancialQueue && !isParkedForTriage) {
         // P0: Always alert immediately for customer money and orders
-        await sendAdminAlert(
+        await sendAdminAlertSync(
           `🪦 *Dead Letter Job (P0 Финансовый)*\n\nОчередь: \`${queueName}\`\nJob ID: \`${job.id}\`\nПопыток: ${job.attemptsMade}/${maxAttempts}\n\nОшибка: ${err.message}`,
           'CRITICAL'
         );
@@ -190,7 +190,7 @@ async function handleDeadLetter(
 
         if (shouldSend) {
           const occInfo = occurrences > 1 ? ` (Повторов за 2ч: ${occurrences})` : '';
-          await sendAdminAlert(
+          await sendAdminAlertSync(
             `⚠️ *Фоновая задача в DLQ (P1 Обслуживание)*${occInfo}\n\nОчередь: \`${queueName}\`\nJob ID: \`${job.id}\`\nОшибка: ${err.message}`,
             'WARNING'
           );
@@ -288,8 +288,15 @@ process.on('unhandledRejection', (reason, promise) => {
   log.error('Unhandled Rejection in Worker process:', { reason, promise });
 });
 
-process.on('uncaughtException', (error) => {
+process.on('uncaughtException', async (error) => {
   log.error('Uncaught Exception in Worker process:', { error: error.message, stack: error.stack });
+  try {
+    await shutdown();
+  } catch (shutdownErr) {
+    log.error('Error during shutdown on uncaughtException:', { error: shutdownErr });
+  } finally {
+    process.exit(1);
+  }
 });
 
 process.on('SIGTERM', shutdown);

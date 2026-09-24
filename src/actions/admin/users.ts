@@ -18,6 +18,7 @@ import { getEncodedKey, SESSION_COOKIE_NAME } from '@/lib/session';
 import { resolveContourFromHost } from '@/lib/tenant-resolver-edge';
 import { SupportBalancePolicyService } from '@/services/financial/support-balance-policy.service';
 import { sendAdminAlert } from '@/lib/notifications';
+import { logger } from '@/lib/logger';
 
 export async function updateBalanceAction(formData: FormData) {
   return requireStaffPermission('finance', 'edit', async (admin) => {
@@ -554,7 +555,9 @@ export async function loginAsAction(formData: FormData) {
     try {
       const reqHeaders = await headers();
       host = reqHeaders.get('host') || reqHeaders.get('x-forwarded-host') || '';
-    } catch {}
+    } catch (e) {
+      logger.debug('[impersonateUserAction] Failed to retrieve host from headers', { error: e });
+    }
 
     const contour = resolveContourFromHost(host);
     const tenantId = targetUser.tenantId || 'smmplan';
