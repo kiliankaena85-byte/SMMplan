@@ -14,11 +14,13 @@
   * ⚙️ **[WORKER-01] Передача tenantId в провайдеры воркеров и mock-provider (`order.processor.ts`, `sync.processor.ts`):**
     - В `order.processor.ts` и `sync.processor.ts` аргумент `tenantId` теперь корректно передаётся в `getWorkerProviderInstance(provider, tenantId)`.
     - Восстановлен изолированный безопасный маршрут `src/app/api/dev/mock-provider/route.ts` с защитой `ENABLE_DEV_ROUTES === 'true'` и fail-closed 404 в продакшене.
-  * 🧪 **Контроль качества:**
+  * 🧪 **Контроль качества & Production Rollout:**
     - Компиляция TypeScript: `npx tsc --noEmit` (0 ошибок).
     - Контроль секретов: `node scripts/check-bundle-secrets.mjs` (0 утечек, CI-GATE PASSED).
-    - Автотесты: `telegram-boost-link-recognition.test.ts` (37/37 PASS), `smart-analyzer.test.ts` (6/6 PASS), `sync.processor.test.ts` (3/3 PASS).
+    - Автотесты: `telegram-boost-link-recognition.test.ts` (38/38 PASS), `order-engine-boost-category-retention.test.ts` (2/2 PASS), `smart-analyzer.test.ts` (6/6 PASS), `sync.processor.test.ts` (3/3 PASS).
     - Бандлы: `dist/worker.js` (6.6 МБ) и `dist/bot.js` (5.7 МБ) пересобраны.
+    - Git: Коммиты `faae4eca` и `8be68454` в `origin/stable-pre-decomposition`.
+    - Production Rollout: Контейнеры `smmplan_web`, `smmplan_lite_worker`, `smmplan_bot` пересобраны и запущены в поэтапном режиме. Статус: `healthy`.
 - [x] ⚡ [PROJECT-AUDIT-REMEDIATION-2026] Комплексное устранение дефектов сквозного аудита (100% COMPLETE & PASS):
   * 🛡️ **[GATE-01] Ликвидация блокеров Production Readiness (`audit:prod`):**
     - Устранены 4 пустых блока `catch {}` в `src/actions/order/checkout.ts`, `src/actions/admin/tenants.ts`, `src/actions/admin/users.ts` с добавлением структурированного логирования.
