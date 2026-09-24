@@ -109,4 +109,16 @@ describe('Track 3: Enterprise PostgreSQL S3 Backup', () => {
     expect(result.deletedKeys).toHaveLength(1);
     expect(result.retainedKeys).toHaveLength(1);
   });
+
+  it('throws an error if no encryption key is provided (fail-closed, SEC-04)', async () => {
+    const storage = new MemoryBackupStorage();
+    const prevKey = process.env.BACKUP_ENCRYPTION_KEY;
+    delete process.env.BACKUP_ENCRYPTION_KEY;
+
+    try {
+      await expect(generateBackup({ storage })).rejects.toThrow(/BACKUP_ENCRYPTION_KEY is required/);
+    } finally {
+      if (prevKey) process.env.BACKUP_ENCRYPTION_KEY = prevKey;
+    }
+  });
 });

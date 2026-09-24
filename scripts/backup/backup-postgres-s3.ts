@@ -60,7 +60,10 @@ export interface CleanupRetentionOptions {
 const defaultStorage = new MemoryBackupStorage();
 
 function getEncryptionKey(keyString?: string): Buffer {
-  const secret = keyString || process.env.BACKUP_ENCRYPTION_KEY || 'default-postgres-backup-secret-key-32b!';
+  const secret = keyString || process.env.BACKUP_ENCRYPTION_KEY;
+  if (!secret) {
+    throw new Error('BACKUP_ENCRYPTION_KEY is required to generate or verify encrypted backups (fail-closed, SEC-04).');
+  }
   return deriveEncryptionKey(secret);
 }
 
