@@ -33,7 +33,10 @@ function buildAllowedOrigins() {
     ...tunnelWildcards,
   ];
 
-  const localOrigins = [
+  const localOrigins = isProdContour ? [
+    'localhost:3000',
+    '127.0.0.1:3000',
+  ] : [
     'localhost',
     'localhost:3000',
     'localhost:3001',
