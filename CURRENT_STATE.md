@@ -1,3 +1,4 @@
+- [x] 🚀 [RELEASE-READY-2026] Ветка `stable-pre-decomposition` (коммит `d55558f2`) запушена в `origin`. Standalone-сборка успешно скомпилирована (Webpack, dist/bot.js, dist/worker.js). 0 секретов. Готово к внешнему аудиту и ручному тестированию.
 - [x] ⚡ [SECURITY-RELIABILITY-PERFORMANCE-REMEDIATION-2026] Комплексное закрытие дефектов аудита безопасности, надежности и производительности (41 CLOSED, 2 N/A, 3 TIER-1 PLANNED):
   * 🛡️ **Финансовая целостность и неизменяемый леджер [BAL-01, BAL-02, BAL-03] (Commit `0d590c0a`):**
     - Внедрен класс `ImmutableLedgerError` в `wallet.service.ts`, перехватывающий триггеры PostgreSQL `immutability violation`.
