@@ -297,9 +297,11 @@ export async function proxy(request: NextRequest) {
   if (pathname.startsWith('/api') && request.method === 'OPTIONS') {
     const preflightHeaders = new Headers();
     if (isStorefrontApi) {
-      preflightHeaders.set('Access-Control-Allow-Origin', origin || '*');
-      if (origin) {
+      if (isAllowedOrigin && origin) {
+        preflightHeaders.set('Access-Control-Allow-Origin', origin);
         preflightHeaders.set('Access-Control-Allow-Credentials', 'true');
+      } else {
+        preflightHeaders.set('Access-Control-Allow-Origin', '*');
       }
       preflightHeaders.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
       preflightHeaders.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-tenant-id, idempotency-key, x-storefront-key');
@@ -683,9 +685,11 @@ export async function proxy(request: NextRequest) {
 
   // Inject CORS headers for API routes when requested with an allowed origin
   if (isStorefrontApi) {
-    response.headers.set('Access-Control-Allow-Origin', origin || '*');
-    if (origin) {
+    if (isAllowedOrigin && origin) {
+      response.headers.set('Access-Control-Allow-Origin', origin);
       response.headers.set('Access-Control-Allow-Credentials', 'true');
+    } else {
+      response.headers.set('Access-Control-Allow-Origin', '*');
     }
     response.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-tenant-id, idempotency-key, x-storefront-key');
