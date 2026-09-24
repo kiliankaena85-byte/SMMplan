@@ -245,10 +245,21 @@ export function useOrderEngine(
   useEffect(() => {
     const prevUrl = prevUrlRef.current;
     if (url.trim().length >= 5 && prevUrl.trim().length < 5 && !selectedServiceRef.current) {
-      setCategoryId("");
+      const currentCat = sortedInitialCatalog.flatMap(n => n.categories).find(c => c.id === categoryIdRef.current);
+      const isCurrentBoost = Boolean(currentCat && (
+        currentCat.name.toLowerCase().includes('буст') || 
+        currentCat.name.toLowerCase().includes('boost') ||
+        currentCat.slug?.toLowerCase().includes('boost') ||
+        currentCat.slug?.toLowerCase().includes('busty')
+      ));
+      const isBoostUrlCandidate = url.toLowerCase().includes('boost') || /t\.me\/(?:boost|c\/|[\w-]+\/boost|\?.*boost)/i.test(url);
+
+      if (!(isCurrentBoost && isBoostUrlCandidate)) {
+        setCategoryId("");
+      }
     }
     prevUrlRef.current = url;
-  }, [url]);
+  }, [url, sortedInitialCatalog]);
   
   // Drip-feed states
   const [dripFeedEnabled, setDripFeedEnabled] = useState(false);
@@ -470,7 +481,22 @@ export function useOrderEngine(
                   if (filteredCats.length === 1) {
                     setCategoryId(filteredCats[0].id);
                   } else {
-                    setCategoryId("");
+                    const currentCat = catsForNet.find(c => c.id === categoryIdRef.current);
+                    const isCurrentBoost = Boolean(currentCat && (
+                      currentCat.name.toLowerCase().includes('буст') || 
+                      currentCat.name.toLowerCase().includes('boost') ||
+                      currentCat.slug?.toLowerCase().includes('boost') ||
+                      currentCat.slug?.toLowerCase().includes('busty')
+                    ));
+                    const detectedHasBoosts = Boolean(analysisData.suggestedCategories?.some(cat => 
+                      cat.toLowerCase().includes('буст') || cat.toLowerCase().includes('boost')
+                    ));
+
+                    if (isCurrentBoost && detectedHasBoosts && currentCat && filteredCats.some(c => c.id === currentCat.id)) {
+                      setCategoryId(currentCat.id);
+                    } else {
+                      setCategoryId("");
+                    }
                   }
                 } else {
                   const isCurrentCompatible = filteredCats.some(c => c.id === categoryIdRef.current);

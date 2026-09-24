@@ -39,6 +39,9 @@ const legacyRedirects: Record<string, string> = {
   '/p/faq': ROUTES.FAQ,
   '/boost': '/services/telegram/telegram-busty-dlya-kanalov',
   '/telegram/boost': '/services/telegram/telegram-busty-dlya-kanalov',
+  '/services/telegram/busty': '/services/telegram/telegram-busty-dlya-kanalov',
+  '/services/telegram/boost': '/services/telegram/telegram-busty-dlya-kanalov',
+  '/services/telegram/boosts': '/services/telegram/telegram-busty-dlya-kanalov',
 };
 
 // N-10.3: Strict Trusted Contour Domain Allowlist
@@ -603,7 +606,12 @@ export async function proxy(request: NextRequest) {
       redirectUrl.pathname = pathPart;
       redirectUrl.hash = hashPart;
     }
-    return NextResponse.redirect(redirectUrl, 301); // 301 Permanent Redirect
+    request.nextUrl.searchParams.forEach((value, key) => {
+      if (!redirectUrl.searchParams.has(key)) {
+        redirectUrl.searchParams.set(key, value);
+      }
+    });
+    return applyStickyCookie(NextResponse.redirect(redirectUrl, 301)); // 301 Permanent Redirect
   }
 
   // 4. Auth Route Protection & N-10.5 Strict Redirection

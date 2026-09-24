@@ -35,6 +35,16 @@ describe('Telegram Boost Link Recognition, Validation & Canonicalization Suite',
       url: 'https://t.me/channelname?boost',
       expectedId: 'channelname',
     },
+    {
+      format: 't.me/boost?c=1234567890',
+      url: 'https://t.me/boost?c=1234567890',
+      expectedId: '1234567890',
+    },
+    {
+      format: 't.me/boost/?c=1234567890',
+      url: 'https://t.me/boost/?c=1234567890',
+      expectedId: '1234567890',
+    },
   ];
 
   describe('1. IntelligenceLinkAnalyzer Boost Recognition', () => {
@@ -133,6 +143,21 @@ describe('Telegram Boost Link Recognition, Validation & Canonicalization Suite',
       expect(canonical).toBe('https://t.me/boost/c/1234567890');
     });
 
+    it('preserves t.me/boost?c=1234567890 format', () => {
+      const canonical = canonicalizeUrl('https://t.me/boost?c=1234567890', IntelligencePlatform.TELEGRAM, 'CHANNEL');
+      expect(canonical).toBe('https://t.me/boost?c=1234567890');
+    });
+
+    it('strips tracking UTM params while preserving ?c= parameter', () => {
+      const canonical = canonicalizeUrl(
+        'https://t.me/boost?c=1234567890&utm_source=telegram&utm_medium=cpc',
+        IntelligencePlatform.TELEGRAM,
+        'CHANNEL'
+      );
+      expect(canonical).toBe('https://t.me/boost?c=1234567890');
+      expect(canonical).not.toContain('utm_source');
+    });
+
     it('preserves ?boost query parameter on channel URLs', () => {
       const canonical = canonicalizeUrl('https://t.me/channelname?boost', IntelligencePlatform.TELEGRAM, 'CHANNEL');
       expect(canonical).toBe('https://t.me/channelname?boost');
@@ -172,7 +197,7 @@ describe('Telegram Boost Link Recognition, Validation & Canonicalization Suite',
   });
 
   describe('4. Proxy Legacy Redirects for Boosts', () => {
-    it('verifies /boost and /telegram/boost routes redirect to /services/telegram/busty', async () => {
+    it('verifies /boost, /telegram/boost, /services/telegram/busty redirect to /services/telegram/telegram-busty-dlya-kanalov', async () => {
       // Direct verification of proxy legacyRedirects configuration
       const { proxy } = await import('@/proxy');
       const { NextRequest } = await import('next/server');
@@ -182,14 +207,14 @@ describe('Telegram Boost Link Recognition, Validation & Canonicalization Suite',
       });
       const res1 = await proxy(req1);
       expect(res1.status).toBe(301);
-      expect(res1.headers.get('location')).toBe('https://smmplan.pro/services/telegram/busty');
+      expect(res1.headers.get('location')).toBe('https://smmplan.pro/services/telegram/telegram-busty-dlya-kanalov');
 
       const req2 = new NextRequest('https://smmplan.pro/telegram/boost', {
         headers: { host: 'smmplan.pro', 'x-forwarded-proto': 'https' }
       });
       const res2 = await proxy(req2);
       expect(res2.status).toBe(301);
-      expect(res2.headers.get('location')).toBe('https://smmplan.pro/services/telegram/busty');
+      expect(res2.headers.get('location')).toBe('https://smmplan.pro/services/telegram/telegram-busty-dlya-kanalov');
 
       // Trailing slash support
       const req3 = new NextRequest('https://smmplan.pro/boost/', {
@@ -197,14 +222,30 @@ describe('Telegram Boost Link Recognition, Validation & Canonicalization Suite',
       });
       const res3 = await proxy(req3);
       expect(res3.status).toBe(301);
-      expect(res3.headers.get('location')).toBe('https://smmplan.pro/services/telegram/busty');
+      expect(res3.headers.get('location')).toBe('https://smmplan.pro/services/telegram/telegram-busty-dlya-kanalov');
 
       const req4 = new NextRequest('https://smmplan.pro/telegram/boost/', {
         headers: { host: 'smmplan.pro', 'x-forwarded-proto': 'https' }
       });
       const res4 = await proxy(req4);
       expect(res4.status).toBe(301);
-      expect(res4.headers.get('location')).toBe('https://smmplan.pro/services/telegram/busty');
+      expect(res4.headers.get('location')).toBe('https://smmplan.pro/services/telegram/telegram-busty-dlya-kanalov');
+
+      // Additional legacy redirects
+      const req5 = new NextRequest('https://smmplan.pro/services/telegram/busty', {
+        headers: { host: 'smmplan.pro', 'x-forwarded-proto': 'https' }
+      });
+      const res5 = await proxy(req5);
+      expect(res5.status).toBe(301);
+      expect(res5.headers.get('location')).toBe('https://smmplan.pro/services/telegram/telegram-busty-dlya-kanalov');
+
+      // Query string preservation in 301 redirects
+      const reqWithQuery = new NextRequest('https://smmplan.pro/boost?ref=tg&source=banner', {
+        headers: { host: 'smmplan.pro', 'x-forwarded-proto': 'https' }
+      });
+      const resWithQuery = await proxy(reqWithQuery);
+      expect(resWithQuery.status).toBe(301);
+      expect(resWithQuery.headers.get('location')).toBe('https://smmplan.pro/services/telegram/telegram-busty-dlya-kanalov?ref=tg&source=banner');
     });
   });
 });

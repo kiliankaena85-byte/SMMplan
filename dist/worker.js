@@ -127161,7 +127161,8 @@ var init_smart_analyzer_logic = __esm({
           let bestCatMatch = null;
           for (const [c, keywords] of Object.entries(CATEGORY_MAP)) {
             for (const k of keywords) {
-              const idx = fullContent.indexOf(k);
+              const searchContent = c === "BOOSTS" || k === "boost" ? fullContent.replace(/vexboost|smmboost/gi, "") : fullContent;
+              const idx = searchContent.indexOf(k);
               if (idx !== -1) {
                 if (!bestCatMatch || idx < bestCatMatch.index) {
                   bestCatMatch = { category: c, index: idx };
@@ -127192,7 +127193,9 @@ var init_smart_analyzer_logic = __esm({
           const isStory = nameNode.includes("\u0438\u0441\u0442\u043E\u0440\u0438") || nameNode.includes("story");
           const isAutoViews = !isReactionsPrimary && (nameNode.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u043A") || nameNode.includes("auto") || nameNode.includes("\u0430\u0432\u0442\u043E")) && (nameNode.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || nameNode.includes("view") || nameNode.includes("\u0433\u043B\u0430\u0437"));
           const isSubscribers = (/подписч|member|follower|читател|фолловер/i.test(nameNode) || nameNode.includes("\u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A") && !nameNode.includes("\u043E\u043F\u0440\u043E\u0441") && !nameNode.includes("\u0433\u043E\u043B\u043E\u0441")) && !isAutoViews;
-          const isBoost = (nameNode.includes("boost") || nameNode.includes("\u0431\u0443\u0441\u0442") || fullContent.includes("\u0433\u043E\u043B\u043E\u0441 \u0434\u043B\u044F \u0431\u0443\u0441\u0442") || fullContent.includes("\u0433\u043E\u043B\u043E\u0441\u0430 \u0434\u043B\u044F \u0431\u0443\u0441\u0442")) && !isSubscribers;
+          const sanitizedBoostName = nameNode.replace(/vexboost|smmboost/gi, "");
+          const sanitizedBoostContent = fullContent.replace(/vexboost|smmboost/gi, "");
+          const isBoost = (sanitizedBoostName.includes("boost") || sanitizedBoostName.includes("\u0431\u0443\u0441\u0442") || sanitizedBoostContent.includes("\u0433\u043E\u043B\u043E\u0441 \u0434\u043B\u044F \u0431\u0443\u0441\u0442") || sanitizedBoostContent.includes("\u0433\u043E\u043B\u043E\u0441\u0430 \u0434\u043B\u044F \u0431\u0443\u0441\u0442")) && !isSubscribers;
           const isStars = (fullContent.includes("stars") || nameNode.includes("\u0437\u0432\u0435\u0437\u0434") || nameNode.includes("star")) && !isSubscribers;
           if (isStars) category = "STARS";
           else if (fullContent.includes("\u0436\u0430\u043B\u043E\u0431\u0430") || fullContent.includes("report")) category = "COMPLAINTS";
@@ -127446,7 +127449,7 @@ var init_link_rules = __esm({
       {
         platform: "TELEGRAM" /* TELEGRAM */,
         type: "channel",
-        pattern: /(?:t\.me|telegram\.me|telegram\.dog)\/(?:boost\/(?:c\/)?@?([\w-]+)\/?(?:\?.*)?$|(?:s\/)?(?:c\/)?@?([\w-]+)(?:\/boost\/?(?:\?.*)?|\/?\?(?:.*&)?boost(?:[=&].*)?)$)/i,
+        pattern: /(?:t\.me|telegram\.me|telegram\.dog)\/(?:boost\/(?:c\/)?@?([\w-]+)\/?(?:\?.*)?$|boost\/?\?(?:.*&)?c=@?([\w-]+)(?:&.*)?$|(?:s\/)?(?:c\/)?@?([\w-]+)(?:\/boost\/?(?:\?.*)?|\/?\?(?:.*&)?boost(?:[=&].*)?)$)/i,
         suggestedCategories: [CATEGORY_LABELS.BOOSTS, CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.PREMIUM],
         context: "channel_boost_target"
       },
@@ -142842,9 +142845,12 @@ function stripTrackingParams(urlObj, platform, targetType) {
     const isPrivate = urlObj.pathname.includes("/+") || urlObj.pathname.includes("/joinchat/");
     if (normTarget === "CHANNEL" || normTarget === "PROFILE" || normTarget === "CHANNEL_POSTS") {
       const hasBoostParam = urlObj.searchParams.has("boost");
+      const cParam = urlObj.searchParams.get("c");
       if (!isPrivate) {
         urlObj.search = "";
-        if (hasBoostParam) {
+        if (cParam) {
+          urlObj.search = `?c=${cParam.replace(/^@/, "")}`;
+        } else if (hasBoostParam) {
           urlObj.search = "?boost";
         }
       }
@@ -143010,6 +143016,9 @@ function canonicalizeUrl(rawUrl, platform, targetType) {
       urlObj.pathname = urlObj.pathname.replace(/^\/s\/([a-zA-Z0-9_]+)/i, "/$1");
       urlObj.pathname = urlObj.pathname.replace(/^\/@/, "/");
       urlObj.pathname = urlObj.pathname.replace(/^\/boost\/@/, "/boost/");
+      if (urlObj.pathname === "/boost/") {
+        urlObj.pathname = "/boost";
+      }
       urlObj.pathname = urlObj.pathname.replace(/\/topic\/(\d+)\/(\d+)/i, "/$1/$2");
       if (normTarget === "CHANNEL" || normTarget === "CHANNEL_POSTS" || normTarget === "PROFILE") {
         const postMatch = urlObj.pathname.match(/^\/([\w-]+)\/\d+\/?$/i);
@@ -160998,7 +161007,7 @@ async function orderProcessor(job) {
       }
     }
     try {
-      const provider = await providerService.getWorkerProviderInstance(route.provider);
+      const provider = await providerService.getWorkerProviderInstance(route.provider, order.tenantId);
       const runQty = order.isDripFeed && order.runs && order.runs > 0 ? Math.max(1, Math.floor(order.quantity / order.runs)) : order.quantity;
       const serviceName = order.service?.name?.toLowerCase() || "";
       const payload = {
@@ -161384,7 +161393,7 @@ async function syncProcessor(job) {
       const MAX_SYNC_PER_PROVIDER = 1e3;
       const activeOrderIds = await db.order.findMany({
         where: { status: { in: ["IN_PROGRESS", "CANCELING"] }, providerId: providerDef.id },
-        select: { id: true },
+        select: { id: true, tenantId: true },
         take: MAX_SYNC_PER_PROVIDER,
         orderBy: { updatedAt: "asc" }
       });
@@ -161392,7 +161401,8 @@ async function syncProcessor(job) {
         log10.warn(`[SyncProcessor] Provider ${providerDef.name}: sync truncated to ${MAX_SYNC_PER_PROVIDER} orders (oldest first) \u2014 remaining orders will sync next tick`);
       }
       if (activeOrderIds.length === 0) return;
-      const provider = await providerService.getWorkerProviderInstance(providerDef);
+      const tenantId = activeOrderIds[0]?.tenantId || "smmplan";
+      const provider = await providerService.getWorkerProviderInstance(providerDef, tenantId);
       for (let i = 0; i < activeOrderIds.length; i += BATCH_SIZE) {
         const chunkIds = activeOrderIds.slice(i, i + BATCH_SIZE).map((o) => o.id);
         const ordersBatch = await db.order.findMany({

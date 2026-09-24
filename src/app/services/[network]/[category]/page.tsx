@@ -278,6 +278,11 @@ export default async function CategoryServicesPage({
               <FluxOrderClient 
                 initialCatalog={catalog} 
                 initialEmail={userEmail} 
+                tenantId={tenantId}
+                initialNetworkId={currentNetwork.id}
+                initialCategoryId={currentCategory.id}
+                initialServiceId={initialServiceId}
+                initialServices={services}
               />
             </div>
 

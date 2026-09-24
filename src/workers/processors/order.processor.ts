@@ -298,7 +298,7 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
     }
 
     try {
-      const provider = await providerService.getWorkerProviderInstance(route.provider as unknown as import('@prisma/client').Provider);
+      const provider = await providerService.getWorkerProviderInstance(route.provider as unknown as import('@prisma/client').Provider, order.tenantId);
 
       const runQty = (order.isDripFeed && order.runs && order.runs > 0)
         ? Math.max(1, Math.floor(order.quantity / order.runs))

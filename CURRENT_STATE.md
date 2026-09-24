@@ -1,3 +1,24 @@
+- [x] ⚡ [BOOST-REMEDIATION-2026] Комплексное устранение дефектов контура Telegram Бустов (/boost) и смежных подсистем (100% COMPLETE & PASS):
+  * 🔗 **[CANON-01] Поддержка приватных ссылок Telegram Бустов (`link-rules.ts`, `link-canonicalizer.ts`):**
+    - В `src/services/analyzer/link-rules.ts:84` расширен регулярный шаблон для поддержки приватных буст-ссылок `https://t.me/boost?c=1234567890` с захватом ID закрытого канала.
+    - В `src/services/link-engine/link-canonicalizer.ts:48-56` обеспечено сохранение параметров `?c=` и `?boost`, исключено опасное стирание URL до пустой ссылки `https://t.me/boost`.
+  * 🌐 **[SEO-01] Сохранение UTM/query параметров и 301-редиректы устаревших слагов (`src/proxy.ts`):**
+    - В `src/proxy.ts:600-610` добавлено сохранение `searchParams` при 301-редиректах (`request.nextUrl.searchParams`) и оборачивание в `applyStickyCookie`.
+    - Добавлены 301-редиректы со старых слагов `/services/telegram/busty`, `/services/telegram/boost`, `/services/telegram/boosts` на канонический `/services/telegram/telegram-busty-dlya-kanalov`.
+    - Актуализирован сьют `telegram-boost-link-recognition.test.ts` (37/37 тестов PASS).
+  * 🎯 **[UX-01] Сохранение категории в визардах заказов (`useOrderEngine.ts`, `FluxOrderClient.tsx`, `PlanSlideOrderClient.tsx`):**
+    - В `useOrderEngine.ts` заблокирован сброс `setCategoryId("")` при вводе ссылки, если текущая или распознанная категория — `BOOSTS`.
+    - В `FluxOrderClient.tsx` и `PlanSlideOrderClient.tsx` проброшены пропсы `initialCategoryId`, `initialNetworkId`, `initialServices` со страницы `[category]/page.tsx`.
+  * 🏷️ **[AI-01] Санитизация названий вендоров в каталоге (`smart-analyzer.logic.ts`):**
+    - В `smart-analyzer.logic.ts` вырезаны бренды вендоров `vexboost` и `smmboost` перед классификацией `isBoost`, исключая ошибочную привязку других услуг к бустам.
+  * ⚙️ **[WORKER-01] Передача tenantId в провайдеры воркеров и mock-provider (`order.processor.ts`, `sync.processor.ts`):**
+    - В `order.processor.ts` и `sync.processor.ts` аргумент `tenantId` теперь корректно передаётся в `getWorkerProviderInstance(provider, tenantId)`.
+    - Восстановлен изолированный безопасный маршрут `src/app/api/dev/mock-provider/route.ts` с защитой `ENABLE_DEV_ROUTES === 'true'` и fail-closed 404 в продакшене.
+  * 🧪 **Контроль качества:**
+    - Компиляция TypeScript: `npx tsc --noEmit` (0 ошибок).
+    - Контроль секретов: `node scripts/check-bundle-secrets.mjs` (0 утечек, CI-GATE PASSED).
+    - Автотесты: `telegram-boost-link-recognition.test.ts` (37/37 PASS), `smart-analyzer.test.ts` (6/6 PASS), `sync.processor.test.ts` (3/3 PASS).
+    - Бандлы: `dist/worker.js` (6.6 МБ) и `dist/bot.js` (5.7 МБ) пересобраны.
 - [x] ⚡ [PROJECT-AUDIT-REMEDIATION-2026] Комплексное устранение дефектов сквозного аудита (100% COMPLETE & PASS):
   * 🛡️ **[GATE-01] Ликвидация блокеров Production Readiness (`audit:prod`):**
     - Устранены 4 пустых блока `catch {}` в `src/actions/order/checkout.ts`, `src/actions/admin/tenants.ts`, `src/actions/admin/users.ts` с добавлением структурированного логирования.

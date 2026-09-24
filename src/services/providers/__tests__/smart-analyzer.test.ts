@@ -51,4 +51,15 @@ describe('SmartAnalyzerLogic - 4-Tier Hybrid Execution Metrics', () => {
         expect(result.category).toBe('LIKES');
         expect(result.speedText).toBe('до 10k / день');
     });
+
+    it('should strip vexboost and smmboost vendor prefixes without triggering false BOOSTS category', () => {
+        const viewsService = SmartAnalyzerLogic.detectSync('Telegram Просмотры [VexBoost ID 1987]', 'Провайдер vexboost', 'Telegram Views');
+        expect(viewsService.category).toBe('VIEWS');
+
+        const reactionsService = SmartAnalyzerLogic.detectSync('Telegram Реакции [SmmBoost]', 'Качественные реакции smmboost', 'Telegram Reactions');
+        expect(reactionsService.category).toBe('REACTIONS');
+
+        const realBoostService = SmartAnalyzerLogic.detectSync('Telegram Бусты для каналов (Голоса для буста)', '', 'Telegram Boosts');
+        expect(realBoostService.category).toBe('BOOSTS');
+    });
 });

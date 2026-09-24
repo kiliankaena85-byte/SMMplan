@@ -80,7 +80,7 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
       const MAX_SYNC_PER_PROVIDER = 1000;
       const activeOrderIds = await db.order.findMany({
         where: { status: { in: ['IN_PROGRESS', 'CANCELING'] }, providerId: providerDef.id },
-        select: { id: true },
+        select: { id: true, tenantId: true },
         take: MAX_SYNC_PER_PROVIDER,
         orderBy: { updatedAt: 'asc' }
       });
@@ -91,7 +91,8 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
 
       if (activeOrderIds.length === 0) return;
 
-      const provider = await providerService.getWorkerProviderInstance(providerDef);
+      const tenantId = (activeOrderIds[0] as { tenantId?: string })?.tenantId || 'smmplan';
+      const provider = await providerService.getWorkerProviderInstance(providerDef, tenantId);
 
       for (let i = 0; i < activeOrderIds.length; i += BATCH_SIZE) {
         const chunkIds = activeOrderIds.slice(i, i + BATCH_SIZE).map(o => o.id);

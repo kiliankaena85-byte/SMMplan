@@ -75,6 +75,10 @@ interface FluxOrderClientProps {
   initialEmail?: string;
   tenantId?: string;
   userBalanceCents?: number;
+  initialNetworkId?: string;
+  initialCategoryId?: string;
+  initialServiceId?: string;
+  initialServices?: FluxService[];
 }
 
 export function FluxOrderClient(props: FluxOrderClientProps) {
@@ -85,15 +89,31 @@ export function FluxOrderClient(props: FluxOrderClientProps) {
   );
 }
 
-function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux', userBalanceCents = 0 }: FluxOrderClientProps) {
+function FluxOrderClientInner({ 
+  initialCatalog, 
+  initialEmail, 
+  tenantId = 'flux', 
+  userBalanceCents = 0,
+  initialNetworkId,
+  initialCategoryId,
+  initialServiceId,
+  initialServices = []
+}: FluxOrderClientProps) {
+  const defaultNetwork = initialNetworkId && initialCatalog
+    ? initialCatalog.find(n => n.id === initialNetworkId) || null
+    : null;
+  const defaultCategory = defaultNetwork && initialCategoryId
+    ? (defaultNetwork.categories || []).find(c => c.id === initialCategoryId) || null
+    : null;
+
   const [step, setStep] = useState<Step>('link');
   const [direction, setDirection] = useState(1);
   
   const [link, setLink] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [activeNetwork, setActiveNetwork] = useState<FluxNetwork | null>(null);
-  const [activeCategory, setActiveCategory] = useState<FluxCategory | null>(null);
-  const [services, setServices] = useState<FluxService[]>([]);
+  const [activeNetwork, setActiveNetwork] = useState<FluxNetwork | null>(defaultNetwork);
+  const [activeCategory, setActiveCategory] = useState<FluxCategory | null>(defaultCategory);
+  const [services, setServices] = useState<FluxService[]>(initialServices || []);
   const [selectedService, setSelectedService] = useState<FluxService | null>(null);
   const [isLoadingServices, setIsLoadingServices] = useState(false);
   
@@ -103,6 +123,20 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux',
   const quantityRef = useRef<HTMLInputElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
   const linkRef = useRef<HTMLInputElement>(null);
+  const categoryServicesCache = useRef<Record<string, FluxService[]>>((() => {
+    const initialCache: Record<string, FluxService[]> = {};
+    if (initialCategoryId && initialServices.length > 0) {
+      initialCache[initialCategoryId] = initialServices;
+    }
+    for (const net of (initialCatalog || [])) {
+      for (const cat of (net.categories || [])) {
+        if (cat.services && cat.services.length > 0 && !initialCache[cat.id]) {
+          initialCache[cat.id] = cat.services;
+        }
+      }
+    }
+    return initialCache;
+  })());
   
   const [isRequirementsConfirmed, setIsRequirementsConfirmed] = useState(false);
   const [isDripFeedEnabled, setIsDripFeedEnabled] = useState(false);
@@ -337,10 +371,26 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux',
 
       if (matchedNetwork) {
         setActiveNetwork(matchedNetwork);
-        setActiveCategory(null);
-        setServices([]);
-        setSelectedService(null);
-        navigateTo('category');
+        const isCurrentBoostCategory = Boolean(
+          activeCategory && (
+            activeCategory.name.toLowerCase().includes('буст') ||
+            activeCategory.name.toLowerCase().includes('boost') ||
+            activeCategory.slug?.toLowerCase().includes('boost') ||
+            activeCategory.slug?.toLowerCase().includes('busty')
+          )
+        );
+        const detectedHasBoosts = Boolean(
+          analysis?.suggestedCategories?.some(c => c.toLowerCase().includes('буст') || c.toLowerCase().includes('boost'))
+        );
+
+        if (isCurrentBoostCategory && detectedHasBoosts && activeCategory && matchedNetwork.categories?.some(c => c.id === activeCategory.id)) {
+          selectCategory(activeCategory);
+        } else {
+          setActiveCategory(null);
+          setServices([]);
+          setSelectedService(null);
+          navigateTo('category');
+        }
       } else {
         toast.info("Не удалось определить платформу по ссылке", {
           description: "Пожалуйста, выберите соцсеть из списка:"
@@ -351,10 +401,24 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux',
       const matchedNetwork = detectNetworkByUrl(trimmedInput, initialCatalog || []);
       if (matchedNetwork) {
         setActiveNetwork(matchedNetwork);
-        setActiveCategory(null);
-        setServices([]);
-        setSelectedService(null);
-        navigateTo('category');
+        const isCurrentBoostCategory = Boolean(
+          activeCategory && (
+            activeCategory.name.toLowerCase().includes('буст') ||
+            activeCategory.name.toLowerCase().includes('boost') ||
+            activeCategory.slug?.toLowerCase().includes('boost') ||
+            activeCategory.slug?.toLowerCase().includes('busty')
+          )
+        );
+        const isBoostInput = trimmedInput.toLowerCase().includes('boost') || /t\.me\/boost/i.test(trimmedInput);
+
+        if (isCurrentBoostCategory && isBoostInput && activeCategory && matchedNetwork.categories?.some(c => c.id === activeCategory.id)) {
+          selectCategory(activeCategory);
+        } else {
+          setActiveCategory(null);
+          setServices([]);
+          setSelectedService(null);
+          navigateTo('category');
+        }
       } else {
         toast.info("Не удалось определить платформу по ссылке", {
           description: "Пожалуйста, выберите соцсеть из списка:"
@@ -368,17 +432,33 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux',
 
   const selectCategory = async (cat: FluxCategory) => {
     setActiveCategory(cat);
-    setIsLoadingServices(true);
-    setServices([]);
     navigateTo('service');
 
     if (activeNetwork && cat.slug && typeof window !== 'undefined') {
       window.history.replaceState(null, '', `/services/${activeNetwork.slug}/${cat.slug}`);
     }
 
+    if (categoryServicesCache.current[cat.id]?.length) {
+      let srvList: FluxService[] = categoryServicesCache.current[cat.id];
+      if (detectedType) {
+        const compatible = srvList.filter(s =>
+          isLinkServiceCompatible(detectedType, resolveServiceTargetType(s))
+        );
+        if (compatible.length > 0) {
+          srvList = compatible;
+        }
+      }
+      setServices(srvList);
+      return;
+    }
+
+    setIsLoadingServices(true);
+    setServices([]);
+
     try {
       const fetched = await getServicesByCategoryAction(cat.id, tenantId);
       let srvList: FluxService[] = fetched || [];
+      categoryServicesCache.current[cat.id] = srvList;
       if (detectedType) {
         const compatible = srvList.filter(s =>
           isLinkServiceCompatible(detectedType, resolveServiceTargetType(s))

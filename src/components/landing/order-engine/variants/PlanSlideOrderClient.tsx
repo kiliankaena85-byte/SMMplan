@@ -89,6 +89,10 @@ export interface PlanSlideOrderClientProps {
   initialEmail?: string;
   tenantId?: string;
   userBalanceCents?: number;
+  initialNetworkId?: string;
+  initialCategoryId?: string;
+  initialServiceId?: string;
+  initialServices?: PublicService[];
 }
 
 export function PlanSlideOrderClient(props: PlanSlideOrderClientProps) {
@@ -103,17 +107,28 @@ function PlanSlideOrderClientInner({
   initialCatalog = [], 
   initialEmail = "", 
   tenantId = "smmplan", 
-  userBalanceCents = 0 
+  userBalanceCents = 0,
+  initialNetworkId = "",
+  initialCategoryId = "",
+  initialServiceId = "",
+  initialServices = []
 }: PlanSlideOrderClientProps) {
+  const defaultNetwork = initialNetworkId
+    ? initialCatalog.find(n => n.id === initialNetworkId) || null
+    : null;
+  const defaultCategory = defaultNetwork && initialCategoryId
+    ? defaultNetwork.categories.find(c => c.id === initialCategoryId) || null
+    : null;
+
   const [step, setStep] = useState<Step>('link');
   const [direction, setDirection] = useState(1);
   const [enteredViaCatalog, setEnteredViaCatalog] = useState(false);
 
   const [link, setLink] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [activeNetwork, setActiveNetwork] = useState<PublicNetwork | null>(null);
-  const [activeCategory, setActiveCategory] = useState<PublicCategory | null>(null);
-  const [services, setServices] = useState<PublicService[]>([]);
+  const [activeNetwork, setActiveNetwork] = useState<PublicNetwork | null>(defaultNetwork);
+  const [activeCategory, setActiveCategory] = useState<PublicCategory | null>(defaultCategory);
+  const [services, setServices] = useState<PublicService[]>(initialServices || []);
   const [selectedService, setSelectedService] = useState<PublicService | null>(null);
   const [isLoadingServices, setIsLoadingServices] = useState(false);
 
@@ -125,9 +140,12 @@ function PlanSlideOrderClientInner({
   const linkRef = useRef<HTMLInputElement>(null);
   const categoryServicesCache = useRef<Record<string, PublicService[]>>((() => {
     const initialCache: Record<string, PublicService[]> = {};
+    if (initialCategoryId && initialServices.length > 0) {
+      initialCache[initialCategoryId] = initialServices;
+    }
     for (const net of initialCatalog) {
       for (const cat of net.categories) {
-        if (cat.services && cat.services.length > 0) {
+        if (cat.services && cat.services.length > 0 && !initialCache[cat.id]) {
           initialCache[cat.id] = cat.services;
         }
       }
@@ -448,10 +466,26 @@ function PlanSlideOrderClientInner({
 
       if (matchedNetwork) {
         setActiveNetwork(matchedNetwork);
-        setActiveCategory(null);
-        setServices([]);
-        setSelectedService(null);
-        navigateTo('category');
+        const isCurrentBoostCategory = Boolean(
+          activeCategory && (
+            activeCategory.name.toLowerCase().includes('буст') ||
+            activeCategory.name.toLowerCase().includes('boost') ||
+            activeCategory.slug?.toLowerCase().includes('boost') ||
+            activeCategory.slug?.toLowerCase().includes('busty')
+          )
+        );
+        const detectedHasBoosts = Boolean(
+          analysis?.suggestedCategories?.some(c => c.toLowerCase().includes('буст') || c.toLowerCase().includes('boost'))
+        );
+
+        if (isCurrentBoostCategory && detectedHasBoosts && activeCategory && matchedNetwork.categories?.some((c: PublicCategory) => c.id === activeCategory.id)) {
+          selectCategory(activeCategory);
+        } else {
+          setActiveCategory(null);
+          setServices([]);
+          setSelectedService(null);
+          navigateTo('category');
+        }
       } else {
         toast.info("Не удалось определить платформу по ссылке", {
           description: "Пожалуйста, выберите соцсеть из списка:"
@@ -462,10 +496,24 @@ function PlanSlideOrderClientInner({
       const matchedNetwork = detectNetworkByUrl(trimmedInput, initialCatalog as any) as any;
       if (matchedNetwork) {
         setActiveNetwork(matchedNetwork);
-        setActiveCategory(null);
-        setServices([]);
-        setSelectedService(null);
-        navigateTo('category');
+        const isCurrentBoostCategory = Boolean(
+          activeCategory && (
+            activeCategory.name.toLowerCase().includes('буст') ||
+            activeCategory.name.toLowerCase().includes('boost') ||
+            activeCategory.slug?.toLowerCase().includes('boost') ||
+            activeCategory.slug?.toLowerCase().includes('busty')
+          )
+        );
+        const isBoostInput = trimmedInput.toLowerCase().includes('boost') || /t\.me\/boost/i.test(trimmedInput);
+
+        if (isCurrentBoostCategory && isBoostInput && activeCategory && matchedNetwork.categories?.some((c: PublicCategory) => c.id === activeCategory.id)) {
+          selectCategory(activeCategory);
+        } else {
+          setActiveCategory(null);
+          setServices([]);
+          setSelectedService(null);
+          navigateTo('category');
+        }
       } else {
         toast.info("Не удалось определить платформу по ссылке", {
           description: "Пожалуйста, выберите соцсеть из списка:"

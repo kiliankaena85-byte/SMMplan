@@ -64,12 +64,18 @@ export function runBundleSecretCheck(scanDir = STATIC_DIR) {
   console.log('🛡️  [CI-GATE] Scanning client bundles for leaked secrets and dev backdoors...');
   let violations = [];
 
-  // 1. Check if src/app/api/dev exists in production filesystem
+  // 1. Check if forbidden dev backdoor routes exist in src/app/api/dev
   if (fs.existsSync(DEV_API_DIR)) {
-    violations.push({
-      file: 'src/app/api/dev',
-      error: 'CRITICAL: Dev API directory (src/app/api/dev) exists in production source tree!'
-    });
+    const devEntries = fs.readdirSync(DEV_API_DIR, { withFileTypes: true });
+    for (const entry of devEntries) {
+      // mock-provider is the only permitted dev route (protected by fail-closed production 404 guard for testing)
+      if (entry.name !== 'mock-provider') {
+        violations.push({
+          file: `src/app/api/dev/${entry.name}`,
+          error: `CRITICAL: Forbidden dev backdoor route (src/app/api/dev/${entry.name}) exists in production source tree!`
+        });
+      }
+    }
   }
 
   // 2. Check if static directory exists

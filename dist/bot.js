@@ -98812,7 +98812,7 @@ var init_link_rules = __esm({
       {
         platform: "TELEGRAM" /* TELEGRAM */,
         type: "channel",
-        pattern: /(?:t\.me|telegram\.me|telegram\.dog)\/(?:boost\/(?:c\/)?@?([\w-]+)\/?(?:\?.*)?$|(?:s\/)?(?:c\/)?@?([\w-]+)(?:\/boost\/?(?:\?.*)?|\/?\?(?:.*&)?boost(?:[=&].*)?)$)/i,
+        pattern: /(?:t\.me|telegram\.me|telegram\.dog)\/(?:boost\/(?:c\/)?@?([\w-]+)\/?(?:\?.*)?$|boost\/?\?(?:.*&)?c=@?([\w-]+)(?:&.*)?$|(?:s\/)?(?:c\/)?@?([\w-]+)(?:\/boost\/?(?:\?.*)?|\/?\?(?:.*&)?boost(?:[=&].*)?)$)/i,
         suggestedCategories: [CATEGORY_LABELS.BOOSTS, CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.PREMIUM],
         context: "channel_boost_target"
       },
@@ -135091,9 +135091,12 @@ function stripTrackingParams(urlObj, platform, targetType) {
     const isPrivate = urlObj.pathname.includes("/+") || urlObj.pathname.includes("/joinchat/");
     if (normTarget === "CHANNEL" || normTarget === "PROFILE" || normTarget === "CHANNEL_POSTS") {
       const hasBoostParam = urlObj.searchParams.has("boost");
+      const cParam = urlObj.searchParams.get("c");
       if (!isPrivate) {
         urlObj.search = "";
-        if (hasBoostParam) {
+        if (cParam) {
+          urlObj.search = `?c=${cParam.replace(/^@/, "")}`;
+        } else if (hasBoostParam) {
           urlObj.search = "?boost";
         }
       }
@@ -135259,6 +135262,9 @@ function canonicalizeUrl(rawUrl, platform, targetType) {
       urlObj.pathname = urlObj.pathname.replace(/^\/s\/([a-zA-Z0-9_]+)/i, "/$1");
       urlObj.pathname = urlObj.pathname.replace(/^\/@/, "/");
       urlObj.pathname = urlObj.pathname.replace(/^\/boost\/@/, "/boost/");
+      if (urlObj.pathname === "/boost/") {
+        urlObj.pathname = "/boost";
+      }
       urlObj.pathname = urlObj.pathname.replace(/\/topic\/(\d+)\/(\d+)/i, "/$1/$2");
       if (normTarget === "CHANNEL" || normTarget === "CHANNEL_POSTS" || normTarget === "PROFILE") {
         const postMatch = urlObj.pathname.match(/^\/([\w-]+)\/\d+\/?$/i);

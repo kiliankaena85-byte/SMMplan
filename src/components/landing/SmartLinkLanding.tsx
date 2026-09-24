@@ -91,6 +91,10 @@ export function SmartLinkLanding({
                 initialEmail={initialEmail} 
                 tenantId={tenantId}
                 userBalanceCents={userBalanceCents}
+                initialNetworkId={initialNetworkId}
+                initialCategoryId={initialCategoryId}
+                initialServiceId={initialServiceId}
+                initialServices={initialServices}
               />
             </div>
           </div>
