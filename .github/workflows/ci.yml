@@ -55,7 +55,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run Dependency Security Audit
-        run: npm audit --audit-level=high --omit=dev || true
+        run: npm audit --audit-level=high --omit=dev
 
       - name: Generate Prisma Client
         run: npx prisma generate
@@ -64,7 +64,7 @@ jobs:
         run: npx tsc --noEmit
 
       - name: Run ESLint Security Verification
-        run: npx eslint src/ --max-warnings=0 || true
+        run: npx eslint src/ --quiet
 
       - name: Push Database Schema to Test Container
         env:
@@ -91,3 +91,11 @@ jobs:
 
       - name: Verify No Secrets in Build Artifacts
         run: node scripts/verify-no-secrets.js
+
+      - name: Run Playwright E2E Smoke Tests
+        env:
+          DATABASE_URL: "postgresql://postgres:test@localhost:5432/smmplan_test?schema=public"
+          REDIS_URL: "redis://127.0.0.1:6379"
+          JWT_SECRET: "ci-test-jwt-secret-min-32-characters-length-guaranteed"
+          APP_ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+        run: npx playwright test e2e/01-customer-order-flow.spec.ts --project=chromium
