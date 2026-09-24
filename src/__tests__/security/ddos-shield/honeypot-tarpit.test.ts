@@ -1,4 +1,4 @@
-﻿import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { 
   recordHoneypotViolation, 
   isBlacklistedDdosTarget 
@@ -31,5 +31,11 @@ describe('Honeypot Trap & Blacklist Defense (SPEC-2026-09-11)', () => {
 
     const isClean = await isBlacklistedDdosTarget('12.34.56.78', 'clean-fp', mockRedis as any);
     expect(isClean).toBe(false);
+
+    // Fast-path test: repeat query within 20s must NOT call redis.get
+    mockRedis.get.mockClear();
+    const isCleanRepeat = await isBlacklistedDdosTarget('12.34.56.78', 'clean-fp', mockRedis as any);
+    expect(isCleanRepeat).toBe(false);
+    expect(mockRedis.get).not.toHaveBeenCalled();
   });
 });
