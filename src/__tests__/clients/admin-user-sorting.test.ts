@@ -16,6 +16,7 @@ vi.mock('@/lib/db', () => ({
 
 vi.mock('@/lib/admin-audit', () => ({
   auditAdmin: vi.fn(),
+  auditAdminAwaitable: vi.fn().mockResolvedValue({ id: 'audit-1' }),
 }));
 
 describe('Admin User Dynamic Sorting & Deterministic Pagination (SPEC-2026-15)', () => {
@@ -202,10 +203,9 @@ describe('Admin User Dynamic Sorting & Deterministic Pagination (SPEC-2026-15)',
       expect(db.user.findMany).toHaveBeenCalledTimes(1);
       const callArgs = (db.user.findMany as any).mock.calls[0][0];
       expect(callArgs.where.AND).toBeDefined();
-      expect(callArgs.where.AND.length).toBe(2);
-
+      expect(callArgs.where.AND).toContainEqual({ isDeleted: false });
       // Condition 1: Search OR
-      expect(callArgs.where.AND[0]).toEqual({
+      expect(callArgs.where.AND).toContainEqual({
         OR: [
           { email: { contains: 'crypto', mode: 'insensitive' } },
           { id: { equals: 'crypto' } },
@@ -216,7 +216,7 @@ describe('Admin User Dynamic Sorting & Deterministic Pagination (SPEC-2026-15)',
       });
 
       // Condition 2: API filter OR
-      expect(callArgs.where.AND[1]).toEqual({
+      expect(callArgs.where.AND).toContainEqual({
         OR: [
           { apiConfig: { isApiEnabled: true } },
           { inn: { not: null } },
