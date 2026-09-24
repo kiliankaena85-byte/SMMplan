@@ -443,6 +443,8 @@ beforeEach(async () => {
         'order-wizard-',
         'category-slug-and-icon-hygiene',
         'empty-categories-cleanup',
+        'xss-',
+        'jsonld',
         'order-token-and-typo-guard',
         'service-route-validator',
         'service-mutation-detector',
@@ -494,7 +496,12 @@ beforeEach(async () => {
         'ai-harnesses',
         'stage1-economic',
         'harness',
-        'ast-transaction-escape'
+        'ast-transaction-escape',
+        'worker-tenant-guard',
+        'tenant-audit-isolation',
+        'webhook-rate-limiter',
+        'p0-alert-debouncer-reconnect',
+        'dev-auto-login-guard'
       ];
       if (skipPatterns.some(pattern => testPath.toLowerCase().includes(pattern.toLowerCase()))) {
         shouldReset = false;

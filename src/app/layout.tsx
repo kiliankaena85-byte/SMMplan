@@ -6,6 +6,7 @@ import { NetworkAwareProvider } from '@/components/providers/NetworkAwareProvide
 import { FloatingQADock } from '@/components/dev/FloatingQADock';
 import { CookieConsent } from '@/components/common/CookieConsent';
 import { getTenantHost, normalizeTenantId } from '@/lib/seo-helpers';
+import { serializeJsonLd } from '@/lib/sanitize';
 
 import { headers } from 'next/headers';
 
@@ -201,7 +202,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               type="application/ld+json"
               nonce={nonce}
               suppressHydrationWarning
-              dangerouslySetInnerHTML={{ __html: JSON.stringify([
+              dangerouslySetInnerHTML={{ __html: serializeJsonLd([
                 {
                   "@context": "https://schema.org",
                   "@type": "Organization",

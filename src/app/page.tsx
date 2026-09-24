@@ -19,6 +19,7 @@ import { verifySession } from "@/lib/session";
 import { db } from "@/lib/db";
 import { headers, cookies } from "next/headers";
 import { normalizeTenantId } from "@/lib/tenant-resolver-edge";
+import { serializeJsonLd } from "@/lib/sanitize";
 
 export const dynamic = "force-dynamic";
 
@@ -115,7 +116,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
+          __html: serializeJsonLd({
             "@context": "https://schema.org",
             "@type": "WebSite",
             name: siteName,

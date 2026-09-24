@@ -46,3 +46,13 @@ export function escapeHtml(str: string | null | undefined): string {
     .replace(/'/g, '&#39;');
 }
 
+/**
+ * Escapes serialized JSON for safe embedding in <script type="application/ld+json">.
+ * Replaces '<' with unicode escape '\u003c' to prevent script breakout (XSS-02).
+ */
+export function serializeJsonLd(data: unknown): string {
+  if (data === undefined || data === null) return '';
+  return JSON.stringify(data).replace(/</g, '\\u003c');
+}
+
+
