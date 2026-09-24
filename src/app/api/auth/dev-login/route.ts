@@ -16,16 +16,20 @@ export async function GET(request: Request) {
   } catch {
     host = '';
   }
+  const allowDevLogin = process.env.ALLOW_DEV_LOGIN === 'true';
   const isDev = process.env.NODE_ENV === 'development';
   const isTest = process.env.APP_ENV === 'test' || process.env.PLAYWRIGHT_TEST === 'true';
-  const isAllowedHost = host.includes('localhost') || host.includes('127.0.0.1') || host.includes('3005');
 
-  // Strict Fail-Closed: Never allow dev-login in production or outside isolated local/stage environments
-  if (!isDev && !isTest) {
+  // Strict Fail-Closed (AUTH-01): Never allow dev-login in production or unless explicitly enabled
+  if (!allowDevLogin || process.env.NODE_ENV === 'production' || (!isDev && !isTest)) {
     return new NextResponse('Not Found', { status: 404 });
   }
 
-  if (!isAllowedHost && !isDev) {
+  // Exact host and port matching to prevent spoofing (e.g., evil3005.com)
+  const [hostname, port] = host.toLowerCase().split(':');
+  const isAllowedHost = (hostname === 'localhost' || hostname === '127.0.0.1') && (!port || port === '3000' || port === '3005' || port === '3001');
+
+  if (!isAllowedHost) {
     return new NextResponse('Forbidden', { status: 403 });
   }
 

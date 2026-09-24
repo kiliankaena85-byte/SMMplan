@@ -501,7 +501,8 @@ beforeEach(async () => {
         'tenant-audit-isolation',
         'webhook-rate-limiter',
         'p0-alert-debouncer-reconnect',
-        'dev-auto-login-guard'
+        'dev-auto-login-guard',
+        'auth-01'
       ];
       if (skipPatterns.some(pattern => testPath.toLowerCase().includes(pattern.toLowerCase()))) {
         shouldReset = false;
