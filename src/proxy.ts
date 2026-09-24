@@ -8,6 +8,7 @@ import {
 } from '@/lib/session-edge';
 import { ROUTES } from '@/lib/routes';
 import { resolveTenantFromHostEdge, normalizeTenantId, resolveContourFromHost, type ContourId } from '@/lib/tenant-resolver-edge';
+import { checkWebhookRateLimit } from '@/lib/security/webhook-rate-limiter';
 
 function clearSessionCookiesOnResponse(response: NextResponse) {
   const cookieOptions = {
@@ -494,6 +495,12 @@ export async function proxy(request: NextRequest) {
   const originalIncomingHost = host.split(':')[0].toLowerCase();
   const isHoldingDomain = originalIncomingHost === 'smmplan.pro' || originalIncomingHost === 'www.smmplan.pro';
   requestHeaders.set('x-site-mode', isHoldingDomain ? 'holding' : 'live');
+
+  // SEC: Rate limit incoming webhooks by IP and tenant before signature verification
+  const webhookRateLimitRes = checkWebhookRateLimit(request, finalTenantId);
+  if (webhookRateLimitRes) {
+    return webhookRateLimitRes;
+  }
 
   const applyStickyCookie = (res: NextResponse) => {
     res.headers.set('x-tenant-id', finalTenantId);
