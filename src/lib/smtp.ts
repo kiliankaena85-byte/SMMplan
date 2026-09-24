@@ -209,12 +209,18 @@ export async function sendMagicLink(email: string, token: string, tenantId?: str
   const redirectParam = redirectTo ? `&redirectTo=${encodeURIComponent(redirectTo)}` : '';
   const link = `${baseUrl}/api/auth/verify?token=${token}${tenantParam}${redirectParam}`;
 
-  console.info(`\n========================================\n[MAGIC LINK FOR ${email} (${companyName})]:\n${link}\n========================================\n`);
+  if (process.env.NODE_ENV !== 'production') {
+    console.info(`\n========================================\n[MAGIC LINK FOR ${email} (${companyName})]:\n${link}\n========================================\n`);
+  }
 
   const result = await getTransporter(tenantId);
 
   if (!result) {
-    log.warn('SMTP Not configured. Magic link printed to console.', { email, link });
+    if (process.env.NODE_ENV !== 'production') {
+      log.warn('SMTP Not configured. Magic link printed to console.', { email, link });
+    } else {
+      log.warn('SMTP Not configured for tenant.', { tenantId, email });
+    }
     return;
   }
 
