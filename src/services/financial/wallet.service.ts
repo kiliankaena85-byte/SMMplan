@@ -1,6 +1,13 @@
 import { WalletOps } from './wallet-ops';
 import { runSerializableTransaction } from '@/lib/transactions';
 
+export class ImmutableLedgerError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ImmutableLedgerError';
+  }
+}
+
 export class WalletService {
   /**
    * Safe charge mechanism with Serializable isolation & Idempotency.
@@ -19,7 +26,11 @@ export class WalletService {
         WalletOps.charge(tx, userId, amountCents, reason, { idempotencyKey, adminId, tenantId })
       );
     } catch (e: unknown) {
-      return { success: false, error: (e instanceof Error ? e.message : String(e)) || 'Transaction failed', balance: null, cached: false };
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.includes('immutability violation') || msg.includes('LedgerEntry immutability')) {
+        throw new ImmutableLedgerError(`IMMUTABLE_LEDGER_VIOLATION: ${msg}`);
+      }
+      return { success: false, error: msg || 'Transaction failed', balance: null, cached: false };
     }
   }
 
@@ -39,7 +50,11 @@ export class WalletService {
         WalletOps.credit(tx, userId, amountCents, reason, { idempotencyKey, adminId, tenantId })
       );
     } catch (e: unknown) {
-      return { success: false, error: (e instanceof Error ? e.message : String(e)) || 'Transaction failed', balance: null, cached: false };
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.includes('immutability violation') || msg.includes('LedgerEntry immutability')) {
+        throw new ImmutableLedgerError(`IMMUTABLE_LEDGER_VIOLATION: ${msg}`);
+      }
+      return { success: false, error: msg || 'Transaction failed', balance: null, cached: false };
     }
   }
 
@@ -62,7 +77,11 @@ export class WalletService {
         WalletOps.refund(tx, userId, amountCents, reason, { idempotencyKey, adminId, tenantId })
       );
     } catch (e: unknown) {
-      return { success: false, error: (e instanceof Error ? e.message : String(e)) || 'Refund transaction failed', balance: null, cached: false };
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.includes('immutability violation') || msg.includes('LedgerEntry immutability')) {
+        throw new ImmutableLedgerError(`IMMUTABLE_LEDGER_VIOLATION: ${msg}`);
+      }
+      return { success: false, error: msg || 'Refund transaction failed', balance: null, cached: false };
     }
   }
 }
@@ -76,16 +95,24 @@ export async function deductBalanceWithLock(
   reason: string,
   opts?: { orderId?: string; idempotencyKey?: string; tenantId?: string }
 ) {
-  return await runSerializableTransaction(async (tx) => {
-    return await WalletOps.charge(
-      tx,
-      userId,
-      amountCents,
-      reason,
-      {
-        idempotencyKey: opts?.idempotencyKey || (opts?.orderId ? `order-${opts.orderId}` : undefined),
-        tenantId: opts?.tenantId
-      }
-    );
-  });
+  try {
+    return await runSerializableTransaction(async (tx) => {
+      return await WalletOps.charge(
+        tx,
+        userId,
+        amountCents,
+        reason,
+        {
+          idempotencyKey: opts?.idempotencyKey || (opts?.orderId ? `order-${opts.orderId}` : undefined),
+          tenantId: opts?.tenantId
+        }
+      );
+    });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.includes('immutability violation') || msg.includes('LedgerEntry immutability')) {
+      throw new ImmutableLedgerError(`IMMUTABLE_LEDGER_VIOLATION: ${msg}`);
+    }
+    throw e;
+  }
 }

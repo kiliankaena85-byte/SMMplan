@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { paginatedQuery, type PaginatedResult } from '@/lib/pagination';
-import { auditAdmin } from '@/lib/admin-audit';
+import { auditAdmin, auditAdminAwaitable } from '@/lib/admin-audit';
 import { WalletOps } from '../financial/wallet-ops';
 
 // ── Types ──
@@ -236,25 +236,36 @@ class AdminUserService {
    */
   async updateBalance(
     userId: string,
-    amountCents: number,
+    amountCents: number | bigint,
     reason: string,
-    admin: { id: string; email: string }
+    admin: { id: string; email: string },
+    opts?: { idempotencyKey?: string; tenantId?: string; allowElevatedCap?: boolean }
   ) {
+    const rawCents = typeof amountCents === 'bigint' ? amountCents : BigInt(amountCents);
     const user = await db.user.findUniqueOrThrow({ where: { id: userId } });
     const oldBalance = user.balance;
+    const resolvedTenantId = opts?.tenantId || user.tenantId || 'smmplan';
+    const idempotencyKey = opts?.idempotencyKey || `admin-adjust-${userId}-${Date.now()}`;
 
     await db.$transaction(async (tx) => {
-      await WalletOps.credit(tx, userId, amountCents, reason, { adminId: admin.id });
+      await WalletOps.adminAdjust(tx, userId, rawCents, reason, {
+        adminId: admin.id,
+        tenantId: resolvedTenantId,
+        idempotencyKey,
+        allowElevatedCap: opts?.allowElevatedCap,
+      });
     });
 
-    auditAdmin({
+    const newBalance = oldBalance + rawCents;
+
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'USER_BALANCE_CHANGE',
       target: userId,
       targetType: 'USER',
-      oldValue: { balance: oldBalance },
-      newValue: { balance: Number(oldBalance) + amountCents, delta: amountCents, reason },
+      oldValue: { balance: oldBalance.toString() },
+      newValue: { balance: newBalance.toString(), delta: rawCents.toString(), reason, tenantId: resolvedTenantId },
     });
   }
 
@@ -276,7 +287,7 @@ class AdminUserService {
       }),
     ]);
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'USER_BAN',
@@ -311,7 +322,7 @@ class AdminUserService {
       data: { role: restoredRole },
     });
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'USER_UNBAN',

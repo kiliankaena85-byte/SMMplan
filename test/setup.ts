@@ -502,7 +502,13 @@ beforeEach(async () => {
         'webhook-rate-limiter',
         'p0-alert-debouncer-reconnect',
         'dev-auto-login-guard',
-        'auth-01'
+        'auth-01',
+        'backup-postgres-s3',
+        'ddos-shield',
+        'pii-01',
+        'sensitive-data-filter',
+        'cors-01',
+        'bal-immutable'
       ];
       if (skipPatterns.some(pattern => testPath.toLowerCase().includes(pattern.toLowerCase()))) {
         shouldReset = false;
