@@ -1,4 +1,4 @@
-﻿import crypto from 'crypto';
+import crypto from 'crypto';
 
 export interface PowChallenge {
   challengeId: string;
@@ -12,6 +12,26 @@ export interface GatekeeperPayload {
   ip: string;
   fingerprint: string;
   expiresAt: number;
+}
+
+let ephemeralShieldSecret: string | null = null;
+
+export function getDdosShieldSecret(): string {
+  const secret = process.env.DDOS_SHIELD_SECRET || process.env.JWT_SIGNING_KEY || process.env.JWT_SECRET;
+  if (secret) {
+    return secret;
+  }
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('DDOS_SHIELD_SECRET or JWT_SECRET must be configured in production (fail-closed, SEC-03).');
+  }
+  if (!ephemeralShieldSecret) {
+    ephemeralShieldSecret = crypto.randomBytes(32).toString('hex');
+  }
+  return ephemeralShieldSecret;
+}
+
+export function resetEphemeralShieldSecretForTest(): void {
+  ephemeralShieldSecret = null;
 }
 
 /**

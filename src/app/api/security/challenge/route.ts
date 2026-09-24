@@ -1,21 +1,18 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getClientIp } from '@/utils/ip';
 import { computeHeaderFingerprint } from '@/lib/security/ddos-shield/fingerprint';
 import { 
   createPowChallenge, 
   verifyPowSolution, 
-  signGatekeeperToken 
+  signGatekeeperToken,
+  getDdosShieldSecret
 } from '@/lib/security/ddos-shield/pow-engine';
 
 export const dynamic = 'force-dynamic';
 
-function getShieldSecret(): string {
-  return process.env.JWT_SIGNING_KEY || process.env.JWT_SECRET || 'omnismm-ddos-shield-fallback-secret-2026';
-}
-
 export async function GET() {
-  const secret = getShieldSecret();
+  const secret = getDdosShieldSecret();
   const challenge = createPowChallenge(secret, 3);
 
   return NextResponse.json({
@@ -45,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { challengeId, salt, difficulty, expiresAt, signature, nonce } = parsed.data;
-    const secret = getShieldSecret();
+    const secret = getDdosShieldSecret();
 
     const isValid = verifyPowSolution({ challengeId, salt, difficulty, expiresAt, signature }, nonce, secret);
     if (!isValid) {
