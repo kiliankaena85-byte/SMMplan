@@ -17,11 +17,11 @@ export enum TargetTypeEnum {
   CUSTOM = 'CUSTOM',
 
   // === Псевдонимы обратной совместимости с Движком №1 (Legacy ServiceTargetType) ===
-  POST_INTERACTION = 'POST',
-  VIDEO_INTERACTION = 'VIDEO',
-  STORY_INTERACTION = 'STORY',
-  POLL_VOTES = 'POLL',
-  BOT_STARTS = 'BOT',
+  POST_INTERACTION = 'POST_INTERACTION',
+  VIDEO_INTERACTION = 'VIDEO_INTERACTION',
+  STORY_INTERACTION = 'STORY_INTERACTION',
+  POLL_VOTES = 'POLL_VOTES',
+  BOT_STARTS = 'BOT_STARTS',
 }
 
 export const LinkType = TargetTypeEnum;
@@ -330,6 +330,33 @@ const UNIFIED_COMPATIBILITY_MAP: Record<TargetTypeEnum, Set<TargetTypeEnum>> = {
     TargetTypeEnum.BOT,
     TargetTypeEnum.COMMENTS,
     TargetTypeEnum.CHANNEL_POSTS,
+    TargetTypeEnum.CUSTOM,
+  ]),
+  [TargetTypeEnum.POST_INTERACTION]: new Set([
+    TargetTypeEnum.POST,
+    TargetTypeEnum.VIDEO,
+    TargetTypeEnum.COMMENTS,
+    TargetTypeEnum.POLL,
+    TargetTypeEnum.CUSTOM,
+  ]),
+  [TargetTypeEnum.VIDEO_INTERACTION]: new Set([
+    TargetTypeEnum.VIDEO,
+    TargetTypeEnum.POST,
+    TargetTypeEnum.COMMENTS,
+    TargetTypeEnum.CUSTOM,
+  ]),
+  [TargetTypeEnum.STORY_INTERACTION]: new Set([
+    TargetTypeEnum.STORY,
+    TargetTypeEnum.CUSTOM,
+  ]),
+  [TargetTypeEnum.POLL_VOTES]: new Set([
+    TargetTypeEnum.POLL,
+    TargetTypeEnum.POST,
+    TargetTypeEnum.CUSTOM,
+  ]),
+  [TargetTypeEnum.BOT_STARTS]: new Set([
+    TargetTypeEnum.BOT,
+    TargetTypeEnum.CHANNEL,
     TargetTypeEnum.CUSTOM,
   ]),
 };

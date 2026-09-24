@@ -5426,7 +5426,7 @@ var require_node = __commonJS({
     var tty = require("tty");
     var util2 = require("util");
     exports2.init = init;
-    exports2.log = log31;
+    exports2.log = log32;
     exports2.formatArgs = formatArgs;
     exports2.save = save;
     exports2.load = load;
@@ -5561,7 +5561,7 @@ var require_node = __commonJS({
       }
       return (/* @__PURE__ */ new Date()).toISOString() + " ";
     }
-    function log31(...args) {
+    function log32(...args) {
       return process.stderr.write(util2.formatWithOptions(exports2.inspectOpts, ...args) + "\n");
     }
     function save(namespaces) {
@@ -41855,6 +41855,10 @@ var init_sensitive_data_filter = __esm({
         replacement: '$1"[REDACTED]"'
       },
       {
+        pattern: /("?(?:apiKey|token|secret|password|twoFactorSecret|databaseUrl|redisUrl|appEncryptionKey|jwtSecret)"?\s*[:=]\s*)(?!["'])([^\s,;&"']+)/gi,
+        replacement: '$1"[REDACTED]"'
+      },
+      {
         pattern: /(key=)([a-f0-9]{20,})/gi,
         replacement: '$1"[REDACTED]"'
       },
@@ -41870,13 +41874,15 @@ var init_sensitive_data_filter = __esm({
         pattern: /(REDIS_URL\s*=\s*)([^\s]+)/gi,
         replacement: '$1"[REDACTED]"'
       },
+      // Universal scheme URL redactor (postgres, mysql, mariadb, mongodb, mongodb+srv, http(s), amqp(s), clickhouse, redis(s), etc.)
       {
-        pattern: /(postgres(?:ql)?:\/\/[^:]+:)([^@]+)(@)/gi,
+        pattern: /((?:[a-z][a-z0-9+.-]*):\/\/[^/\s:@]+:)([^/\s@]+)(@)/gi,
         replacement: "$1*****$3"
       },
+      // Fallback for URLs without scheme (e.g. user:password@host)
       {
-        pattern: /(redis(?:s)?:\/\/[^:]+:)([^@]+)(@)/gi,
-        replacement: "$1*****$3"
+        pattern: /(^|[\s"'])((?:[a-zA-Z0-9._-]+:))([^/\s:@]+)(@(?:[a-zA-Z0-9.-]+|\[[0-9a-fA-F:]+\])(?::[0-9]+)?(?:[/\s"']|$))/gi,
+        replacement: "$1$2*****$4"
       }
     ];
   }
@@ -47874,7 +47880,8 @@ var init_prisma_tenant_enforcer = __esm({
       "customerGroup",
       "ticketFeedback",
       "promoCode",
-      "ledgerEntry"
+      "ledgerEntry",
+      "supportFinancialAction"
     ];
   }
 });
@@ -50911,11 +50918,11 @@ var require_tools = __commonJS({
         }
       }
     }
-    function buildFormatters(level, bindings, log31) {
+    function buildFormatters(level, bindings, log32) {
       return {
         level,
         bindings,
-        log: log31
+        log: log32
       };
     }
     function normalizeDestFileDescriptor(destination) {
@@ -51296,11 +51303,11 @@ var require_proto = __commonJS({
         }
       } else instance[serializersSym] = serializers;
       if (options.hasOwnProperty("formatters")) {
-        const { level, bindings: chindings, log: log31 } = options.formatters;
+        const { level, bindings: chindings, log: log32 } = options.formatters;
         instance[formattersSym] = buildFormatters(
           level || formatters.level,
           chindings || resetChildingsFormatter,
-          log31 || formatters.log
+          log32 || formatters.log
         );
       } else {
         instance[formattersSym] = buildFormatters(
@@ -52371,7 +52378,7 @@ var require_pino = __commonJS({
 
 // src/lib/logger.ts
 function createLoggerFromBase(pinoInstance) {
-  const log31 = (level) => (message, context) => {
+  const log32 = (level) => (message, context) => {
     const store = logContextStorage.getStore();
     const extra = typeof context === "object" && context !== null && !Array.isArray(context) ? context : context !== void 0 ? { detail: context } : {};
     const merged = {
@@ -52385,10 +52392,10 @@ function createLoggerFromBase(pinoInstance) {
     pinoInstance[level](safeContext, safeMessage);
   };
   return {
-    info: log31("info"),
-    warn: log31("warn"),
-    error: log31("error"),
-    debug: log31("debug"),
+    info: log32("info"),
+    warn: log32("warn"),
+    error: log32("error"),
+    debug: log32("debug"),
     child: (bindings) => createLoggerFromBase(pinoInstance.child(bindings))
   };
 }
@@ -59818,14 +59825,14 @@ var require_mailer = __commonJS({
           this.getVersionString()
         );
         if (typeof this.transporter.on === "function") {
-          this.transporter.on("log", (log31) => {
+          this.transporter.on("log", (log32) => {
             this.logger.debug(
               {
                 tnx: "transport"
               },
               "%s: %s",
-              log31.type,
-              log31.message
+              log32.type,
+              log32.message
             );
           });
           this.transporter.on("error", (err) => {
@@ -83097,13 +83104,13 @@ var require_mock_call_history = __commonJS({
     function makeFilterCalls(parameterName) {
       return (parameterValue, logs) => {
         if (typeof parameterValue === "string" || parameterValue == null) {
-          return logs.filter((log31) => {
-            return log31[parameterName] === parameterValue;
+          return logs.filter((log32) => {
+            return log32[parameterName] === parameterValue;
           });
         }
         if (parameterValue instanceof RegExp) {
-          return logs.filter((log31) => {
-            return parameterValue.test(log31[parameterName]);
+          return logs.filter((log32) => {
+            return parameterValue.test(log32[parameterName]);
           });
         }
         throw new InvalidArgumentError(`${parameterName} parameter should be one of string, regexp, undefined or null`);
@@ -83198,8 +83205,8 @@ var require_mock_call_history = __commonJS({
           return this.logs.filter(criteria);
         }
         if (criteria instanceof RegExp) {
-          return this.logs.filter((log31) => {
-            return criteria.test(log31.toString());
+          return this.logs.filter((log32) => {
+            return criteria.test(log32.toString());
           });
         }
         if (typeof criteria === "object" && criteria !== null) {
@@ -83249,13 +83256,13 @@ var require_mock_call_history = __commonJS({
         this.logs = [];
       }
       [kMockCallHistoryAddLog](requestInit) {
-        const log31 = new MockCallHistoryLog(requestInit);
-        this.logs.push(log31);
-        return log31;
+        const log32 = new MockCallHistoryLog(requestInit);
+        this.logs.push(log32);
+        return log32;
       }
       *[Symbol.iterator]() {
-        for (const log31 of this.calls()) {
-          yield log31;
+        for (const log32 of this.calls()) {
+          yield log32;
         }
       }
     };
@@ -106641,7 +106648,7 @@ var init_network_router = __esm({
             where: { id: tenantId },
             select: { id: true, geminiProxy: true }
           });
-          let parsedRules = { ...DEFAULT_ROUTING_CONFIG };
+          const parsedRules = { ...DEFAULT_ROUTING_CONFIG };
           if (settings?.geminiProxy && settings.geminiProxy.trim()) {
             parsedRules.systemProxyUrl = settings.geminiProxy.trim();
           }
@@ -111578,7 +111585,7 @@ var init_provider_service = __esm({
        * Main Factory Method — resolves and passes proxy config to UniversalProvider
        */
       async getProviderInstance(config2) {
-        let apiUrl = config2.apiUrl;
+        const apiUrl = config2.apiUrl;
         let decryptedKey;
         try {
           decryptedKey = VaultService.decrypt(config2.apiKey);
@@ -112604,11 +112611,11 @@ var init_target_type_mapper = __esm({
       TargetTypeEnum2["COMMENTS"] = "COMMENTS";
       TargetTypeEnum2["BOT"] = "BOT";
       TargetTypeEnum2["CUSTOM"] = "CUSTOM";
-      TargetTypeEnum2["POST_INTERACTION"] = "POST";
-      TargetTypeEnum2["VIDEO_INTERACTION"] = "VIDEO";
-      TargetTypeEnum2["STORY_INTERACTION"] = "STORY";
-      TargetTypeEnum2["POLL_VOTES"] = "POLL";
-      TargetTypeEnum2["BOT_STARTS"] = "BOT";
+      TargetTypeEnum2["POST_INTERACTION"] = "POST_INTERACTION";
+      TargetTypeEnum2["VIDEO_INTERACTION"] = "VIDEO_INTERACTION";
+      TargetTypeEnum2["STORY_INTERACTION"] = "STORY_INTERACTION";
+      TargetTypeEnum2["POLL_VOTES"] = "POLL_VOTES";
+      TargetTypeEnum2["BOT_STARTS"] = "BOT_STARTS";
       return TargetTypeEnum2;
     })(TargetTypeEnum || {});
     LinkType = TargetTypeEnum;
@@ -112677,6 +112684,33 @@ var init_target_type_mapper = __esm({
         "BOT" /* BOT */,
         "COMMENTS" /* COMMENTS */,
         "CHANNEL_POSTS" /* CHANNEL_POSTS */,
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["POST_INTERACTION" /* POST_INTERACTION */]: /* @__PURE__ */ new Set([
+        "POST" /* POST */,
+        "VIDEO" /* VIDEO */,
+        "COMMENTS" /* COMMENTS */,
+        "POLL" /* POLL */,
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["VIDEO_INTERACTION" /* VIDEO_INTERACTION */]: /* @__PURE__ */ new Set([
+        "VIDEO" /* VIDEO */,
+        "POST" /* POST */,
+        "COMMENTS" /* COMMENTS */,
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["STORY_INTERACTION" /* STORY_INTERACTION */]: /* @__PURE__ */ new Set([
+        "STORY" /* STORY */,
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["POLL_VOTES" /* POLL_VOTES */]: /* @__PURE__ */ new Set([
+        "POLL" /* POLL */,
+        "POST" /* POST */,
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["BOT_STARTS" /* BOT_STARTS */]: /* @__PURE__ */ new Set([
+        "BOT" /* BOT */,
+        "CHANNEL" /* CHANNEL */,
         "CUSTOM" /* CUSTOM */
       ])
     };
@@ -114461,7 +114495,7 @@ var init_link_analyzer = __esm({
           return this.getFallbackResult(rawUrl, "EMPTY_INPUT");
         }
         const boundedRaw = rawUrl.length > 2048 ? rawUrl.slice(0, 2048) : rawUrl;
-        let cleanUrl = boundedRaw.trim();
+        const cleanUrl = boundedRaw.trim();
         const isBareHandle = cleanUrl.startsWith("@");
         const hasNoDomainOrDot = !cleanUrl.includes(".") && !cleanUrl.includes("/");
         if (isBareHandle || hasNoDomainOrDot) {
@@ -128338,15 +128372,21 @@ async function sendMagicLink(email, token, tenantId, redirectTo) {
   const tenantParam = normTenant && normTenant !== "smmplan" ? `&tenant=${normTenant}` : "";
   const redirectParam = redirectTo ? `&redirectTo=${encodeURIComponent(redirectTo)}` : "";
   const link = `${baseUrl2}/api/auth/verify?token=${token}${tenantParam}${redirectParam}`;
-  console.info(`
+  if (process.env.NODE_ENV !== "production") {
+    console.info(`
 ========================================
 [MAGIC LINK FOR ${email} (${companyName})]:
 ${link}
 ========================================
 `);
+  }
   const result = await getTransporter(tenantId);
   if (!result) {
-    log5.warn("SMTP Not configured. Magic link printed to console.", { email, link });
+    if (process.env.NODE_ENV !== "production") {
+      log5.warn("SMTP Not configured. Magic link printed to console.", { email, link });
+    } else {
+      log5.warn("SMTP Not configured for tenant.", { tenantId, email });
+    }
     return;
   }
   const htmlContent = `
@@ -129643,7 +129683,7 @@ var init_adaptive_rate_limiter_service = __esm({
 });
 
 // src/lib/redis-lock.ts
-var import_crypto3, RELEASE_LOCK_LUA, EXTEND_LOCK_LUA, MutexManager;
+var import_crypto3, RELEASE_LOCK_LUA, EXTEND_LOCK_LUA, LockLostError, MutexManager;
 var init_redis_lock = __esm({
   "src/lib/redis-lock.ts"() {
     "use strict";
@@ -129663,12 +129703,19 @@ else
     return 0
 end
 `;
+    LockLostError = class extends Error {
+      constructor(key, message) {
+        super(message || `Lock was lost during execution for key: ${key}`);
+        this.isLockLost = true;
+        this.name = "LockLostError";
+      }
+    };
     MutexManager = class {
       /**
-       * Acquires a lock in Redis with a unique owner token.
-       * Returns the owner token if acquired, null if timed out.
+       * Acquires a lock in Redis with a unique owner token and a monotonic fencing token.
+       * Returns { token, fencingToken } if acquired, null if timed out.
        */
-      static async acquireLock(key, ttlMs, maxWaitMs = 5e3) {
+      static async acquireLockWithFencing(key, ttlMs, maxWaitMs = 5e3) {
         const lockKey = key.startsWith("lock:") ? key : `lock:${key}`;
         const token = import_crypto3.default.randomUUID();
         const start = Date.now();
@@ -129676,11 +129723,39 @@ end
         while (Date.now() - start < maxWaitMs) {
           const acquired = await redis.set(lockKey, token, "PX", ttlMs, "NX");
           if (acquired === "OK") {
-            return token;
+            const fenceKey = `fence:${lockKey}`;
+            let fencingToken = 1;
+            try {
+              fencingToken = await redis.incr(fenceKey);
+            } catch {
+              fencingToken = Date.now();
+            }
+            return { token, fencingToken };
           }
           await new Promise((resolve) => setTimeout(resolve, waitTime));
         }
         return null;
+      }
+      /**
+       * Acquires a lock in Redis with a unique owner token.
+       * Returns the owner token if acquired, null if timed out.
+       */
+      static async acquireLock(key, ttlMs, maxWaitMs = 5e3) {
+        const result = await this.acquireLockWithFencing(key, ttlMs, maxWaitMs);
+        return result ? result.token : null;
+      }
+      /**
+       * Checks whether the given token currently owns the lock in Redis.
+       */
+      static async isLockOwner(key, token) {
+        if (!token) return false;
+        const lockKey = key.startsWith("lock:") ? key : `lock:${key}`;
+        try {
+          const current = await redis.get(lockKey);
+          return current === token;
+        } catch {
+          return false;
+        }
       }
       /**
        * Extends the TTL of an active lock if and only if the caller owns the lock token.
@@ -129711,22 +129786,48 @@ end
       }
       /**
        * Wrapper execute function that ensures mutual exclusion on a specific key.
-       * Periodically extends the lock TTL in the background while the task executes.
+       * Periodically extends the lock TTL in the background and validates fencing ownership to prevent split-brain writes.
        */
       static async withLock(key, ttlMs, maxWaitMs, fn) {
-        const token = await this.acquireLock(key, ttlMs, maxWaitMs);
-        if (!token) {
+        const lockData = await this.acquireLockWithFencing(key, ttlMs, maxWaitMs);
+        if (!lockData) {
           throw new Error(`Failed to acquire lock for key: ${key}`);
         }
+        const { token, fencingToken } = lockData;
+        let lockLost = false;
         const intervalMs = Math.max(100, Math.floor(ttlMs / 3));
         const heartbeatTimer = setInterval(async () => {
           try {
-            await this.extendLock(key, token, ttlMs);
+            const extended = await this.extendLock(key, token, ttlMs);
+            if (!extended) {
+              lockLost = true;
+            }
           } catch {
+            lockLost = true;
           }
         }, intervalMs);
+        const isLockValid = async () => {
+          if (lockLost) return false;
+          return await this.isLockOwner(key, token);
+        };
+        const assertLockValid = async () => {
+          const valid = await isLockValid();
+          if (!valid) {
+            throw new LockLostError(key);
+          }
+        };
+        const context = {
+          token,
+          fencingToken,
+          isLockValid,
+          assertLockValid
+        };
         try {
-          return await fn();
+          const result = await fn(context);
+          if (lockLost || !await this.isLockOwner(key, token)) {
+            throw new LockLostError(key);
+          }
+          return result;
         } finally {
           clearInterval(heartbeatTimer);
           await this.releaseLock(key, token);
@@ -144602,7 +144703,7 @@ var p0_alert_debouncer_exports = {};
 __export2(p0_alert_debouncer_exports, {
   P0AlertDebouncer: () => P0AlertDebouncer
 });
-var log11, inMemoryLocks, inMemoryCounters, P0AlertDebouncer;
+var log11, inMemoryLocks, inMemoryCounters, isSyncingToRedis, P0AlertDebouncer;
 var init_p0_alert_debouncer = __esm({
   "src/lib/alerts/p0-alert-debouncer.ts"() {
     "use strict";
@@ -144611,12 +144712,86 @@ var init_p0_alert_debouncer = __esm({
     log11 = logger.child({ component: "P0AlertDebouncer" });
     inMemoryLocks = /* @__PURE__ */ new Map();
     inMemoryCounters = /* @__PURE__ */ new Map();
+    isSyncingToRedis = false;
     P0AlertDebouncer = class {
       static {
         this.PREFIX = "p0:debounce:";
       }
       static {
         this.THRESHOLD_PREFIX = "p0:threshold:";
+      }
+      static {
+        this.MAX_IN_MEMORY_ENTRIES = 5e3;
+      }
+      /**
+       * Prunes in-memory stores. First removes expired entries.
+       * If store size exceeds MAX_IN_MEMORY_ENTRIES, evicts Least Recently Used (LRU) entries.
+       */
+      static pruneInMemoryStores() {
+        const now = Date.now();
+        for (const [key, entry] of inMemoryLocks.entries()) {
+          if (entry.expiresAt <= now) {
+            inMemoryLocks.delete(key);
+          }
+        }
+        for (const [key, entry] of inMemoryCounters.entries()) {
+          if (entry.expiresAt <= now) {
+            inMemoryCounters.delete(key);
+          }
+        }
+        if (inMemoryLocks.size > this.MAX_IN_MEMORY_ENTRIES) {
+          const sortedLocks = Array.from(inMemoryLocks.entries()).sort((a, b) => a[1].lastAccessedAt - b[1].lastAccessedAt);
+          const toRemoveCount = inMemoryLocks.size - this.MAX_IN_MEMORY_ENTRIES;
+          for (let i = 0; i < toRemoveCount; i++) {
+            inMemoryLocks.delete(sortedLocks[i][0]);
+          }
+        }
+        if (inMemoryCounters.size > this.MAX_IN_MEMORY_ENTRIES) {
+          const sortedCounters = Array.from(inMemoryCounters.entries()).sort((a, b) => a[1].lastAccessedAt - b[1].lastAccessedAt);
+          const toRemoveCount = inMemoryCounters.size - this.MAX_IN_MEMORY_ENTRIES;
+          for (let i = 0; i < toRemoveCount; i++) {
+            inMemoryCounters.delete(sortedCounters[i][0]);
+          }
+        }
+      }
+      /**
+       * Merges accumulated in-memory deltas and active locks into Redis upon reconnect.
+       * Redis serves as the source of truth, while in-memory pushes deltas.
+       */
+      static async syncInMemoryToRedis() {
+        if (isSyncingToRedis) return;
+        if (redis.status !== "ready") return;
+        if (inMemoryLocks.size === 0 && inMemoryCounters.size === 0) return;
+        isSyncingToRedis = true;
+        try {
+          const now = Date.now();
+          for (const [fullKey, entry] of Array.from(inMemoryCounters.entries())) {
+            if (entry.expiresAt <= now) {
+              inMemoryCounters.delete(fullKey);
+              continue;
+            }
+            if (entry.delta > 0) {
+              const ttlSec = Math.max(1, Math.ceil((entry.expiresAt - now) / 1e3));
+              const newRedisCount = await redis.incrby(fullKey, entry.delta);
+              await redis.expire(fullKey, ttlSec);
+              entry.count = newRedisCount;
+              entry.delta = 0;
+            }
+          }
+          for (const [fullKey, entry] of Array.from(inMemoryLocks.entries())) {
+            if (entry.expiresAt <= now) {
+              inMemoryLocks.delete(fullKey);
+              continue;
+            }
+            const ttlSec = Math.max(1, Math.ceil((entry.expiresAt - now) / 1e3));
+            await redis.set(fullKey, "1", "EX", ttlSec, "NX");
+          }
+          this.pruneInMemoryStores();
+        } catch (err) {
+          log11.warn("[P0AlertDebouncer] Error syncing in-memory state to Redis upon reconnect", { error: err });
+        } finally {
+          isSyncingToRedis = false;
+        }
       }
       /**
        * Attempts to acquire an alert lock.
@@ -144625,20 +144800,30 @@ var init_p0_alert_debouncer = __esm({
        */
       static async shouldSendAlert(alertKey, cooldownSeconds = 3600) {
         const fullKey = `${this.PREFIX}${alertKey}`;
+        const now = Date.now();
         try {
           if (redis.status === "ready" || redis.status === "connecting") {
+            await this.syncInMemoryToRedis();
             const acquired = await redis.set(fullKey, "1", "EX", cooldownSeconds, "NX");
-            return acquired === "OK";
+            if (acquired === "OK") {
+              inMemoryLocks.set(fullKey, { expiresAt: now + cooldownSeconds * 1e3, lastAccessedAt: now });
+              return true;
+            }
+            return false;
           }
         } catch (redisErr) {
           log11.warn("[P0AlertDebouncer] Redis unavailable, using in-memory debounce lock", { error: redisErr });
         }
-        const now = Date.now();
-        const existingExpiry = inMemoryLocks.get(fullKey);
-        if (existingExpiry && existingExpiry > now) {
+        this.pruneInMemoryStores();
+        const existing = inMemoryLocks.get(fullKey);
+        if (existing && existing.expiresAt > now) {
+          existing.lastAccessedAt = now;
           return false;
         }
-        inMemoryLocks.set(fullKey, now + cooldownSeconds * 1e3);
+        inMemoryLocks.set(fullKey, {
+          expiresAt: now + cooldownSeconds * 1e3,
+          lastAccessedAt: now
+        });
         return true;
       }
       /**
@@ -144648,8 +144833,10 @@ var init_p0_alert_debouncer = __esm({
        */
       static async checkThresholdTrigger(key, windowSeconds, thresholdLimit) {
         const fullKey = `${this.THRESHOLD_PREFIX}${key}`;
+        const now = Date.now();
         try {
           if (redis.status === "ready" || redis.status === "connecting") {
+            await this.syncInMemoryToRedis();
             const currentCount = await redis.incr(fullKey);
             if (currentCount === 1) {
               await redis.expire(fullKey, windowSeconds);
@@ -144662,13 +144849,20 @@ var init_p0_alert_debouncer = __esm({
         } catch (redisErr) {
           log11.warn("[P0AlertDebouncer] Redis unavailable, using in-memory threshold counter", { error: redisErr });
         }
-        const now = Date.now();
+        this.pruneInMemoryStores();
         const entry = inMemoryCounters.get(fullKey);
         if (!entry || entry.expiresAt <= now) {
-          inMemoryCounters.set(fullKey, { count: 1, expiresAt: now + windowSeconds * 1e3 });
+          inMemoryCounters.set(fullKey, {
+            count: 1,
+            delta: 1,
+            expiresAt: now + windowSeconds * 1e3,
+            lastAccessedAt: now
+          });
           return { count: 1, shouldTrigger: 1 >= thresholdLimit };
         }
         entry.count += 1;
+        entry.delta += 1;
+        entry.lastAccessedAt = now;
         return {
           count: entry.count,
           shouldTrigger: entry.count >= thresholdLimit
@@ -144683,9 +144877,11 @@ var init_p0_alert_debouncer = __esm({
           if (redis.status === "ready" || redis.status === "connecting") {
             await redis.del(fullKey);
           }
-        } catch {
+        } catch (err) {
+          log11.warn("[P0AlertDebouncer] Redis resetLock failed", { error: err });
         }
         inMemoryLocks.delete(fullKey);
+        inMemoryCounters.delete(`${this.THRESHOLD_PREFIX}${alertKey}`);
       }
       /**
        * Smart Deduplication with occurrence count tracker.
@@ -144696,6 +144892,7 @@ var init_p0_alert_debouncer = __esm({
         let occurrences = 1;
         try {
           if (redis.status === "ready" || redis.status === "connecting") {
+            await this.syncInMemoryToRedis();
             occurrences = await redis.incr(countKey);
             if (occurrences === 1) {
               await redis.expire(countKey, cooldownSeconds);
@@ -144707,7 +144904,27 @@ var init_p0_alert_debouncer = __esm({
         const shouldSend = await this.shouldSendAlert(alertKey, cooldownSeconds);
         return { shouldSend, occurrences };
       }
+      /**
+       * Helper for unit testing and state inspection.
+       */
+      static getInMemoryStoreSizes() {
+        return { locks: inMemoryLocks.size, counters: inMemoryCounters.size };
+      }
+      static clearInMemoryStores() {
+        inMemoryLocks.clear();
+        inMemoryCounters.clear();
+      }
+      static populateInMemoryLockForTest(key, entry) {
+        inMemoryLocks.set(key, entry);
+      }
     };
+    if (redis && typeof redis.on === "function") {
+      redis.on("ready", () => {
+        P0AlertDebouncer.syncInMemoryToRedis().catch((err) => {
+          log11.warn("[P0AlertDebouncer] Automatic reconnect sync failed", { error: err });
+        });
+      });
+    }
   }
 });
 
@@ -160966,6 +161183,12 @@ init_wallet_ops();
 // src/services/financial/wallet.service.ts
 init_wallet_ops();
 init_transactions();
+var ImmutableLedgerError = class extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "ImmutableLedgerError";
+  }
+};
 var WalletService = class {
   /**
    * Safe charge mechanism with Serializable isolation & Idempotency.
@@ -160977,7 +161200,11 @@ var WalletService = class {
         async (tx) => WalletOps.charge(tx, userId, amountCents, reason, { idempotencyKey, adminId, tenantId })
       );
     } catch (e) {
-      return { success: false, error: (e instanceof Error ? e.message : String(e)) || "Transaction failed", balance: null, cached: false };
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.includes("immutability violation") || msg.includes("LedgerEntry immutability")) {
+        throw new ImmutableLedgerError(`IMMUTABLE_LEDGER_VIOLATION: ${msg}`);
+      }
+      return { success: false, error: msg || "Transaction failed", balance: null, cached: false };
     }
   }
   /**
@@ -160989,7 +161216,11 @@ var WalletService = class {
         async (tx) => WalletOps.credit(tx, userId, amountCents, reason, { idempotencyKey, adminId, tenantId })
       );
     } catch (e) {
-      return { success: false, error: (e instanceof Error ? e.message : String(e)) || "Transaction failed", balance: null, cached: false };
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.includes("immutability violation") || msg.includes("LedgerEntry immutability")) {
+        throw new ImmutableLedgerError(`IMMUTABLE_LEDGER_VIOLATION: ${msg}`);
+      }
+      return { success: false, error: msg || "Transaction failed", balance: null, cached: false };
     }
   }
   /**
@@ -161004,7 +161235,11 @@ var WalletService = class {
         async (tx) => WalletOps.refund(tx, userId, amountCents, reason, { idempotencyKey, adminId, tenantId })
       );
     } catch (e) {
-      return { success: false, error: (e instanceof Error ? e.message : String(e)) || "Refund transaction failed", balance: null, cached: false };
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.includes("immutability violation") || msg.includes("LedgerEntry immutability")) {
+        throw new ImmutableLedgerError(`IMMUTABLE_LEDGER_VIOLATION: ${msg}`);
+      }
+      return { success: false, error: msg || "Refund transaction failed", balance: null, cached: false };
     }
   }
 };
@@ -166589,22 +166824,93 @@ ${JSON.stringify(safeMetrics, null, 2)}`;
   }
 };
 
+// src/lib/security/worker-tenant-guard.ts
+init_db();
+init_logger();
+var log25 = logger.child({ component: "WorkerTenantGuard" });
+async function validateJobTenantId(tenantId, options = {}) {
+  const { jobId = "unknown", expectedUserId, allowAll = false } = options;
+  if (!tenantId || typeof tenantId !== "string") {
+    log25.warn(`[${jobId}] Discarding job: missing tenantId in payload`);
+    return { valid: false, reason: "MISSING_TENANT_ID" };
+  }
+  if (tenantId === "all") {
+    if (allowAll) {
+      return { valid: true };
+    }
+    log25.warn(`[${jobId}] Discarding job: 'all' tenantId is not permitted for this job type`);
+    return { valid: false, reason: "TENANT_ALL_NOT_ALLOWED" };
+  }
+  const clean = tenantId.trim().toLowerCase();
+  const canonical = clean === "smmflux" ? "flux" : clean;
+  const knownTenants = /* @__PURE__ */ new Set(["smmplan", "flux"]);
+  let tenantExists = knownTenants.has(canonical);
+  if (!tenantExists) {
+    try {
+      const dbTenant = await db.tenant.findFirst({
+        where: {
+          OR: [
+            { id: tenantId },
+            { slug: tenantId }
+          ]
+        },
+        select: { id: true }
+      });
+      if (dbTenant) {
+        tenantExists = true;
+      }
+    } catch {
+    }
+  }
+  if (!tenantExists) {
+    log25.error(`[${jobId}] Security Alert: Tenant ID spoofing detected! Tenant '${tenantId}' does not exist in DB.`);
+    return { valid: false, reason: "TENANT_DOES_NOT_EXIST" };
+  }
+  if (expectedUserId) {
+    try {
+      const user = await db.user.findUnique({
+        where: { id: expectedUserId },
+        select: { id: true, tenantId: true, allowedTenants: true }
+      });
+      if (!user) {
+        log25.error(`[${jobId}] Security Alert: Job user '${expectedUserId}' does not exist.`);
+        return { valid: false, reason: "USER_NOT_FOUND" };
+      }
+      const userTenant = user.tenantId || "smmplan";
+      const userAllowed = user.allowedTenants && user.allowedTenants.length > 0 ? user.allowedTenants : [userTenant];
+      if (!userAllowed.includes(tenantId)) {
+        log25.error(`[${jobId}] Security Alert: Tenant ID spoofing! User '${expectedUserId}' (tenant: ${userTenant}) attempted job for unpermitted tenant '${tenantId}'.`);
+        return { valid: false, reason: "TENANT_USER_MISMATCH" };
+      }
+    } catch (err) {
+      log25.error(`[${jobId}] Error validating user tenant ownership: ${err.message}`);
+      return { valid: false, reason: "VALIDATION_ERROR" };
+    }
+  }
+  return { valid: true };
+}
+
 // src/workers/processors/ai-observer.processor.ts
-var log25 = logger.child({ component: "AiObserverWorker" });
+var log26 = logger.child({ component: "AiObserverWorker" });
 async function aiObserverProcessor(job) {
   try {
-    log25.info(`[${job.id}] Executing daily Executive AI Observer pipeline...`);
+    log26.info(`[${job.id}] Executing daily Executive AI Observer pipeline...`);
     const tenantId = job.data?.tenantId || "smmplan";
+    const validation = await validateJobTenantId(tenantId, { jobId: String(job.id) });
+    if (!validation.valid) {
+      log26.warn(`[${job.id}] Discarding AI Observer job due to failed tenant validation: ${validation.reason}`);
+      return { success: false, skipped: true, reason: validation.reason };
+    }
     const result = await AiObserverService.runObserverPipeline({
       tenantId,
       sendTelegram: true,
       forceRun: false
     });
     if (result.isKillswitchActive) {
-      log25.info(`[${job.id}] AI Observer was skipped due to Master Kill-Switch.`);
+      log26.info(`[${job.id}] AI Observer was skipped due to Master Kill-Switch.`);
       return { skipped: true, reason: "KILLSWITCH_ACTIVE" };
     }
-    log25.info(`[${job.id}] Executive AI Observer completed successfully in ${result.latencyMs}ms (Source: ${result.source})`);
+    log26.info(`[${job.id}] Executive AI Observer completed successfully in ${result.latencyMs}ms (Source: ${result.source})`);
     return {
       success: true,
       source: result.source,
@@ -166612,7 +166918,7 @@ async function aiObserverProcessor(job) {
       generatedAt: result.generatedAt
     };
   } catch (error) {
-    log25.error(`[${job.id}] Critical error in AI Observer worker: ${error.message}`);
+    log26.error(`[${job.id}] Critical error in AI Observer worker: ${error.message}`);
     throw error;
   }
 }
@@ -166626,7 +166932,7 @@ init_db();
 init_logger();
 init_settings();
 init_financial_constants();
-var log26 = logger.child({ component: "AiEconomicOptimizerService" });
+var log27 = logger.child({ component: "AiEconomicOptimizerService" });
 var AiEconomicOptimizerService = class {
   static {
     this.MIN_MARGIN_FLOOR_FACTOR = 1.15;
@@ -166826,7 +167132,7 @@ var AiEconomicOptimizerService = class {
       outputSnapshot: { snapshotId: snapshot.id }
     });
     const totalDurationMs = Date.now() - startTime;
-    log26.info(`[Tenant: ${tenantId}] Economic optimization snapshot created [ID: ${snapshot.id}] in ${totalDurationMs}ms`);
+    log27.info(`[Tenant: ${tenantId}] Economic optimization snapshot created [ID: ${snapshot.id}] in ${totalDurationMs}ms`);
     return {
       snapshotId: snapshot.id,
       tenantId,
@@ -166839,18 +167145,23 @@ var AiEconomicOptimizerService = class {
 };
 
 // src/workers/processors/ai-economic-optimizer.processor.ts
-var log27 = logger.child({ component: "AiEconomicOptimizerWorker" });
+var log28 = logger.child({ component: "AiEconomicOptimizerWorker" });
 async function aiEconomicOptimizerProcessor(job) {
   const { tenantId = "all", analyzedPeriodDays = 30, forceRun = false } = job.data || {};
+  const validation = await validateJobTenantId(tenantId, { jobId: String(job.id), allowAll: true });
+  if (!validation.valid) {
+    log28.warn(`[${job.id}] Discarding Economic Optimizer job due to failed tenant validation: ${validation.reason}`);
+    return { success: false, skipped: true, reason: validation.reason, processedTenants: [] };
+  }
   const tenantsToProcess = tenantId === "all" ? ["smmplan", "flux"] : [tenantId];
-  log27.info(`[${job.id}] Starting Nightly Economic Optimization for tenants: [${tenantsToProcess.join(", ")}]`);
+  log28.info(`[${job.id}] Starting Nightly Economic Optimization for tenants: [${tenantsToProcess.join(", ")}]`);
   const results = [];
   for (const currentTenant of tenantsToProcess) {
     const lockKey = `worker:ai-economic-optimizer:${currentTenant}`;
     const LOCK_TTL_MS = 10 * 60 * 1e3;
     try {
       const tenantResult = await MutexManager.withLock(lockKey, LOCK_TTL_MS, 3e3, async () => {
-        log27.info(`[${job.id}][Tenant: ${currentTenant}] Acquired lock, executing optimization pipeline...`);
+        log28.info(`[${job.id}][Tenant: ${currentTenant}] Acquired lock, executing optimization pipeline...`);
         return await AiEconomicOptimizerService.runNightlyOptimization({
           tenantId: currentTenant,
           analyzedPeriodDays,
@@ -166861,17 +167172,17 @@ async function aiEconomicOptimizerProcessor(job) {
     } catch (err) {
       const errorMsg = err.message;
       if (errorMsg.includes("Failed to acquire lock")) {
-        log27.warn(`[${job.id}][Tenant: ${currentTenant}] Optimization skipped due to lock contention.`);
+        log28.warn(`[${job.id}][Tenant: ${currentTenant}] Optimization skipped due to lock contention.`);
         results.push({ tenantId: currentTenant, skipped: true, reason: "LOCK_CONTENTION" });
       } else {
-        log27.error(`[${job.id}][Tenant: ${currentTenant}] Failed economic optimization: ${errorMsg}`, {
+        log28.error(`[${job.id}][Tenant: ${currentTenant}] Failed economic optimization: ${errorMsg}`, {
           stack: err.stack
         });
         throw err;
       }
     }
   }
-  log27.info(`[${job.id}] Nightly Economic Optimization finished across all tenants.`);
+  log28.info(`[${job.id}] Nightly Economic Optimization finished across all tenants.`);
   return { success: true, processedTenants: results };
 }
 
@@ -166880,10 +167191,10 @@ init_geo_availability_service();
 init_notifications();
 init_redis();
 init_logger();
-var log28 = logger.child({ component: "GeoAvailabilityWatchdog" });
+var log29 = logger.child({ component: "GeoAvailabilityWatchdog" });
 async function processGeoAvailabilityCheck(job) {
   const targetUrl = job?.data?.targetUrl || process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "https://test.smmplan.pro";
-  log28.info(`\u{1F50D} Running automated Geo-Availability probe for: ${targetUrl}`);
+  log29.info(`\u{1F50D} Running automated Geo-Availability probe for: ${targetUrl}`);
   const report = await GeoAvailabilityService.checkAvailability(targetUrl, 12, 5e3);
   const stateKey = `geo_monitor:state:${Buffer.from(targetUrl).toString("base64")}`;
   let previousState = {
@@ -166897,7 +167208,7 @@ async function processGeoAvailabilityCheck(job) {
       previousState = JSON.parse(rawState);
     }
   } catch (err) {
-    log28.warn(`Failed to read previous geo monitor state: ${err.message}`);
+    log29.warn(`Failed to read previous geo monitor state: ${err.message}`);
   }
   const now = Date.now();
   let alertSent = false;
@@ -166922,7 +167233,7 @@ async function processGeoAvailabilityCheck(job) {
 ` + (report.permanentLink ? `\u{1F517} <a href="${report.permanentLink}">\u041F\u043E\u0434\u0440\u043E\u0431\u043D\u044B\u0439 \u0434\u0438\u0430\u0433\u043D\u043E\u0441\u0442\u0438\u0447\u0435\u0441\u043A\u0438\u0439 \u043E\u0442\u0447\u0435\u0442</a>` : "");
       sendAdminAlert(alertMsg, "CRITICAL");
       alertSent = true;
-      log28.error(`\u{1F6A8} Dispatched CRITICAL Geo-Availability alert for ${targetUrl}`);
+      log29.error(`\u{1F6A8} Dispatched CRITICAL Geo-Availability alert for ${targetUrl}`);
     }
     const newState = {
       isBlocked: true,
@@ -166941,7 +167252,7 @@ async function processGeoAvailabilityCheck(job) {
 <i>\u0412\u0441\u0435 \u0441\u0438\u0441\u0442\u0435\u043C\u044B \u0440\u0430\u0431\u043E\u0442\u0430\u044E\u0442 \u0432 \u0448\u0442\u0430\u0442\u043D\u043E\u043C \u0440\u0435\u0436\u0438\u043C\u0435.</i>`;
     sendAdminAlert(recoveryMsg, "INFO");
     alertSent = true;
-    log28.info(`\u{1F7E2} Site availability recovered for ${targetUrl}`);
+    log29.info(`\u{1F7E2} Site availability recovered for ${targetUrl}`);
     const newState = {
       isBlocked: false,
       consecutiveFails: 0,
@@ -166949,7 +167260,7 @@ async function processGeoAvailabilityCheck(job) {
     };
     await redis.set(stateKey, JSON.stringify(newState), "EX", 86400);
   } else {
-    log28.info(`\u{1F7E2} Geo probe healthy: RU=${Math.round(report.ruRate * 100)}%, Global=${Math.round(report.globalRate * 100)}%`);
+    log29.info(`\u{1F7E2} Geo probe healthy: RU=${Math.round(report.ruRate * 100)}%, Global=${Math.round(report.globalRate * 100)}%`);
     if (previousState.consecutiveFails > 0) {
       await redis.set(
         stateKey,
@@ -166973,7 +167284,7 @@ init_order_service();
 // src/workers/eta-alerts.ts
 init_notifications();
 init_logger();
-var log29 = logger.child({ component: "ETAAlerts" });
+var log30 = logger.child({ component: "ETAAlerts" });
 var ETA_ALERT_THRESHOLD = 5;
 var etaFailureStreak = 0;
 function resetEtaFailureStreak() {
@@ -166981,7 +167292,7 @@ function resetEtaFailureStreak() {
 }
 function trackEtaFailure(job, err) {
   etaFailureStreak++;
-  log29.error("[etaWorker] Job failed", {
+  log30.error("[etaWorker] Job failed", {
     jobId: job?.id,
     jobName: job?.name,
     error: err?.message,
@@ -166998,8 +167309,8 @@ function trackEtaFailure(job, err) {
 
 // src/workers/index.ts
 init_queue_manager();
-var log30 = logger.child({ component: "WorkerManager" });
-log30.info("\u{1F680} Starting BullMQ workers...");
+var log31 = logger.child({ component: "WorkerManager" });
+log31.info("\u{1F680} Starting BullMQ workers...");
 var connection = getRedisConnection();
 var workerConfig = {
   connection,
@@ -167058,7 +167369,7 @@ var MAX_ATTEMPTS = 3;
 async function handleDeadLetter(queueName, job, err) {
   if (!job) return;
   const maxAttempts = job.opts?.attempts ?? MAX_ATTEMPTS;
-  log30.error(`Job failed`, {
+  log31.error(`Job failed`, {
     queue: queueName,
     jobId: job.id,
     attemptsMade: job.attemptsMade,
@@ -167087,11 +167398,11 @@ async function handleDeadLetter(queueName, job, err) {
             select: { status: true, numericId: true }
           });
           if (currentOrder && (currentOrder.status === "PENDING_CHECK" || currentOrder.status === "IN_PROGRESS")) {
-            log30.info(`[WORKER] Order #${currentOrder.numericId} (${payload.orderId}) is in '${currentOrder.status}'. Skipping auto-fail to allow operator triage / balance autoflush.`);
+            log31.info(`[WORKER] Order #${currentOrder.numericId} (${payload.orderId}) is in '${currentOrder.status}'. Skipping auto-fail to allow operator triage / balance autoflush.`);
             isParkedForTriage = true;
           } else {
             await orderService.failOrderTerminal(payload.orderId, err.message);
-            log30.info(`Auto-refunded dead-letter order ${payload.orderId}`);
+            log31.info(`Auto-refunded dead-letter order ${payload.orderId}`);
           }
         }
       }
@@ -167102,7 +167413,7 @@ async function handleDeadLetter(queueName, job, err) {
             where: { id: payload.refillId },
             data: { status: "ERROR" }
           });
-          log30.info(`Marked dead-letter refill ${payload.refillId} as ERROR`);
+          log31.info(`Marked dead-letter refill ${payload.refillId} as ERROR`);
         }
       }
       const isFinancialQueue = ["ordersQueue", "paymentSyncQueue", "paymentGatewayQueue"].includes(queueName);
@@ -167132,12 +167443,12 @@ Job ID: \`${job.id}\`
             "WARNING"
           );
         } else {
-          log30.info(`Suppressed duplicate DLQ alert for ${queueName} (${occurrences} occurrences in window)`);
+          log31.info(`Suppressed duplicate DLQ alert for ${queueName} (${occurrences} occurrences in window)`);
         }
       }
-      log30.error("Job dead-lettered", { queue: queueName, jobId: job.id });
+      log31.error("Job dead-lettered", { queue: queueName, jobId: job.id });
     } catch (dlqErr) {
-      log30.error("Failed to write to DLQ", { error: dlqErr.message });
+      log31.error("Failed to write to DLQ", { error: dlqErr.message });
     }
   }
 }
@@ -167151,10 +167462,10 @@ catalogWorker.on("failed", (job, err) => {
   handleDeadLetter("catalogQueue", job, err);
 });
 cleanupWorker.on("failed", (job, err) => {
-  log30.error("Cleanup job failed", { error: err.message });
+  log31.error("Cleanup job failed", { error: err.message });
 });
 telegramWorker.on("failed", (job, err) => {
-  log30.error("Telegram notification failed", { error: err.message });
+  log31.error("Telegram notification failed", { error: err.message });
 });
 paymentSyncWorker.on("failed", (job, err) => {
   handleDeadLetter("paymentSyncQueue", job, err);
@@ -167180,28 +167491,28 @@ async function updateHeartbeat() {
   try {
     await connection.set(HEARTBEAT_KEY, Date.now().toString(), "EX", HEARTBEAT_TTL);
   } catch {
-    log30.warn("Heartbeat update failed (Redis connection issue)");
+    log31.warn("Heartbeat update failed (Redis connection issue)");
   }
 }
 updateHeartbeat();
 var heartbeatInterval = setInterval(updateHeartbeat, 6e4);
-ensureSyncCron().catch((e) => log30.error("Failed to setup Sync Cron", { error: e.message }));
-ensureCleanupCron().catch((e) => log30.error("Failed to setup Cleanup Cron", { error: e.message }));
-ensureETACron().catch((e) => log30.error("Failed to setup ETA Cron", { error: e.message }));
-ensureCatalogSyncCron().catch((e) => log30.error("Failed to setup Catalog Sync Cron", { error: e.message }));
-ensureOrphanSweepCron().catch((e) => log30.error("Failed to setup Orphan Sweep Cron", { error: e.message }));
-ensurePaymentSyncCron().catch((e) => log30.error("Failed to setup Payment Sync Cron", { error: e.message }));
-ensureDripfeedCron().catch((e) => log30.error("Failed to setup Dripfeed Cron", { error: e.message }));
-ensureArticlePublishCron().catch((e) => log30.error("Failed to setup Article Publish Cron", { error: e.message }));
-ensurePendingCheckCron().catch((e) => log30.error("Failed to setup PendingCheck Cron", { error: e.message }));
-ensureAiObserverCron().catch((e) => log30.error("Failed to setup AI Observer Cron", { error: e.message }));
-ensureAiEconomicOptimizerCron().catch((e) => log30.error("Failed to setup AI Economic Optimizer Cron", { error: e.message }));
-ensureGeoAvailabilityCron().catch((e) => log30.error("Failed to setup Geo Availability Cron", { error: e.message }));
-ensureCBRSyncCron().catch((e) => log30.error("Failed to setup CBR Rate Sync Cron", { error: e.message }));
-ensureProxySubscriptionSyncCron().catch((e) => log30.error("Failed to setup Proxy Subscription Sync Cron", { error: e.message }));
-log30.info("All workers started", { queues: ["ordersQueue", "refillQueue", "syncQueue", "catalogQueue", "cleanup", "paymentSyncQueue", "articlePublishQueue", "aiObserverQueue", "aiEconomicOptimizerQueue", "geoAvailabilityQueue"] });
+ensureSyncCron().catch((e) => log31.error("Failed to setup Sync Cron", { error: e.message }));
+ensureCleanupCron().catch((e) => log31.error("Failed to setup Cleanup Cron", { error: e.message }));
+ensureETACron().catch((e) => log31.error("Failed to setup ETA Cron", { error: e.message }));
+ensureCatalogSyncCron().catch((e) => log31.error("Failed to setup Catalog Sync Cron", { error: e.message }));
+ensureOrphanSweepCron().catch((e) => log31.error("Failed to setup Orphan Sweep Cron", { error: e.message }));
+ensurePaymentSyncCron().catch((e) => log31.error("Failed to setup Payment Sync Cron", { error: e.message }));
+ensureDripfeedCron().catch((e) => log31.error("Failed to setup Dripfeed Cron", { error: e.message }));
+ensureArticlePublishCron().catch((e) => log31.error("Failed to setup Article Publish Cron", { error: e.message }));
+ensurePendingCheckCron().catch((e) => log31.error("Failed to setup PendingCheck Cron", { error: e.message }));
+ensureAiObserverCron().catch((e) => log31.error("Failed to setup AI Observer Cron", { error: e.message }));
+ensureAiEconomicOptimizerCron().catch((e) => log31.error("Failed to setup AI Economic Optimizer Cron", { error: e.message }));
+ensureGeoAvailabilityCron().catch((e) => log31.error("Failed to setup Geo Availability Cron", { error: e.message }));
+ensureCBRSyncCron().catch((e) => log31.error("Failed to setup CBR Rate Sync Cron", { error: e.message }));
+ensureProxySubscriptionSyncCron().catch((e) => log31.error("Failed to setup Proxy Subscription Sync Cron", { error: e.message }));
+log31.info("All workers started", { queues: ["ordersQueue", "refillQueue", "syncQueue", "catalogQueue", "cleanup", "paymentSyncQueue", "articlePublishQueue", "aiObserverQueue", "aiEconomicOptimizerQueue", "geoAvailabilityQueue"] });
 var shutdown = async () => {
-  log30.info("Gracefully shutting down workers...");
+  log31.info("Gracefully shutting down workers...");
   clearInterval(heartbeatInterval);
   await connection.del(HEARTBEAT_KEY);
   await Promise.all([
@@ -167221,14 +167532,14 @@ var shutdown = async () => {
   ]);
   await db.$disconnect();
   if (connection) await connection.quit();
-  log30.info("Workers stopped successfully");
+  log31.info("Workers stopped successfully");
   process.exit(0);
 };
 process.on("unhandledRejection", (reason, promise) => {
-  log30.error("Unhandled Rejection in Worker process:", { reason, promise });
+  log31.error("Unhandled Rejection in Worker process:", { reason, promise });
 });
 process.on("uncaughtException", (error) => {
-  log30.error("Uncaught Exception in Worker process:", { error: error.message, stack: error.stack });
+  log31.error("Uncaught Exception in Worker process:", { error: error.message, stack: error.stack });
 });
 process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);

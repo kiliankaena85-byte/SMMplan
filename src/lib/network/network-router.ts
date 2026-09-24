@@ -220,7 +220,7 @@ export class UniversalNetworkRouter {
         select: { id: true, geminiProxy: true }
       });
 
-      let parsedRules: NetworkRoutingConfig = { ...DEFAULT_ROUTING_CONFIG };
+      const parsedRules: NetworkRoutingConfig = { ...DEFAULT_ROUTING_CONFIG };
       
       // If geminiProxy is configured in settings, adapt the system proxy URL
       if (settings?.geminiProxy && settings.geminiProxy.trim()) {

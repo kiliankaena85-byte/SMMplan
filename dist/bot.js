@@ -15828,7 +15828,8 @@ var init_prisma_tenant_enforcer = __esm({
       "customerGroup",
       "ticketFeedback",
       "promoCode",
-      "ledgerEntry"
+      "ledgerEntry",
+      "supportFinancialAction"
     ];
   }
 });
@@ -35411,6 +35412,10 @@ var init_sensitive_data_filter = __esm({
         replacement: '$1"[REDACTED]"'
       },
       {
+        pattern: /("?(?:apiKey|token|secret|password|twoFactorSecret|databaseUrl|redisUrl|appEncryptionKey|jwtSecret)"?\s*[:=]\s*)(?!["'])([^\s,;&"']+)/gi,
+        replacement: '$1"[REDACTED]"'
+      },
+      {
         pattern: /(key=)([a-f0-9]{20,})/gi,
         replacement: '$1"[REDACTED]"'
       },
@@ -35426,13 +35431,15 @@ var init_sensitive_data_filter = __esm({
         pattern: /(REDIS_URL\s*=\s*)([^\s]+)/gi,
         replacement: '$1"[REDACTED]"'
       },
+      // Universal scheme URL redactor (postgres, mysql, mariadb, mongodb, mongodb+srv, http(s), amqp(s), clickhouse, redis(s), etc.)
       {
-        pattern: /(postgres(?:ql)?:\/\/[^:]+:)([^@]+)(@)/gi,
+        pattern: /((?:[a-z][a-z0-9+.-]*):\/\/[^/\s:@]+:)([^/\s@]+)(@)/gi,
         replacement: "$1*****$3"
       },
+      // Fallback for URLs without scheme (e.g. user:password@host)
       {
-        pattern: /(redis(?:s)?:\/\/[^:]+:)([^@]+)(@)/gi,
-        replacement: "$1*****$3"
+        pattern: /(^|[\s"'])((?:[a-zA-Z0-9._-]+:))([^/\s:@]+)(@(?:[a-zA-Z0-9.-]+|\[[0-9a-fA-F:]+\])(?::[0-9]+)?(?:[/\s"']|$))/gi,
+        replacement: "$1$2*****$4"
       }
     ];
   }
@@ -72574,11 +72581,11 @@ var init_target_type_mapper = __esm({
       TargetTypeEnum2["COMMENTS"] = "COMMENTS";
       TargetTypeEnum2["BOT"] = "BOT";
       TargetTypeEnum2["CUSTOM"] = "CUSTOM";
-      TargetTypeEnum2["POST_INTERACTION"] = "POST";
-      TargetTypeEnum2["VIDEO_INTERACTION"] = "VIDEO";
-      TargetTypeEnum2["STORY_INTERACTION"] = "STORY";
-      TargetTypeEnum2["POLL_VOTES"] = "POLL";
-      TargetTypeEnum2["BOT_STARTS"] = "BOT";
+      TargetTypeEnum2["POST_INTERACTION"] = "POST_INTERACTION";
+      TargetTypeEnum2["VIDEO_INTERACTION"] = "VIDEO_INTERACTION";
+      TargetTypeEnum2["STORY_INTERACTION"] = "STORY_INTERACTION";
+      TargetTypeEnum2["POLL_VOTES"] = "POLL_VOTES";
+      TargetTypeEnum2["BOT_STARTS"] = "BOT_STARTS";
       return TargetTypeEnum2;
     })(TargetTypeEnum || {});
     LinkType = TargetTypeEnum;
@@ -72647,6 +72654,33 @@ var init_target_type_mapper = __esm({
         "BOT" /* BOT */,
         "COMMENTS" /* COMMENTS */,
         "CHANNEL_POSTS" /* CHANNEL_POSTS */,
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["POST_INTERACTION" /* POST_INTERACTION */]: /* @__PURE__ */ new Set([
+        "POST" /* POST */,
+        "VIDEO" /* VIDEO */,
+        "COMMENTS" /* COMMENTS */,
+        "POLL" /* POLL */,
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["VIDEO_INTERACTION" /* VIDEO_INTERACTION */]: /* @__PURE__ */ new Set([
+        "VIDEO" /* VIDEO */,
+        "POST" /* POST */,
+        "COMMENTS" /* COMMENTS */,
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["STORY_INTERACTION" /* STORY_INTERACTION */]: /* @__PURE__ */ new Set([
+        "STORY" /* STORY */,
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["POLL_VOTES" /* POLL_VOTES */]: /* @__PURE__ */ new Set([
+        "POLL" /* POLL */,
+        "POST" /* POST */,
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["BOT_STARTS" /* BOT_STARTS */]: /* @__PURE__ */ new Set([
+        "BOT" /* BOT */,
+        "CHANNEL" /* CHANNEL */,
         "CUSTOM" /* CUSTOM */
       ])
     };
@@ -73724,7 +73758,7 @@ var init_link_analyzer = __esm({
           return this.getFallbackResult(rawUrl, "EMPTY_INPUT");
         }
         const boundedRaw = rawUrl.length > 2048 ? rawUrl.slice(0, 2048) : rawUrl;
-        let cleanUrl = boundedRaw.trim();
+        const cleanUrl = boundedRaw.trim();
         const isBareHandle = cleanUrl.startsWith("@");
         const hasNoDomainOrDot = !cleanUrl.includes(".") && !cleanUrl.includes("/");
         if (isBareHandle || hasNoDomainOrDot) {
@@ -99704,15 +99738,21 @@ async function sendMagicLink(email, token, tenantId, redirectTo) {
   const tenantParam = normTenant && normTenant !== "smmplan" ? `&tenant=${normTenant}` : "";
   const redirectParam = redirectTo ? `&redirectTo=${encodeURIComponent(redirectTo)}` : "";
   const link = `${baseUrl2}/api/auth/verify?token=${token}${tenantParam}${redirectParam}`;
-  console.info(`
+  if (process.env.NODE_ENV !== "production") {
+    console.info(`
 ========================================
 [MAGIC LINK FOR ${email} (${companyName})]:
 ${link}
 ========================================
 `);
+  }
   const result = await getTransporter(tenantId);
   if (!result) {
-    log2.warn("SMTP Not configured. Magic link printed to console.", { email, link });
+    if (process.env.NODE_ENV !== "production") {
+      log2.warn("SMTP Not configured. Magic link printed to console.", { email, link });
+    } else {
+      log2.warn("SMTP Not configured for tenant.", { tenantId, email });
+    }
     return;
   }
   const htmlContent = `
@@ -133228,7 +133268,7 @@ var init_network_router = __esm({
             where: { id: tenantId },
             select: { id: true, geminiProxy: true }
           });
-          let parsedRules = { ...DEFAULT_ROUTING_CONFIG };
+          const parsedRules = { ...DEFAULT_ROUTING_CONFIG };
           if (settings?.geminiProxy && settings.geminiProxy.trim()) {
             parsedRules.systemProxyUrl = settings.geminiProxy.trim();
           }
@@ -140736,7 +140776,7 @@ Action: Account LOCKED, logged in AdminAuditLog.`;
 });
 
 // src/lib/alerts/p0-alert-debouncer.ts
-var log4, inMemoryLocks, inMemoryCounters, P0AlertDebouncer;
+var log4, inMemoryLocks, inMemoryCounters, isSyncingToRedis, P0AlertDebouncer;
 var init_p0_alert_debouncer = __esm({
   "src/lib/alerts/p0-alert-debouncer.ts"() {
     "use strict";
@@ -140745,12 +140785,86 @@ var init_p0_alert_debouncer = __esm({
     log4 = logger.child({ component: "P0AlertDebouncer" });
     inMemoryLocks = /* @__PURE__ */ new Map();
     inMemoryCounters = /* @__PURE__ */ new Map();
+    isSyncingToRedis = false;
     P0AlertDebouncer = class {
       static {
         this.PREFIX = "p0:debounce:";
       }
       static {
         this.THRESHOLD_PREFIX = "p0:threshold:";
+      }
+      static {
+        this.MAX_IN_MEMORY_ENTRIES = 5e3;
+      }
+      /**
+       * Prunes in-memory stores. First removes expired entries.
+       * If store size exceeds MAX_IN_MEMORY_ENTRIES, evicts Least Recently Used (LRU) entries.
+       */
+      static pruneInMemoryStores() {
+        const now = Date.now();
+        for (const [key, entry] of inMemoryLocks.entries()) {
+          if (entry.expiresAt <= now) {
+            inMemoryLocks.delete(key);
+          }
+        }
+        for (const [key, entry] of inMemoryCounters.entries()) {
+          if (entry.expiresAt <= now) {
+            inMemoryCounters.delete(key);
+          }
+        }
+        if (inMemoryLocks.size > this.MAX_IN_MEMORY_ENTRIES) {
+          const sortedLocks = Array.from(inMemoryLocks.entries()).sort((a, b) => a[1].lastAccessedAt - b[1].lastAccessedAt);
+          const toRemoveCount = inMemoryLocks.size - this.MAX_IN_MEMORY_ENTRIES;
+          for (let i = 0; i < toRemoveCount; i++) {
+            inMemoryLocks.delete(sortedLocks[i][0]);
+          }
+        }
+        if (inMemoryCounters.size > this.MAX_IN_MEMORY_ENTRIES) {
+          const sortedCounters = Array.from(inMemoryCounters.entries()).sort((a, b) => a[1].lastAccessedAt - b[1].lastAccessedAt);
+          const toRemoveCount = inMemoryCounters.size - this.MAX_IN_MEMORY_ENTRIES;
+          for (let i = 0; i < toRemoveCount; i++) {
+            inMemoryCounters.delete(sortedCounters[i][0]);
+          }
+        }
+      }
+      /**
+       * Merges accumulated in-memory deltas and active locks into Redis upon reconnect.
+       * Redis serves as the source of truth, while in-memory pushes deltas.
+       */
+      static async syncInMemoryToRedis() {
+        if (isSyncingToRedis) return;
+        if (redis.status !== "ready") return;
+        if (inMemoryLocks.size === 0 && inMemoryCounters.size === 0) return;
+        isSyncingToRedis = true;
+        try {
+          const now = Date.now();
+          for (const [fullKey, entry] of Array.from(inMemoryCounters.entries())) {
+            if (entry.expiresAt <= now) {
+              inMemoryCounters.delete(fullKey);
+              continue;
+            }
+            if (entry.delta > 0) {
+              const ttlSec = Math.max(1, Math.ceil((entry.expiresAt - now) / 1e3));
+              const newRedisCount = await redis.incrby(fullKey, entry.delta);
+              await redis.expire(fullKey, ttlSec);
+              entry.count = newRedisCount;
+              entry.delta = 0;
+            }
+          }
+          for (const [fullKey, entry] of Array.from(inMemoryLocks.entries())) {
+            if (entry.expiresAt <= now) {
+              inMemoryLocks.delete(fullKey);
+              continue;
+            }
+            const ttlSec = Math.max(1, Math.ceil((entry.expiresAt - now) / 1e3));
+            await redis.set(fullKey, "1", "EX", ttlSec, "NX");
+          }
+          this.pruneInMemoryStores();
+        } catch (err) {
+          log4.warn("[P0AlertDebouncer] Error syncing in-memory state to Redis upon reconnect", { error: err });
+        } finally {
+          isSyncingToRedis = false;
+        }
       }
       /**
        * Attempts to acquire an alert lock.
@@ -140759,20 +140873,30 @@ var init_p0_alert_debouncer = __esm({
        */
       static async shouldSendAlert(alertKey, cooldownSeconds = 3600) {
         const fullKey = `${this.PREFIX}${alertKey}`;
+        const now = Date.now();
         try {
           if (redis.status === "ready" || redis.status === "connecting") {
+            await this.syncInMemoryToRedis();
             const acquired = await redis.set(fullKey, "1", "EX", cooldownSeconds, "NX");
-            return acquired === "OK";
+            if (acquired === "OK") {
+              inMemoryLocks.set(fullKey, { expiresAt: now + cooldownSeconds * 1e3, lastAccessedAt: now });
+              return true;
+            }
+            return false;
           }
         } catch (redisErr) {
           log4.warn("[P0AlertDebouncer] Redis unavailable, using in-memory debounce lock", { error: redisErr });
         }
-        const now = Date.now();
-        const existingExpiry = inMemoryLocks.get(fullKey);
-        if (existingExpiry && existingExpiry > now) {
+        this.pruneInMemoryStores();
+        const existing = inMemoryLocks.get(fullKey);
+        if (existing && existing.expiresAt > now) {
+          existing.lastAccessedAt = now;
           return false;
         }
-        inMemoryLocks.set(fullKey, now + cooldownSeconds * 1e3);
+        inMemoryLocks.set(fullKey, {
+          expiresAt: now + cooldownSeconds * 1e3,
+          lastAccessedAt: now
+        });
         return true;
       }
       /**
@@ -140782,8 +140906,10 @@ var init_p0_alert_debouncer = __esm({
        */
       static async checkThresholdTrigger(key, windowSeconds, thresholdLimit) {
         const fullKey = `${this.THRESHOLD_PREFIX}${key}`;
+        const now = Date.now();
         try {
           if (redis.status === "ready" || redis.status === "connecting") {
+            await this.syncInMemoryToRedis();
             const currentCount = await redis.incr(fullKey);
             if (currentCount === 1) {
               await redis.expire(fullKey, windowSeconds);
@@ -140796,13 +140922,20 @@ var init_p0_alert_debouncer = __esm({
         } catch (redisErr) {
           log4.warn("[P0AlertDebouncer] Redis unavailable, using in-memory threshold counter", { error: redisErr });
         }
-        const now = Date.now();
+        this.pruneInMemoryStores();
         const entry = inMemoryCounters.get(fullKey);
         if (!entry || entry.expiresAt <= now) {
-          inMemoryCounters.set(fullKey, { count: 1, expiresAt: now + windowSeconds * 1e3 });
+          inMemoryCounters.set(fullKey, {
+            count: 1,
+            delta: 1,
+            expiresAt: now + windowSeconds * 1e3,
+            lastAccessedAt: now
+          });
           return { count: 1, shouldTrigger: 1 >= thresholdLimit };
         }
         entry.count += 1;
+        entry.delta += 1;
+        entry.lastAccessedAt = now;
         return {
           count: entry.count,
           shouldTrigger: entry.count >= thresholdLimit
@@ -140817,9 +140950,11 @@ var init_p0_alert_debouncer = __esm({
           if (redis.status === "ready" || redis.status === "connecting") {
             await redis.del(fullKey);
           }
-        } catch {
+        } catch (err) {
+          log4.warn("[P0AlertDebouncer] Redis resetLock failed", { error: err });
         }
         inMemoryLocks.delete(fullKey);
+        inMemoryCounters.delete(`${this.THRESHOLD_PREFIX}${alertKey}`);
       }
       /**
        * Smart Deduplication with occurrence count tracker.
@@ -140830,6 +140965,7 @@ var init_p0_alert_debouncer = __esm({
         let occurrences = 1;
         try {
           if (redis.status === "ready" || redis.status === "connecting") {
+            await this.syncInMemoryToRedis();
             occurrences = await redis.incr(countKey);
             if (occurrences === 1) {
               await redis.expire(countKey, cooldownSeconds);
@@ -140841,7 +140977,27 @@ var init_p0_alert_debouncer = __esm({
         const shouldSend = await this.shouldSendAlert(alertKey, cooldownSeconds);
         return { shouldSend, occurrences };
       }
+      /**
+       * Helper for unit testing and state inspection.
+       */
+      static getInMemoryStoreSizes() {
+        return { locks: inMemoryLocks.size, counters: inMemoryCounters.size };
+      }
+      static clearInMemoryStores() {
+        inMemoryLocks.clear();
+        inMemoryCounters.clear();
+      }
+      static populateInMemoryLockForTest(key, entry) {
+        inMemoryLocks.set(key, entry);
+      }
     };
+    if (redis && typeof redis.on === "function") {
+      redis.on("ready", () => {
+        P0AlertDebouncer.syncInMemoryToRedis().catch((err) => {
+          log4.warn("[P0AlertDebouncer] Automatic reconnect sync failed", { error: err });
+        });
+      });
+    }
   }
 });
 
@@ -141415,7 +141571,7 @@ var init_provider_service = __esm({
        * Main Factory Method — resolves and passes proxy config to UniversalProvider
        */
       async getProviderInstance(config2) {
-        let apiUrl = config2.apiUrl;
+        const apiUrl = config2.apiUrl;
         let decryptedKey;
         try {
           decryptedKey = VaultService.decrypt(config2.apiKey);

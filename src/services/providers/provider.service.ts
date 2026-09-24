@@ -63,7 +63,7 @@ export class ProviderService {
    * Main Factory Method — resolves and passes proxy config to UniversalProvider
    */
   async getProviderInstance(config: Provider): Promise<BaseProvider> {
-    let apiUrl = config.apiUrl;
+    const apiUrl = config.apiUrl;
     let decryptedKey: string;
     try {
       decryptedKey = VaultService.decrypt(config.apiKey);

@@ -98,7 +98,7 @@ describe('Stage 2: BullMQ Nightly Optimizer Worker & Database Telemetry Pipeline
       const result = await aiEconomicOptimizerProcessor(mockJob);
 
       expect(result.success).toBe(true);
-      expect(result.processedTenants.length).toBe(2); // smmplan and flux
+      expect(result.processedTenants?.length).toBe(2); // smmplan and flux
       expect(runSpy).toHaveBeenCalledTimes(2);
     });
 
@@ -113,7 +113,7 @@ describe('Stage 2: BullMQ Nightly Optimizer Worker & Database Telemetry Pipeline
       const result = await aiEconomicOptimizerProcessor(mockJob);
 
       expect(result.success).toBe(true);
-      expect(result.processedTenants[0]).toMatchObject({
+      expect(result.processedTenants?.[0]).toMatchObject({
         tenantId: 'smmplan',
         skipped: true,
         reason: 'LOCK_CONTENTION',

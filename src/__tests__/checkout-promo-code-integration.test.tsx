@@ -126,6 +126,7 @@ describe('Order Form Promo Code Integration Tests (Desktop & Mobile)', () => {
     urlHint: null,
     validate: vi.fn().mockReturnValue(true),
     resetOrder: vi.fn(),
+    prefetchCategory: vi.fn(),
     ...overrides
   });
 

@@ -123,6 +123,7 @@ describe('PlanFullscreenCheckout Component Tests', () => {
 
     validate: vi.fn().mockReturnValue(true),
     resetOrder: vi.fn(),
+    prefetchCategory: vi.fn(),
     ...overrides
   });
 

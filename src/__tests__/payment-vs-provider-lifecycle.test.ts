@@ -82,7 +82,7 @@ describe('Order Lifecycle Boundary: Payment Webhooks vs SMM Provider Webhooks', 
       service: { name: 'Telegram Подписчики' },
     };
 
-    let userState = {
+    const userState = {
       id: 'usr_customer_1',
       balance: BigInt(0),
       email: 'test@smmplan.pro',

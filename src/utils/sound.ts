@@ -84,7 +84,9 @@ class SoundEffects {
       gain.connect(ctx.destination);
       osc.start(now);
       osc.stop(now + 0.18);
-    } catch {}
+    } catch {
+      // Ignore Web Audio API playback failure when user interaction is absent
+    }
   }
 }
 

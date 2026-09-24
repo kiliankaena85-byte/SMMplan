@@ -33,7 +33,9 @@ export function resolveAdminTenantContext(
       if (match && match[1]) {
         effectiveCookie = match[1];
       }
-    } catch {}
+    } catch {
+      // Ignore client cookie read failures
+    }
   }
 
   // Strictly OWNER has universal global access across all tenants.

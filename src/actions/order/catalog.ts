@@ -569,7 +569,7 @@ export async function getServiceBySlugAction(slug: string, tenantId: string = 's
 /**
  * @public Fetches fresh, live un-cached service details for JIT modal refresh
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+ 
 export async function getFreshServiceAction(serviceId: string, tenantId: string = 'smmplan'): Promise<PublicService | null> {
   try {
     const usdToRub = await SettingsProvider.getExchangeRateUSD(tenantId);

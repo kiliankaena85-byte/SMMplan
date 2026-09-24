@@ -35,7 +35,7 @@ describe('AUTH-01: Dev-Login Gate Hardening', () => {
 
   it('rejects with 404 when ALLOW_DEV_LOGIN is not explicitly set to "true"', async () => {
     process.env.ALLOW_DEV_LOGIN = 'false';
-    process.env.NODE_ENV = 'development';
+    (process.env as any).NODE_ENV = 'development';
 
     const req = new Request('http://localhost:3005/api/auth/dev-login', {
       headers: { host: 'localhost:3005' },
@@ -46,7 +46,7 @@ describe('AUTH-01: Dev-Login Gate Hardening', () => {
 
   it('rejects with 404 unconditionally in production mode', async () => {
     process.env.ALLOW_DEV_LOGIN = 'true';
-    process.env.NODE_ENV = 'production';
+    (process.env as any).NODE_ENV = 'production';
 
     const req = new Request('http://localhost:3005/api/auth/dev-login', {
       headers: { host: 'localhost:3005' },
@@ -57,7 +57,7 @@ describe('AUTH-01: Dev-Login Gate Hardening', () => {
 
   it('blocks host spoofing like evil3005.com or 3005.attacker.net with 403', async () => {
     process.env.ALLOW_DEV_LOGIN = 'true';
-    process.env.NODE_ENV = 'development';
+    (process.env as any).NODE_ENV = 'development';
     process.env.APP_ENV = 'test';
 
     const spoofedReq = new Request('http://evil3005.com/api/auth/dev-login', {
@@ -69,7 +69,7 @@ describe('AUTH-01: Dev-Login Gate Hardening', () => {
 
   it('allows access only with ALLOW_DEV_LOGIN=true and valid local/stage port 3005', async () => {
     process.env.ALLOW_DEV_LOGIN = 'true';
-    process.env.NODE_ENV = 'development';
+    (process.env as any).NODE_ENV = 'development';
     process.env.APP_ENV = 'test';
 
     const validReq = new Request('http://localhost:3005/api/auth/dev-login?role=SUPPORT', {

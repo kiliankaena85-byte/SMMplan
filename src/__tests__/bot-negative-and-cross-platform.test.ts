@@ -28,7 +28,7 @@ describe("Variant 3: Negative & Cross-Platform Bot Ordering Tests", () => {
         data: { name: 'Подписчики', slug: `tg-subs-${Date.now()}`, networkId: tgNet.id, tenantId: 'smmplan', sort: 0 }
       });
     }
-    let sTgSubs = await db.service.findFirst({ where: { categoryId: catTgSubs.id, isActive: true } });
+    const sTgSubs = await db.service.findFirst({ where: { categoryId: catTgSubs.id, isActive: true } });
     if (!sTgSubs) {
       await db.service.create({
         data: { name: 'Telegram Подписчики', targetType: 'CHANNEL', categoryId: catTgSubs.id, rate: 0.5, minQty: 10, maxQty: 10000, tenantId: 'smmplan', isActive: true, isQuarantined: false }
@@ -41,7 +41,7 @@ describe("Variant 3: Negative & Cross-Platform Bot Ordering Tests", () => {
         data: { name: 'Просмотры', slug: `tg-views-${Date.now()}`, networkId: tgNet.id, tenantId: 'smmplan', sort: 1 }
       });
     }
-    let sTgViews = await db.service.findFirst({ where: { categoryId: catTgViews.id, targetType: 'POST', isActive: true } });
+    const sTgViews = await db.service.findFirst({ where: { categoryId: catTgViews.id, targetType: 'POST', isActive: true } });
     if (!sTgViews) {
       await db.service.create({
         data: { name: 'Telegram Просмотры на пост', targetType: 'POST', categoryId: catTgViews.id, rate: 0.1, minQty: 10, maxQty: 10000, tenantId: 'smmplan', isActive: true, isQuarantined: false }
@@ -61,7 +61,7 @@ describe("Variant 3: Negative & Cross-Platform Bot Ordering Tests", () => {
         data: { name: 'Подписчики в группу', slug: `vk-subs-${Date.now()}`, networkId: vkNet.id, tenantId: 'smmplan', sort: 0 }
       });
     }
-    let sVkSubs = await db.service.findFirst({ where: { categoryId: catVkSubs.id, isActive: true } });
+    const sVkSubs = await db.service.findFirst({ where: { categoryId: catVkSubs.id, isActive: true } });
     if (!sVkSubs) {
       await db.service.create({
         data: { name: 'VK Подписчики в группу', targetType: 'CHANNEL', categoryId: catVkSubs.id, rate: 0.5, minQty: 10, maxQty: 10000, tenantId: 'smmplan', isActive: true, isQuarantined: false }
@@ -74,7 +74,7 @@ describe("Variant 3: Negative & Cross-Platform Bot Ordering Tests", () => {
         data: { name: 'Лайки на запись', slug: `vk-likes-${Date.now()}`, networkId: vkNet.id, tenantId: 'smmplan', sort: 1 }
       });
     }
-    let sVkLikes = await db.service.findFirst({ where: { categoryId: catVkLikes.id, isActive: true } });
+    const sVkLikes = await db.service.findFirst({ where: { categoryId: catVkLikes.id, isActive: true } });
     if (!sVkLikes) {
       await db.service.create({
         data: { name: 'VK Лайки на стену', targetType: 'POST', categoryId: catVkLikes.id, rate: 0.2, minQty: 10, maxQty: 10000, tenantId: 'smmplan', isActive: true, isQuarantined: false }
@@ -94,7 +94,7 @@ describe("Variant 3: Negative & Cross-Platform Bot Ordering Tests", () => {
         data: { name: 'Просмотры видео', slug: `yt-views-${Date.now()}`, networkId: ytNet.id, tenantId: 'smmplan', sort: 0 }
       });
     }
-    let sYtViews = await db.service.findFirst({ where: { categoryId: catYtViews.id, isActive: true } });
+    const sYtViews = await db.service.findFirst({ where: { categoryId: catYtViews.id, isActive: true } });
     if (!sYtViews) {
       await db.service.create({
         data: { name: 'YouTube Просмотры видео', targetType: 'VIDEO', categoryId: catYtViews.id, rate: 0.5, minQty: 10, maxQty: 10000, tenantId: 'smmplan', isActive: true, isQuarantined: false }
@@ -106,7 +106,7 @@ describe("Variant 3: Negative & Cross-Platform Bot Ordering Tests", () => {
         data: { name: 'Подписчики на канал', slug: `yt-subs-${Date.now()}`, networkId: ytNet.id, tenantId: 'smmplan', sort: 1 }
       });
     }
-    let sYtSubs = await db.service.findFirst({ where: { categoryId: catYtSubs.id, isActive: true } });
+    const sYtSubs = await db.service.findFirst({ where: { categoryId: catYtSubs.id, isActive: true } });
     if (!sYtSubs) {
       await db.service.create({
         data: { name: 'YouTube Подписчики на канал', targetType: 'CHANNEL', categoryId: catYtSubs.id, rate: 1.5, minQty: 10, maxQty: 10000, tenantId: 'smmplan', isActive: true, isQuarantined: false }

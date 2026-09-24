@@ -45,7 +45,7 @@ export class UrlCleaner {
   static clean(rawInput: string): string {
     if (!rawInput || typeof rawInput !== 'string') return '';
 
-    let trimmed = rawInput.trim();
+    const trimmed = rawInput.trim();
     if (!trimmed) return '';
 
     // If starts with @ (e.g. @username or @channel), leave as is or normalize to t.me/

@@ -27,7 +27,7 @@ export class PaymentService {
     gatewayId: string, 
     amount: number | bigint, 
     userId: string, 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     isDevSandbox = false,
     gatewayType: 'yookassa' | 'cryptobot' | 'robokassa' = 'yookassa',
     internalPaymentId?: string,

@@ -79,7 +79,7 @@ describe('MobileWizard Stepper & State Machine (Smoke & E2E Tests)', () => {
   });
 
   it('2. Advances to Step 2 when user pastes a valid link in Step 1', () => {
-    let engine = createMockEngine({ url: 'https://t.me/my_awesome_channel' });
+    const engine = createMockEngine({ url: 'https://t.me/my_awesome_channel' });
     const { result } = renderHook(() => useMobileWizard(engine));
 
     expect(result.current.currentStep).toBe(2);
@@ -87,7 +87,7 @@ describe('MobileWizard Stepper & State Machine (Smoke & E2E Tests)', () => {
   });
 
   it('2b (Phase 2 B1). proceedFromStep1 always advances to Step 2 and never auto-jumps to Step 3', () => {
-    let engine = createMockEngine({ url: 'https://t.me/my_awesome_channel', categoryId: 'tg-subs' });
+    const engine = createMockEngine({ url: 'https://t.me/my_awesome_channel', categoryId: 'tg-subs' });
     const { result } = renderHook(() => useMobileWizard(engine));
 
     act(() => {

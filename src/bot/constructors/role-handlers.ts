@@ -370,7 +370,7 @@ function setupStorePipeline(bot: Telegraf<BotContext>, opts: BotHandlerOptions):
     const user = await db.user.findFirst({ where: { telegramId: tgId, tenantId } });
     const balanceStr = user ? (Number(user.balance) / 100).toFixed(2) : '0.00';
 
-    let welcomeTpl = opts.welcomeMessage ||
+    const welcomeTpl = opts.welcomeMessage ||
       `👋 <b>{userName}, добро пожаловать в {siteName}!</b>\n\n` +
       `Платформа автоматического продвижения в социальных сетях.\n\n` +
       `💰 Ваш баланс: <b>{balance} ₽</b>\n\n` +

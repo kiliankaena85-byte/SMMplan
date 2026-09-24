@@ -127,7 +127,7 @@ describe('👑 Master User Journey, Payment Stress & Smart Failover Test Suite',
         service: { name: 'Telegram Подписчики (Стандарт)' },
       };
 
-      let userState = { id: 'usr_guest_1', balance: BigInt(0), tenantId: 'smmplan' };
+      const userState = { id: 'usr_guest_1', balance: BigInt(0), tenantId: 'smmplan' };
 
       vi.mocked(db.payment.findUnique).mockResolvedValue(mockPayment as any);
       vi.mocked(db.$transaction).mockImplementation(async (cb: any) => {

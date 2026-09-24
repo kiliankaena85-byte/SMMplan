@@ -57,7 +57,7 @@ export const CategoryIcon = ({ name = "", icon, className, size = 20 }: Category
  */
 export const cleanCategoryName = (rawName: string): string => {
   if (!rawName) return "";
-  let stripped = rawName
+  const stripped = rawName
     .replace(/^[\p{Extended_Pictographic}\p{Emoji_Presentation}\u200d\uFE0E\uFE0F\u2700-\u27BF\uE000-\uF8FF\s]+/gu, '')
     .replace(/\s*\[(?:Сервер|Server|Srv|API|Провайдер)[\s:]*\d+\]/gi, '')
     .replace(/\s*\((?:vexboost live|vexboost|api\s*\d+|srv\s*\d+|сервер\s*\d+)\)/gi, '')

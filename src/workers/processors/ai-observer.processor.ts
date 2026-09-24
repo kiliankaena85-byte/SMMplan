@@ -1,6 +1,7 @@
 import { Job } from 'bullmq';
 import { logger } from '../../lib/logger';
 import { AiObserverService } from '../../services/observer/ai-observer.service';
+import { validateJobTenantId } from '../../lib/security/worker-tenant-guard';
 
 const log = logger.child({ component: 'AiObserverWorker' });
 
@@ -9,6 +10,12 @@ export default async function aiObserverProcessor(job: Job) {
     log.info(`[${job.id}] Executing daily Executive AI Observer pipeline...`);
 
     const tenantId = (job.data?.tenantId as string) || 'smmplan';
+    const validation = await validateJobTenantId(tenantId, { jobId: String(job.id) });
+    if (!validation.valid) {
+      log.warn(`[${job.id}] Discarding AI Observer job due to failed tenant validation: ${validation.reason}`);
+      return { success: false, skipped: true, reason: validation.reason };
+    }
+
     const result = await AiObserverService.runObserverPipeline({
       tenantId,
       sendTelegram: true,

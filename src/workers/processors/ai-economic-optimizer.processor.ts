@@ -3,11 +3,18 @@ import { logger } from '../../lib/logger';
 import { MutexManager } from '../../lib/redis-lock';
 import { AiEconomicOptimizerService } from '../../services/pricing/ai-economic-optimizer.service';
 import type { AiEconomicOptimizerJobPayload } from '../../lib/queue-manager';
+import { validateJobTenantId } from '../../lib/security/worker-tenant-guard';
 
 const log = logger.child({ component: 'AiEconomicOptimizerWorker' });
 
 export default async function aiEconomicOptimizerProcessor(job: Job<AiEconomicOptimizerJobPayload>) {
   const { tenantId = 'all', analyzedPeriodDays = 30, forceRun = false } = job.data || {};
+  const validation = await validateJobTenantId(tenantId, { jobId: String(job.id), allowAll: true });
+  if (!validation.valid) {
+    log.warn(`[${job.id}] Discarding Economic Optimizer job due to failed tenant validation: ${validation.reason}`);
+    return { success: false, skipped: true, reason: validation.reason, processedTenants: [] };
+  }
+
   const tenantsToProcess = tenantId === 'all' ? ['smmplan', 'flux'] : [tenantId];
 
   log.info(`[${job.id}] Starting Nightly Economic Optimization for tenants: [${tenantsToProcess.join(', ')}]`);
