@@ -86,7 +86,10 @@ export async function updateBalanceAction(formData: FormData) {
         return { success: true as const, message: 'Операция уже зарегистрирована (защита от двойного клика)' };
       }
       const existingAction = await db.supportFinancialAction.findFirst({
-        where: { idempotencyKey: clientKey }
+        where: {
+          idempotencyKey: clientKey,
+          ...(targetUser.tenantId ? { tenantId: targetUser.tenantId } : {})
+        }
       });
       if (existingAction) {
         return { success: true as const, message: 'Операция уже выполнена (защита от двойного клика)' };

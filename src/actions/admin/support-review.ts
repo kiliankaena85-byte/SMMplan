@@ -16,12 +16,15 @@ export async function getSupportActionsReviewListAction(options?: {
   staffUserId?: string;
   targetUserId?: string;
 }) {
-  return requireStaffPermission('finance', 'view', async () => {
+  return requireStaffPermission('finance', 'view', async (user, _role, tenantId) => {
     const page = Math.max(1, options?.page || 1);
     const limit = Math.min(100, Math.max(10, options?.limit || 20));
     const skip = (page - 1) * limit;
+    const resolvedTenant = tenantId || user?.tenantId || 'smmplan';
 
-    const where: Prisma.SupportFinancialActionWhereInput = {};
+    const where: Prisma.SupportFinancialActionWhereInput = {
+      tenantId: resolvedTenant,
+    };
     if (options?.reviewStatus && options.reviewStatus !== 'ALL') {
       where.reviewStatus = options.reviewStatus;
     }
@@ -72,7 +75,7 @@ const reviewSupportActionSchema = z.object({
 });
 
 export async function reviewSupportFinancialAction(formData: FormData) {
-  return requireStaffPermission('finance', 'edit', async (admin) => {
+  return requireStaffPermission('finance', 'edit', async (admin, _role, tenantId) => {
     const rawPayload = {
       actionId: formData.get('actionId'),
       reviewStatus: formData.get('reviewStatus'),
@@ -83,9 +86,10 @@ export async function reviewSupportFinancialAction(formData: FormData) {
       return { success: false as const, error: parsed.error.errors[0]?.message || 'Неверные параметры проверки' };
     }
     const { actionId, reviewStatus, reviewNote } = parsed.data;
+    const resolvedTenant = tenantId || admin?.tenantId || 'smmplan';
 
-    const action = await db.supportFinancialAction.findUnique({
-      where: { id: actionId },
+    const action = await db.supportFinancialAction.findFirst({
+      where: { id: actionId, tenantId: resolvedTenant },
       select: { id: true, staffUserId: true, targetUserId: true, reviewStatus: true }
     });
 
@@ -132,8 +136,12 @@ export async function reviewSupportFinancialAction(formData: FormData) {
 }
 
 export async function exportSupportActionsCSVAction() {
-  return requireStaffPermission('finance', 'view', async () => {
+  return requireStaffPermission('finance', 'view', async (user, _role, tenantId) => {
+    const resolvedTenant = tenantId || user?.tenantId || 'smmplan';
     const items = await db.supportFinancialAction.findMany({
+      where: {
+        tenantId: resolvedTenant,
+      },
       take: 1000,
       orderBy: { createdAt: 'desc' },
       include: {

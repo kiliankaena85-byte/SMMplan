@@ -27,6 +27,7 @@ export const TENANT_SCOPED_MODELS = new Set([
   'ledgerentry',
   'customergroup',
   'ticketfeedback',
+  'supportfinancialaction',
 ]);
 
 export const TARGET_QUERY_METHODS = new Set([
