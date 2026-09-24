@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { paginatedQuery, type PaginatedResult } from '@/lib/pagination';
 import { auditAdmin, auditAdminAwaitable } from '@/lib/admin-audit';
 import { WalletOps } from '../financial/wallet-ops';
+import { redis } from '@/lib/redis';
 
 // ── Types ──
 
@@ -336,12 +337,30 @@ class AdminUserService {
   /**
    * Get aggregate user stats for the header.
    */
-  async getUserStats(startDate?: Date, endDate?: Date, tenantId?: string) {
+  async getUserStats(startDate?: Date, endDate?: Date, tenantId?: string, forceRefresh = false) {
+    const isSingleTenant = tenantId && tenantId !== 'all';
+    const normalizedTenant = isSingleTenant ? tenantId : 'all';
+    const dateKey = startDate && endDate
+      ? `${startDate.toISOString().slice(0, 10)}_${endDate.toISOString().slice(0, 10)}`
+      : 'all';
+    const cacheKey = `admin:user_stats:${normalizedTenant}:${dateKey}`;
+
+    if (!forceRefresh) {
+      try {
+        const cached = await redis.get(cacheKey);
+        if (cached) {
+          return JSON.parse(cached);
+        }
+      } catch {
+        // Fallback
+      }
+    }
+
     const where: Prisma.UserWhereInput = { isDeleted: false };
     if (startDate && endDate) {
       where.createdAt = { gte: startDate, lte: endDate };
     }
-    if (tenantId && tenantId !== 'all') {
+    if (isSingleTenant) {
       where.tenantId = tenantId;
     }
     const [total, active, banned] = await Promise.all([
@@ -367,12 +386,20 @@ class AdminUserService {
       },
     });
 
-    return {
+    const result = {
       total,
       active,
       banned,
-      totalLiability: totalBalance._sum.balance || 0,
+      totalLiability: Number(totalBalance._sum.balance || 0),
     };
+
+    try {
+      await redis.set(cacheKey, JSON.stringify(result), 'EX', 60);
+    } catch {
+      // Safe fallback
+    }
+
+    return result;
   }
 
   /**

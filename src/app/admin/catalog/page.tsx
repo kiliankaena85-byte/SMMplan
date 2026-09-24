@@ -1,5 +1,11 @@
 import { adminCatalogService } from '@/services/admin/catalog.service';
 import { adminProviderService } from '@/services/admin/provider.service';
+import {
+  getCachedAdminCategories,
+  getCachedAdminCatalogHealth,
+  getCachedAdminProviders,
+  getCachedAdminNetworks,
+} from '@/services/admin/admin-cache.registry';
 import { bulkUpdateMarkupAction } from '@/actions/admin/catalog';
 import { ShoppingCart, AlertTriangle } from 'lucide-react';
 import { SettingsProvider } from '@/lib/settings';
@@ -118,13 +124,13 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
       tenantId: selectedTenant,
     }),
     SettingsProvider.getExchangeRateUSD(),
-    // AUD-05 (3.1): tenant-scoped category filter list
-    adminCatalogService.listCategories(selectedTenant),
-    adminCatalogService.getCatalogHealthCounts(selectedTenant),
+    // AUD-05 (3.1): tenant-scoped category filter list (Zero-Latency Cached)
+    getCachedAdminCategories(selectedTenant),
+    getCachedAdminCatalogHealth(selectedTenant),
     adminCatalogService.getCatalogStats(selectedTenant),
     adminCatalogService.getMarkupAnalytics(selectedTenant),
-    adminProviderService.listProviders(),
-    db.network.findMany({ orderBy: { sort: 'asc' } }),
+    getCachedAdminProviders(),
+    getCachedAdminNetworks(),
   ]);
 
   // Map to strict DTO — no raw Prisma objects on client

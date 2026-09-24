@@ -18,7 +18,7 @@ export const metadata = {
 };
 
 interface Props {
-  searchParams: Promise<{ tenant?: string }>;
+  searchParams: Promise<{ tenant?: string; refresh?: string }>;
 }
 
 export default async function AdminTreasuryPage({ searchParams }: Props) {
@@ -33,8 +33,9 @@ export default async function AdminTreasuryPage({ searchParams }: Props) {
   const cookieTenant = cookieStore.get('x_admin_tenant')?.value;
   const params = await searchParams;
   const activeTenantId = resolveAdminTenantContext(user, params.tenant, cookieTenant);
+  const forceRefresh = params.refresh === 'true';
 
-  const reportRes = await getTreasuryFinancialHealthAction(activeTenantId);
+  const reportRes = await getTreasuryFinancialHealthAction(activeTenantId, undefined, 150000, forceRefresh);
 
   const initialReport = reportRes.data || {
     totalLiquidAssetsRub: 400000,

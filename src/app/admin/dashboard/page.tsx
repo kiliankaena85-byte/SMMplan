@@ -70,7 +70,7 @@ export const dynamic = 'force-dynamic';
 export default async function AdminDashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string; tenant?: string }>;
+  searchParams: Promise<{ period?: string; tenant?: string; refresh?: string }>;
 }) {
   const session = await verifySession();
   const user = session ? await db.user.findUnique({
@@ -84,6 +84,7 @@ export default async function AdminDashboardPage({
 
   const resolvedSearchParams = await searchParams;
   const period = resolvedSearchParams.period || 'all';
+  const forceRefresh = resolvedSearchParams.refresh === 'true';
   const { resolveAdminTenantContext } = await import('@/utils/admin-tenant');
   const resolvedTenant = resolveAdminTenantContext(user, resolvedSearchParams.tenant);
   const tenantFilter = resolvedTenant !== 'all' ? resolvedTenant : undefined;
@@ -131,21 +132,21 @@ export default async function AdminDashboardPage({
     refundStats,
     stormReport
   ] = await Promise.all([
-    accountingService.getMetrics(filterStart, filterEnd, tenantFilter),
-    adminOrderService.getOrderStats(filterStart, filterEnd, tenantFilter),
-    adminUserService.getUserStats(filterStart, filterEnd, tenantFilter),
-    adminTicketService.getTicketStats(filterStart, filterEnd, tenantFilter),
-    adminCatalogService.getCatalogStats(tenantFilter, filterStart, filterEnd),
+    accountingService.getMetrics(filterStart, filterEnd, tenantFilter, forceRefresh),
+    adminOrderService.getOrderStats(filterStart, filterEnd, tenantFilter, forceRefresh),
+    adminUserService.getUserStats(filterStart, filterEnd, tenantFilter, forceRefresh),
+    adminTicketService.getTicketStats(filterStart, filterEnd, tenantFilter, forceRefresh),
+    adminCatalogService.getCatalogStats(tenantFilter, filterStart, filterEnd, forceRefresh),
     db.adminAuditLog.findMany({
       where: filterStart && filterEnd ? { createdAt: { gte: filterStart, lte: filterEnd } } : {},
       orderBy: { createdAt: 'desc' },
       take: 5,
     }),
-    adminOrderService.getOrdersTimeseries(startDate, endDate, step, tenantFilter),
+    adminOrderService.getOrdersTimeseries(startDate, endDate, step, tenantFilter, forceRefresh),
     adminUserService.getTopSpenders(6, tenantFilter),
     adminOrderService.getRecentOrders(6, tenantFilter),
-    adminOrderService.getTopServices(6, filterStart, filterEnd, tenantFilter),
-    accountingService.getGatewayBreakdown(filterStart, filterEnd, tenantFilter),
+    adminOrderService.getTopServices(6, filterStart, filterEnd, tenantFilter, forceRefresh),
+    accountingService.getGatewayBreakdown(filterStart, filterEnd, tenantFilter, forceRefresh),
     adminOrderService.getRefundAndFailureStats(filterStart, filterEnd, tenantFilter),
     stormDetectorService.auditServiceStorms({ windowHours: 72, tenantId: tenantFilter }),
   ]);

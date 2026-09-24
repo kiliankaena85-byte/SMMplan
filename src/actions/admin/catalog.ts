@@ -14,6 +14,8 @@ import { auditAdmin } from '@/lib/admin-audit';
 
 import { requireStaffPermission } from '@/lib/server/rbac';
 
+import { invalidateAdminCatalogCache } from '@/services/admin/admin-cache.registry';
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function updateMarkupAction(formData: FormData) {
   const result = await requireStaffPermission('finance', 'edit', async (admin) => {
@@ -35,6 +37,7 @@ async function updateMarkupAction(formData: FormData) {
       newValue: { markup }
     });
 
+    invalidateAdminCatalogCache();
     revalidatePath('/admin/catalog');
     return { success: true };
   });
@@ -65,6 +68,7 @@ async function toggleServiceAction(formData: FormData) {
       targetType: 'SERVICE',
     });
 
+    invalidateAdminCatalogCache();
     revalidatePath('/admin/catalog');
     return { success: true };
   });
@@ -110,6 +114,7 @@ export async function bulkUpdateMarkupAction(formData: FormData) {
       newValue: { markup, filter },
     });
 
+    invalidateAdminCatalogCache();
     revalidatePath('/admin/catalog');
     return { success: true };
   });

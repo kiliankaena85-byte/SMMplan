@@ -1973,7 +1973,22 @@ class AdminCatalogService {
    * Catalog stats for the header and dashboard.
    * Services and categories represent current inventory catalog state, not temporal transactions.
    */
-  async getCatalogStats(tenantId?: string, _startDate?: Date, _endDate?: Date) {
+  async getCatalogStats(tenantId?: string, _startDate?: Date, _endDate?: Date, forceRefresh = false) {
+    const isSingleTenant = tenantId && tenantId !== 'all';
+    const normalizedTenant = isSingleTenant ? tenantId : 'all';
+    const cacheKey = `admin:catalog_stats:${normalizedTenant}`;
+
+    if (!forceRefresh) {
+      try {
+        const cached = await redis.get(cacheKey);
+        if (cached) {
+          return JSON.parse(cached);
+        }
+      } catch {
+        // Fallback
+      }
+    }
+
     const where: Prisma.ServiceWhereInput = {};
     if (tenantId && tenantId !== 'all') where.tenantId = { in: [tenantId, 'all'] };
 
@@ -1986,7 +2001,15 @@ class AdminCatalogService {
       db.category.count({ where: categoryWhere }),
     ]);
 
-    return { totalServices, activeServices, categories };
+    const result = { totalServices, activeServices, categories };
+
+    try {
+      await redis.set(cacheKey, JSON.stringify(result), 'EX', 120);
+    } catch {
+      // Safe fallback
+    }
+
+    return result;
   }
 
   /**
@@ -2290,7 +2313,22 @@ class AdminCatalogService {
    * - cooldown: active services temporarily hidden from the storefront
    *   (cooldownUntil in the future, excluding zombies)
    */
-  async getCatalogHealthCounts(tenantId?: string): Promise<{ quarantine: number; zombies: number; cooldown: number }> {
+  async getCatalogHealthCounts(tenantId?: string, forceRefresh = false): Promise<{ quarantine: number; zombies: number; cooldown: number }> {
+    const isSingleTenant = tenantId && tenantId !== 'all';
+    const normalizedTenant = isSingleTenant ? tenantId : 'all';
+    const cacheKey = `admin:catalog_health:${normalizedTenant}`;
+
+    if (!forceRefresh) {
+      try {
+        const cached = await redis.get(cacheKey);
+        if (cached) {
+          return JSON.parse(cached);
+        }
+      } catch {
+        // Fallback
+      }
+    }
+
     const tenantWhere = tenantId ? tenantVisibilityFilter(tenantId) : undefined;
     const now = new Date();
 
@@ -2317,7 +2355,15 @@ class AdminCatalogService {
       }),
     ]);
 
-    return { quarantine, zombies, cooldown };
+    const result = { quarantine, zombies, cooldown };
+
+    try {
+      await redis.set(cacheKey, JSON.stringify(result), 'EX', 60);
+    } catch {
+      // Safe fallback
+    }
+
+    return result;
   }
 }
 

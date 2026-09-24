@@ -50,38 +50,10 @@ type Props = {
 
 import { enforceSectionAccess } from '@/lib/server/rbac';
 
-import { unstable_cache } from 'next/cache';
-
-const getCachedNetworks = unstable_cache(
-  async () => {
-    return db.network.findMany({
-      select: { 
-        id: true, 
-        name: true, 
-        slug: true,
-        categories: {
-          select: { id: true, name: true, slug: true },
-          orderBy: { sort: 'asc' }
-        }
-      },
-      orderBy: { sort: 'asc' }
-    });
-  },
-  ['admin_orders_networks_list'],
-  { revalidate: 60, tags: ['catalog', 'networks'] }
-);
-
-const getCachedProviders = unstable_cache(
-  async () => {
-    return db.provider.findMany({
-      where: { isActive: true },
-      select: { id: true, name: true },
-      orderBy: { name: 'asc' }
-    });
-  },
-  ['admin_orders_providers_list'],
-  { revalidate: 60, tags: ['providers'] }
-);
+import {
+  getCachedAdminNetworks,
+  getCachedAdminProviders,
+} from '@/services/admin/admin-cache.registry';
 
 export default async function AdminOrdersPage({ searchParams }: Props) {
   await enforceSectionAccess('orders');
@@ -119,8 +91,8 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
     searchResult,
     stats
   ] = await Promise.all([
-    getCachedNetworks(),
-    getCachedProviders(),
+    getCachedAdminNetworks(),
+    getCachedAdminProviders(),
     adminOrderService.searchOrders({
       query: query || undefined,
       status: statusFilter,

@@ -60,13 +60,17 @@ function fmt(cents: number, showSign = false): string {
 
 export function BalanceRequestsClient({ 
   currentUserId, 
-  currentUserRole 
+  currentUserRole,
+  initialItems = [],
+  initialTotal = 0,
 }: { 
   currentUserId?: string; 
   currentUserRole?: string; 
+  initialItems?: BalanceAdjustmentItem[];
+  initialTotal?: number;
 }) {
-  const [items, setItems] = useState<BalanceAdjustmentItem[]>([]);
-  const [total, setTotal] = useState(0);
+  const [items, setItems] = useState<BalanceAdjustmentItem[]>(initialItems);
+  const [total, setTotal] = useState(initialTotal);
   const [page, setPage] = useState(1);
   const pageSize = 20;
 
@@ -75,6 +79,8 @@ export function BalanceRequestsClient({
   const [directionFilter, setDirectionFilter] = useState<string>("ALL");
   const [selectedItem, setSelectedItem] = useState<BalanceAdjustmentItem | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const isInitialMount = React.useRef(true);
 
   const fetchAdjustments = useCallback(() => {
     startTransition(async () => {
@@ -99,8 +105,14 @@ export function BalanceRequestsClient({
   }, [page, statusFilter, directionFilter]);
 
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      if (initialItems.length > 0 || initialTotal > 0) {
+        return;
+      }
+    }
     fetchAdjustments();
-  }, [fetchAdjustments]);
+  }, [fetchAdjustments, initialItems.length, initialTotal]);
 
   const handleExportCsv = () => {
     const query = new URLSearchParams({

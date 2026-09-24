@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Calendar } from 'lucide-react';
+import { Calendar, RotateCcw } from 'lucide-react';
 
 const PERIODS = [
   { id: 'today', name: 'Сегодня' },
@@ -27,6 +27,7 @@ export function PeriodSelector({ period }: PeriodSelectorProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
 
   const handlePeriodChange = (val: string | null) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -36,6 +37,18 @@ export function PeriodSelector({ period }: PeriodSelectorProps) {
       params.delete('period');
     }
     router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('refresh', 'true');
+    router.push(`${pathname}?${params.toString()}`);
+    setTimeout(() => {
+      params.delete('refresh');
+      router.replace(`${pathname}?${params.toString()}`);
+      setIsRefreshing(false);
+    }, 1500);
   };
 
   return (
@@ -58,6 +71,15 @@ export function PeriodSelector({ period }: PeriodSelectorProps) {
           ))}
         </SelectContent>
       </Select>
+      <button
+        onClick={handleRefresh}
+        disabled={isRefreshing}
+        type="button"
+        title="Сбросить кэш и принудительно обновить метрики дашборда"
+        className="p-1.5 h-8 w-8 flex items-center justify-center rounded-md border border-border/70 bg-card hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-all cursor-pointer disabled:opacity-50"
+      >
+        <RotateCcw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-primary' : ''}`} />
+      </button>
     </div>
   );
 }

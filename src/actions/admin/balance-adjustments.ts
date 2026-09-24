@@ -686,19 +686,21 @@ export async function getBalanceAdjustmentsAction(formData: FormData) {
       ];
     }
 
-    const total = await db.manualBalanceAdjustment.count({ where });
-    const items = await db.manualBalanceAdjustment.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-      include: {
-        user: { select: { id: true, email: true, role: true, balance: true } },
-        requester: { select: { id: true, email: true } },
-        approver: { select: { id: true, email: true } },
-        rejecter: { select: { id: true, email: true } }
-      }
-    });
+    const [total, items] = await Promise.all([
+      db.manualBalanceAdjustment.count({ where }),
+      db.manualBalanceAdjustment.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        include: {
+          user: { select: { id: true, email: true, role: true, balance: true } },
+          requester: { select: { id: true, email: true } },
+          approver: { select: { id: true, email: true } },
+          rejecter: { select: { id: true, email: true } }
+        }
+      })
+    ]);
 
     const paymentIds = items.map(item => item.paymentId).filter((id): id is string => Boolean(id));
     // tenant-isolation-ignore: admin cross-tenant payment enrichment by unique payment IDs

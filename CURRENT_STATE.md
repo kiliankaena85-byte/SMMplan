@@ -1,3 +1,26 @@
+- [x] ⚡ [ADMIN-ZERO-LATENCY-REMASTER-2026] Комплексная ликвидация задержек и оптимизация админ-панели OmniSMM (100% COMPLETE & PASS):
+  * 🚀 **[DASH-01] Изолированное кэширование метрик дашборда в Redis (TTL 60-120с):**
+    - В `accounting.service.ts`: `getMetrics` и `getGatewayBreakdown` обернуты в tenant-изолированный кэш (`admin:dashboard:metrics:*`, `admin:dashboard:gateways:*`) с безопасной сериализацией/десериализацией BigInt копеек.
+    - В `order.service.ts`: `getOrderStats` (L1 in-memory 15s + L2 Redis 60s), `getOrdersTimeseries` (TTL 120s), `getTopServices` (TTL 120s с BigInt десериализацией).
+    - В `ticket.service.ts`: `getTicketStats` (take: 1000 bounds + Redis TTL 60s).
+    - В `user.service.ts`: `getUserStats` (TTL 60s).
+    - В `catalog.service.ts`: `getCatalogStats` (TTL 120s) и `getCatalogHealthCounts` (TTL 60s).
+    - Поддержан параметр `forceRefresh` (`?refresh=true`), обходящий кэш при необходимости.
+  * 🔄 **[DASH-02] Кнопка принудительного обновления метрик (`PeriodSelector.tsx`):**
+    - Добавлена интерактивная кнопка `RotateCcw` с 1.5с анимацией вращения, сбрасывающая кэш и принудительно запрашивающая актуальные данные из БД.
+  * 🗄️ **[CAT-01] Централизованный реестр кэша метаданных админки (`admin-cache.registry.ts`):**
+    - Создан единый модуль `admin-cache.registry.ts` с методами `getCachedAdminCategories`, `getCachedAdminProviders`, `getCachedAdminNetworks`, `getCachedAdminCatalogHealth`.
+    - Подключен в `/admin/catalog`, `/admin/catalog/categories` и `/admin/orders`, устраняя дублирование запросов к БД.
+    - В `src/actions/admin/catalog.ts` добавлена авто-инвалидация тегов кэша через `invalidateAdminCatalogCache()` при мутациях наценок и переключении статусов услуг.
+  * ⚡ **[TREAS-01] Параллелизация казначейства и SSR пре-гидратация (`treasury.ts`, `balance-requests`):**
+    - В `src/actions/admin/finance/treasury.ts` 6 тяжелых запросов казначейства параллелизованы через `Promise.all` с кэшированием сводного отчета в Redis (TTL 60s) и поддержкой `forceRefresh`.
+    - В `src/actions/admin/balance-adjustments.ts` подсчет `total` и выборка строк объединены в `Promise.all`.
+    - Страница `/admin/finance/balance-requests` переведена на SSR пре-гидратацию начального списка и счетчика, устраняя клиентский лоадер.
+  * 🧪 **Контроль качества:**
+    - Спецификация: `docs/specs/SPEC-2026-09-24-admin-panel-zero-latency.md`.
+    - Тесты: `src/__tests__/unit/admin-panel-zero-latency.test.ts` (7/7 PASS).
+    - Компиляция: `npx tsc --noEmit` (0 ошибок).
+    - Контроль секретов: `node scripts/check-bundle-secrets.mjs` (0 утечек).
 - [x] ⚡ [CATALOG-ADMIN-ZERO-LATENCY-2026] Комплексная ликвидация задержки первой загрузки каталога услуг и оптимизация админ-панели (100% COMPLETE & PASS):
   * 🚀 **[CAT-01] Полная пре-гидратация каталога услуг (Zero-Latency Social Network Switching):**
     - В `src/actions/order/catalog.ts` метод `getCachedNetworks(tenantId)` теперь включает полные объекты услуг (`services: PublicService[]`) с конвертацией цен по ЦБ РФ.

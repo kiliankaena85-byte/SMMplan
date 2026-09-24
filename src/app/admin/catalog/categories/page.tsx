@@ -38,28 +38,29 @@ export default async function CategoriesAdminPage({ searchParams }: Props) {
   const selectedTenant = resolvedTenant || headerTenant || 'smmplan';
   const isGlobalTenant = selectedTenant === 'all';
 
-  const categoriesRaw = await db.category.findMany({
-    where: !isGlobalTenant ? { tenantId: { in: [selectedTenant, 'all'] } } : undefined,
-    orderBy: [
-      { network: { slug: 'asc' } },
-      { sort: 'asc' }
-    ],
-    include: {
-      network: true,
-      _count: {
-        select: {
-          services: true
+  const [categoriesRaw, serviceStats] = await Promise.all([
+    db.category.findMany({
+      where: !isGlobalTenant ? { tenantId: { in: [selectedTenant, 'all'] } } : undefined,
+      orderBy: [
+        { network: { slug: 'asc' } },
+        { sort: 'asc' }
+      ],
+      include: {
+        network: true,
+        _count: {
+          select: {
+            services: true
+          }
         }
       }
-    }
-  });
-
-  const serviceStats = await db.service.groupBy({
-    by: ['categoryId', 'tenantId', 'isActive'],
-    _count: {
-      _all: true
-    }
-  });
+    }),
+    db.service.groupBy({
+      by: ['categoryId', 'tenantId', 'isActive'],
+      _count: {
+        _all: true
+      }
+    })
+  ]);
 
   const categories = categoriesRaw.map(c => {
     const catStats = serviceStats.filter(s => s.categoryId === c.id);

@@ -4,6 +4,7 @@ import type { MessageAttachment } from '@prisma/client';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { paginatedQuery, type PaginatedResult } from '@/lib/pagination';
 import { extractOrderIds } from '@/utils/ticket-parser';
+import { redis } from '@/lib/redis';
 
 // ── Types ──
 
@@ -160,16 +161,42 @@ class AdminTicketService {
   /**
    * Ticket statistics for the header, including support SLA metrics.
    */
-  async getTicketStats(startDate?: Date, endDate?: Date, tenantId?: string) {
+  async getTicketStats(startDate?: Date, endDate?: Date, tenantId?: string, forceRefresh = false) {
+    const isSingleTenant = tenantId && tenantId !== 'all';
+    const normalizedTenant = isSingleTenant ? tenantId : 'all';
+    const dateKey = startDate && endDate
+      ? `${startDate.toISOString().slice(0, 10)}_${endDate.toISOString().slice(0, 10)}`
+      : 'all';
+    const cacheKey = `admin:ticket_stats:${normalizedTenant}:${dateKey}`;
+
+    if (!forceRefresh) {
+      try {
+        const cached = await redis.get(cacheKey);
+        if (cached) {
+          return JSON.parse(cached);
+        }
+      } catch {
+        // Fallback
+      }
+    }
+
     const where: Record<string, unknown> = {};
     if (startDate && endDate) {
       where.createdAt = { gte: startDate, lte: endDate };
     }
-    if (tenantId) {
+    if (tenantId && tenantId !== 'all') {
       where.tenantId = tenantId;
     }
     const fifteenMinsAgo = new Date(Date.now() - 15 * 60 * 1000);
-    const [total, open, pending, closed, criticalOpen] = await Promise.all([
+    const [
+      total, 
+      open, 
+      pending, 
+      closed, 
+      criticalOpen,
+      resolvedTickets,
+      respondedTickets
+    ] = await Promise.all([
       db.ticket.count({ where }),
       db.ticket.count({ where: { ...where, status: 'OPEN' } }),
       db.ticket.count({ where: { ...where, status: 'PENDING' } }),
@@ -180,32 +207,31 @@ class AdminTicketService {
           status: 'OPEN',
           updatedAt: { lte: fifteenMinsAgo }
         }
+      }),
+      db.ticket.findMany({
+        where: {
+          ...where,
+          status: 'CLOSED',
+          resolvedAt: { not: null },
+        },
+        take: 1000,
+        select: {
+          createdAt: true,
+          resolvedAt: true,
+        }
+      }),
+      db.ticket.findMany({
+        where: {
+          ...where,
+          firstRespondedAt: { not: null },
+        },
+        take: 1000,
+        select: {
+          createdAt: true,
+          firstRespondedAt: true
+        }
       })
     ]);
-
-    // Calculate support SLA metrics
-    const resolvedTickets = await db.ticket.findMany({
-      where: {
-        ...where,
-        status: 'CLOSED',
-        resolvedAt: { not: null },
-      },
-      select: {
-        createdAt: true,
-        resolvedAt: true,
-      }
-    });
-
-    const respondedTickets = await db.ticket.findMany({
-      where: {
-        ...where,
-        firstRespondedAt: { not: null },
-      },
-      select: {
-        createdAt: true,
-        firstRespondedAt: true
-      }
-    });
 
     let avgFRTMin = 0;
     if (respondedTickets.length > 0) {
@@ -225,7 +251,15 @@ class AdminTicketService {
       avgTTRMin = Math.round(totalTTR / resolvedTickets.length / 60000);
     }
 
-    return { total, open, pending, closed, criticalOpen, avgFRTMin, avgTTRMin };
+    const result = { total, open, pending, closed, criticalOpen, avgFRTMin, avgTTRMin };
+
+    try {
+      await redis.set(cacheKey, JSON.stringify(result), 'EX', 60);
+    } catch {
+      // Safe fallback
+    }
+
+    return result;
   }
 
   /**

@@ -9,6 +9,7 @@ import type { Order, User, Service, Category, Network } from '@prisma/client';
 import { CompensationService } from '@/services/financial/compensation.service';
 import { providerService } from '../providers/provider.service';
 import { RefundPolicyService } from '../financial/refund-policy.service';
+import { redis } from '@/lib/redis';
 
 /**
  * MANDATORY INTEGRITY WARNING:
@@ -882,22 +883,43 @@ class AdminOrderService {
   private static statsCache = new Map<string, { data: { total: number; pending: number; inProgress: number; completed: number; error: number; partial: number; canceled: number; awaitingPayment: number }; expiresAt: number }>();
 
   /**
-   * Retrieves order stats using a single high-performance groupBy query with 15s cache.
+   * Retrieves order stats using a high-performance 2-tier cache (L1 Memory 15s, L2 Redis 60s) and single groupBy.
    */
-  async getOrderStats(startDate?: Date, endDate?: Date, tenantId?: string) {
-    const cacheKey = `${startDate?.toISOString() || 'all'}_${endDate?.toISOString() || 'all'}_${tenantId || 'all'}`;
-    const cached = AdminOrderService.statsCache.get(cacheKey);
+  async getOrderStats(startDate?: Date, endDate?: Date, tenantId?: string, forceRefresh = false) {
+    const isSingleTenant = tenantId && tenantId !== 'all';
+    const normalizedTenant = isSingleTenant ? tenantId : 'all';
+    const dateKey = startDate && endDate
+      ? `${startDate.toISOString().slice(0, 10)}_${endDate.toISOString().slice(0, 10)}`
+      : 'all';
+    const redisKey = `admin:order_stats:${normalizedTenant}:${dateKey}`;
+    const localKey = `${normalizedTenant}_${dateKey}`;
     const now = Date.now();
 
-    if (cached && cached.expiresAt > now) {
-      return cached.data;
+    if (!forceRefresh) {
+      // 1. L1 Memory cache check (15s)
+      const cachedLocal = AdminOrderService.statsCache.get(localKey);
+      if (cachedLocal && cachedLocal.expiresAt > now) {
+        return cachedLocal.data;
+      }
+
+      // 2. L2 Redis cache check (60s)
+      try {
+        const cachedRedis = await redis.get(redisKey);
+        if (cachedRedis) {
+          const parsed = JSON.parse(cachedRedis);
+          AdminOrderService.statsCache.set(localKey, { data: parsed, expiresAt: now + 15000 });
+          return parsed;
+        }
+      } catch {
+        // Fallback to calculation
+      }
     }
 
     const where: Prisma.OrderWhereInput = {};
     if (startDate && endDate) {
       where.createdAt = { gte: startDate, lte: endDate };
     }
-    if (tenantId && tenantId !== 'all') {
+    if (isSingleTenant) {
       where.tenantId = tenantId;
     }
 
@@ -930,7 +952,12 @@ class AdminOrderService {
     }
 
     const result = { total, pending, inProgress, completed, error, partial, canceled, awaitingPayment };
-    AdminOrderService.statsCache.set(cacheKey, { data: result, expiresAt: now + 15000 });
+    AdminOrderService.statsCache.set(localKey, { data: result, expiresAt: now + 15000 });
+    try {
+      await redis.set(redisKey, JSON.stringify(result), 'EX', 60);
+    } catch {
+      // Safe fallback
+    }
 
     return result;
   }
@@ -938,7 +965,29 @@ class AdminOrderService {
   /**
    * Retrieves order counts grouped by hour/day/week/month to build the Orders Dynamics Chart.
    */
-  async getOrdersTimeseries(startDate: Date, endDate: Date, step: 'hour' | 'day' | 'week' | 'month', tenantId?: string) {
+  async getOrdersTimeseries(
+    startDate: Date, 
+    endDate: Date, 
+    step: 'hour' | 'day' | 'week' | 'month', 
+    tenantId?: string,
+    forceRefresh = false
+  ) {
+    const isSingleTenant = tenantId && tenantId !== 'all';
+    const normalizedTenant = isSingleTenant ? tenantId : 'all';
+    const dateKey = `${startDate.toISOString().slice(0, 13)}_${endDate.toISOString().slice(0, 13)}`;
+    const cacheKey = `admin:timeseries:${normalizedTenant}:${step}:${dateKey}`;
+
+    if (!forceRefresh) {
+      try {
+        const cached = await redis.get(cacheKey);
+        if (cached) {
+          return JSON.parse(cached);
+        }
+      } catch {
+        // Fallback
+      }
+    }
+
     const rawData = step === 'hour'
       ? await db.$queryRaw<{ date: Date; status: string; count: number }[]>`
         SELECT 
@@ -1062,6 +1111,12 @@ class AdminOrderService {
       }
     }
 
+    try {
+      await redis.set(cacheKey, JSON.stringify(result), 'EX', 120);
+    } catch {
+      // Safe fallback
+    }
+
     return result;
   }
 
@@ -1089,8 +1144,41 @@ class AdminOrderService {
   /**
    * Get top services by order volume / revenue
    */
-  async getTopServices(limit = 6, startDate?: Date, endDate?: Date, tenantId?: string) {
+  async getTopServices(limit = 6, startDate?: Date, endDate?: Date, tenantId?: string, forceRefresh = false) {
     const isSingleTenant = tenantId && tenantId !== 'all';
+    const normalizedTenant = isSingleTenant ? tenantId : 'all';
+    const dateKey = startDate && endDate
+      ? `${startDate.toISOString().slice(0, 10)}_${endDate.toISOString().slice(0, 10)}`
+      : 'all';
+    const cacheKey = `admin:top_services:${normalizedTenant}:${limit}:${dateKey}`;
+
+    if (!forceRefresh) {
+      try {
+        const cached = await redis.get(cacheKey);
+        if (cached) {
+          const parsed = JSON.parse(cached) as Array<{
+            id: string;
+            name: string;
+            networkName: string;
+            categoryName: string;
+            ordersCount: number;
+            revenueKopecks: string;
+            costKopecks: string;
+            profitKopecks: string;
+            marginPct: number;
+          }>;
+          return parsed.map(item => ({
+            ...item,
+            revenueKopecks: BigInt(item.revenueKopecks),
+            costKopecks: BigInt(item.costKopecks),
+            profitKopecks: BigInt(item.profitKopecks),
+          }));
+        }
+      } catch {
+        // Fallback
+      }
+    }
+
     const where: Prisma.OrderWhereInput = {
       status: { notIn: ['AWAITING_PAYMENT', 'PENDING', 'ERROR'] }
     };
@@ -1129,7 +1217,7 @@ class AdminOrderService {
 
     const serviceMap = new Map(services.map(s => [s.id, s]));
 
-    return grouped.map(g => {
+    const result = grouped.map(g => {
       const s = serviceMap.get(g.serviceId!);
       const revBig = BigInt(g._sum.charge ?? 0);
       const costBig = BigInt(g._sum.providerCost ?? 0);
@@ -1150,6 +1238,20 @@ class AdminOrderService {
         marginPct,
       };
     });
+
+    try {
+      const serializable = result.map(item => ({
+        ...item,
+        revenueKopecks: item.revenueKopecks.toString(),
+        costKopecks: item.costKopecks.toString(),
+        profitKopecks: item.profitKopecks.toString(),
+      }));
+      await redis.set(cacheKey, JSON.stringify(serializable), 'EX', 120);
+    } catch {
+      // Safe fallback
+    }
+
+    return result;
   }
 
   /**

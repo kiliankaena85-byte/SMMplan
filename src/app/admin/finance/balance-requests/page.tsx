@@ -1,6 +1,10 @@
 import { BalanceRequestsClient } from './balance-requests-client';
 import { enforceSectionAccess } from '@/lib/server/rbac';
 import { verifySession } from '@/lib/session';
+import { getBalanceAdjustmentsAction } from '@/actions/admin/balance-adjustments';
+import type { BalanceAdjustmentItem } from '@/components/admin/balance/BalanceAdjustmentDrawer';
+
+export const dynamic = 'force-dynamic';
 
 export const metadata = {
   title: 'Заявки на корректировку баланса | OmniSMM 1.0',
@@ -14,5 +18,30 @@ export const metadata = {
 export default async function BalanceRequestsPage() {
   await enforceSectionAccess('balance_requests');
   const session = await verifySession();
-  return <BalanceRequestsClient currentUserId={session?.userId} currentUserRole={session?.role} />;
+
+  const formData = new FormData();
+  formData.append('page', '1');
+  formData.append('pageSize', '20');
+
+  let initialItems: BalanceAdjustmentItem[] = [];
+  let initialTotal = 0;
+
+  try {
+    const res = await getBalanceAdjustmentsAction(formData);
+    if (res.success && res.items) {
+      initialItems = res.items as BalanceAdjustmentItem[];
+      initialTotal = res.total || 0;
+    }
+  } catch {
+    // Safe fallback
+  }
+
+  return (
+    <BalanceRequestsClient 
+      currentUserId={session?.userId} 
+      currentUserRole={session?.role}
+      initialItems={initialItems}
+      initialTotal={initialTotal}
+    />
+  );
 }

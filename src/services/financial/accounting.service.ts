@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { Prisma, UsnScheme } from '@prisma/client';
 import { calculatePartialRefund } from '@/utils/refund';
+import { redis } from '@/lib/redis';
 
 interface FinancialMetrics {
   revenueGross: number; // Изначально принесенные деньги
@@ -21,8 +22,24 @@ interface FinancialMetrics {
 }
 
 class AccountingService {
-  async getMetrics(startDate?: Date, endDate?: Date, tenantId?: string): Promise<FinancialMetrics> {
+  async getMetrics(startDate?: Date, endDate?: Date, tenantId?: string, forceRefresh = false): Promise<FinancialMetrics> {
     const isSingleTenant = tenantId && tenantId !== 'all';
+    const normalizedTenant = isSingleTenant ? tenantId : 'all';
+    const periodKey = startDate && endDate
+      ? `${startDate.toISOString().slice(0, 10)}_${endDate.toISOString().slice(0, 10)}`
+      : 'all';
+    const cacheKey = `admin:metrics:${normalizedTenant}:${periodKey}`;
+
+    if (!forceRefresh) {
+      try {
+        const cached = await redis.get(cacheKey);
+        if (cached) {
+          return JSON.parse(cached);
+        }
+      } catch {
+        // Transparent fallback to calculation on Redis outage
+      }
+    }
     
     const dateFilter = startDate && endDate ? { createdAt: { gte: startDate, lte: endDate } } : {};
 
@@ -231,7 +248,7 @@ class AccountingService {
     const profitNet = marginGross - taxes - opex;
     const marginPercentage = revenueNet > 0 ? (marginGross / revenueNet) * 100 : 0;
 
-    return {
+    const result: FinancialMetrics = {
       revenueGross,
       refunds,
       gatewayFees,
@@ -248,6 +265,14 @@ class AccountingService {
       isVatThresholdExceeded,
       usnScheme
     };
+
+    try {
+      await redis.set(cacheKey, JSON.stringify(result), 'EX', 120);
+    } catch {
+      // Safe fallback
+    }
+
+    return result;
   }
 
   async getSettings(tenantId?: string) {
@@ -270,8 +295,41 @@ class AccountingService {
     });
   }
 
-  async getGatewayBreakdown(startDate?: Date, endDate?: Date, tenantId?: string) {
+  async getGatewayBreakdown(startDate?: Date, endDate?: Date, tenantId?: string, forceRefresh = false) {
     const isSingleTenant = tenantId && tenantId !== 'all';
+    const normalizedTenant = isSingleTenant ? tenantId : 'all';
+    const periodKey = startDate && endDate
+      ? `${startDate.toISOString().slice(0, 10)}_${endDate.toISOString().slice(0, 10)}`
+      : 'all';
+    const cacheKey = `admin:gateways:${normalizedTenant}:${periodKey}`;
+
+    if (!forceRefresh) {
+      try {
+        const cached = await redis.get(cacheKey);
+        if (cached) {
+          const parsed = JSON.parse(cached) as Array<{
+            gateway: string;
+            label: string;
+            icon: string;
+            amountKopecks: string;
+            feeKopecks: string;
+            feePct: number;
+            successCount: number;
+            totalCount: number;
+            successRate: number;
+            sharePct: number;
+          }>;
+          return parsed.map(item => ({
+            ...item,
+            amountKopecks: BigInt(item.amountKopecks),
+            feeKopecks: BigInt(item.feeKopecks),
+          }));
+        }
+      } catch {
+        // Fallback to live query
+      }
+    }
+
     const where: Prisma.PaymentWhereInput = {};
     if (startDate && endDate) {
       where.createdAt = { gte: startDate, lte: endDate };
@@ -304,7 +362,7 @@ class AccountingService {
       totalMap.set(ap.gateway, ap._count);
     }
 
-    return succeededPayments.map(sp => {
+    const result = succeededPayments.map(sp => {
       const g = sp.gateway;
       const amountKopecks = BigInt(sp._sum.amount || 0);
       const totalCount = totalMap.get(g) || sp._count;
@@ -353,6 +411,19 @@ class AccountingService {
         sharePct,
       };
     }).sort((a, b) => Number(b.amountKopecks - a.amountKopecks));
+
+    try {
+      const serializable = result.map(item => ({
+        ...item,
+        amountKopecks: item.amountKopecks.toString(),
+        feeKopecks: item.feeKopecks.toString(),
+      }));
+      await redis.set(cacheKey, JSON.stringify(serializable), 'EX', 120);
+    } catch {
+      // Safe fallback
+    }
+
+    return result;
   }
 }
 
