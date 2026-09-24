@@ -164855,7 +164855,19 @@ ${anomalies.join("\n")}`,
    * Catalog stats for the header and dashboard.
    * Services and categories represent current inventory catalog state, not temporal transactions.
    */
-  async getCatalogStats(tenantId, _startDate, _endDate) {
+  async getCatalogStats(tenantId, _startDate, _endDate, forceRefresh = false) {
+    const isSingleTenant = tenantId && tenantId !== "all";
+    const normalizedTenant = isSingleTenant ? tenantId : "all";
+    const cacheKey = `admin:catalog_stats:${normalizedTenant}`;
+    if (!forceRefresh) {
+      try {
+        const cached = await redis.get(cacheKey);
+        if (cached) {
+          return JSON.parse(cached);
+        }
+      } catch {
+      }
+    }
     const where = {};
     if (tenantId && tenantId !== "all") where.tenantId = { in: [tenantId, "all"] };
     const categoryWhere = {};
@@ -164865,7 +164877,12 @@ ${anomalies.join("\n")}`,
       db.service.count({ where: { ...where, isActive: true } }),
       db.category.count({ where: categoryWhere })
     ]);
-    return { totalServices, activeServices, categories };
+    const result = { totalServices, activeServices, categories };
+    try {
+      await redis.set(cacheKey, JSON.stringify(result), "EX", 120);
+    } catch {
+    }
+    return result;
   }
   /**
    * Bulk update markup for multiple services matching a filter.
@@ -165117,7 +165134,19 @@ ${anomalies.join("\n")}`,
    * - cooldown: active services temporarily hidden from the storefront
    *   (cooldownUntil in the future, excluding zombies)
    */
-  async getCatalogHealthCounts(tenantId) {
+  async getCatalogHealthCounts(tenantId, forceRefresh = false) {
+    const isSingleTenant = tenantId && tenantId !== "all";
+    const normalizedTenant = isSingleTenant ? tenantId : "all";
+    const cacheKey = `admin:catalog_health:${normalizedTenant}`;
+    if (!forceRefresh) {
+      try {
+        const cached = await redis.get(cacheKey);
+        if (cached) {
+          return JSON.parse(cached);
+        }
+      } catch {
+      }
+    }
     const tenantWhere = tenantId ? tenantVisibilityFilter(tenantId) : void 0;
     const now = /* @__PURE__ */ new Date();
     const [quarantine, zombies, cooldown] = await Promise.all([
@@ -165142,7 +165171,12 @@ ${anomalies.join("\n")}`,
         }
       })
     ]);
-    return { quarantine, zombies, cooldown };
+    const result = { quarantine, zombies, cooldown };
+    try {
+      await redis.set(cacheKey, JSON.stringify(result), "EX", 60);
+    } catch {
+    }
+    return result;
   }
 };
 var adminCatalogService = new AdminCatalogService();
