@@ -3,6 +3,11 @@ import { requestMagicLink } from '@/actions/auth/request-magic-link';
 import { db } from '@/lib/db';
 import * as smtp from '@/lib/smtp';
 import { RateLimitService } from '@/services/core/rate-limit.service';
+import { rateLimit } from '@/lib/security/rate-limit';
+
+vi.mock('@/lib/security/rate-limit', () => ({
+  rateLimit: vi.fn().mockResolvedValue({ ok: true, limit: 10, remaining: 9, reset: 3600 }),
+}));
 
 vi.mock('@/lib/db', () => ({
   db: {
@@ -47,7 +52,7 @@ describe('requestMagicLink', () => {
   });
 
   it('should not create user if rate limit fails', async () => {
-    vi.mocked(RateLimitService.check).mockResolvedValue(false);
+    vi.mocked(rateLimit).mockResolvedValueOnce({ ok: false, limit: 20, remaining: 0, reset: 3600 });
     
     const formData = new FormData();
     formData.append('email', 'test@example.com');

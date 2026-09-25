@@ -112179,12 +112179,40 @@ var init_wallet_ops = __esm({
             transactionType: txTypeOverride ?? "ADJUSTMENT"
           }
         });
-        const updatedUser = await tx.user.update({
-          where: { id: userId },
-          data: { balance: { increment: rawCents } },
-          select: { balance: true }
-        });
-        return { success: true, balance: updatedUser.balance, cached: false, entry };
+        let finalBalance;
+        if (rawCents < BigInt(0)) {
+          const absCents = -rawCents;
+          const updatedUserBatch = await tx.user.updateMany({
+            where: {
+              id: userId,
+              balance: { gte: absCents },
+              ...tenantId ? { tenantId } : {}
+            },
+            data: {
+              balance: { increment: rawCents }
+            }
+          });
+          if (updatedUserBatch.count === 0) {
+            const checkUser = await tx.user.findUnique({
+              where: { id: userId },
+              select: { balance: true }
+            });
+            throw new WalletInsufficientFundsError(absCents, checkUser?.balance ?? BigInt(0));
+          }
+          const finalUser = await tx.user.findUniqueOrThrow({
+            where: { id: userId },
+            select: { balance: true }
+          });
+          finalBalance = finalUser.balance;
+        } else {
+          const updatedUser = await tx.user.update({
+            where: { id: userId },
+            data: { balance: { increment: rawCents } },
+            select: { balance: true }
+          });
+          finalBalance = updatedUser.balance;
+        }
+        return { success: true, balance: finalBalance, cached: false, entry };
       },
       /**
        * Refund user balance: increments balance, decrements totalSpent, creates ledger entry.
@@ -112244,24 +112272,22 @@ var init_wallet_ops = __esm({
         const { idempotencyKey, adminId, tenantId } = opts || {};
         const rawCents = typeof amountCents === "bigint" ? amountCents : BigInt(amountCents);
         const absAmount = rawCents < BigInt(0) ? -rawCents : rawCents;
+        const user = await tx.user.findUnique({
+          where: { id: userId },
+          select: { id: true, tenantId: true }
+        });
         if (tenantId) {
-          const user2 = await tx.user.findUnique({
-            where: { id: userId },
-            select: { id: true, tenantId: true }
-          });
-          if (!user2 || user2.tenantId !== tenantId) {
+          if (!user || user.tenantId !== tenantId) {
             throw new WalletUserNotFoundError(userId);
           }
+        } else if (!user) {
+          throw new WalletUserNotFoundError(userId);
         }
-        const user = await tx.user.update({
-          where: { id: userId },
-          data: { quarantineBalance: { increment: absAmount } },
-          select: { tenantId: true }
-        });
-        return await tx.ledgerEntry.create({
+        const resolvedTenantId = tenantId || user?.tenantId || "smmplan";
+        const entry = await tx.ledgerEntry.create({
           data: {
             userId,
-            tenantId: tenantId || user.tenantId || "smmplan",
+            tenantId: resolvedTenantId,
             adminId,
             amount: rawCents,
             reason,
@@ -112270,6 +112296,12 @@ var init_wallet_ops = __esm({
             transactionType: "COMPENSATION"
           }
         });
+        await tx.user.update({
+          where: { id: userId },
+          data: { quarantineBalance: { increment: absAmount } },
+          select: { tenantId: true }
+        });
+        return entry;
       },
       /**
        * Release or clear quarantine balance for a user.
@@ -112395,11 +112427,8 @@ var init_compensation_service = __esm({
             totalRefundedCents += refund.amount;
           }
           const realMarginDelta = order.providerCost - totalRefundedCents - actualProviderCost;
-          await db.order.updateMany({
-            where: {
-              id: order.id,
-              tenantId: order.tenantId || "smmplan"
-            },
+          await db.order.update({
+            where: { id: order.id },
             data: {
               actualProviderCost,
               realMarginDelta
@@ -125928,6 +125957,9 @@ async function getTransporter(tenantId) {
       user: s.smtpUser,
       pass: s.smtpPassword
     },
+    connectionTimeout: 1e4,
+    greetingTimeout: 1e4,
+    socketTimeout: 15e3,
     family: 4
     // Force IPv4 to prevent ENETUNREACH on systems without IPv6 routing
   });
@@ -126213,371 +126245,6 @@ var init_smtp = __esm({
       import_dns.default.setDefaultResultOrder("ipv4first");
     }
     log5 = logger.child({ component: "SMTP" });
-  }
-});
-
-// src/utils/target-type-mapper.ts
-var target_type_mapper_exports = {};
-__export2(target_type_mapper_exports, {
-  LinkType: () => LinkType,
-  TargetTypeEnum: () => TargetTypeEnum,
-  getCompatibilityError: () => getCompatibilityError,
-  inferTargetTypeFromName: () => inferTargetTypeFromName,
-  isLinkServiceCompatible: () => isLinkServiceCompatible,
-  isTargetTypeCompatible: () => isTargetTypeCompatible,
-  normalizeTargetType: () => normalizeTargetType,
-  resolveServiceTargetType: () => resolveServiceTargetType
-});
-function normalizeTargetType(rawType) {
-  if (!rawType) return "CUSTOM" /* CUSTOM */;
-  const clean = rawType.trim().toUpperCase();
-  switch (clean) {
-    case "CHANNEL":
-    case "GROUP":
-    case "CHAT":
-    case "PUBLIC":
-    case "COMMUNITY":
-    case "COMMUNITIES":
-    case "SUBSCRIBERS":
-    case "MEMBERS":
-    case "BOOST":
-      return "CHANNEL" /* CHANNEL */;
-    case "POST":
-    case "PRIVATE_POST":
-    case "PHOTO":
-    case "WALL":
-    case "TWEET":
-    case "STATUS":
-    case "TRACK":
-    case "POST_INTERACTION":
-    case "LIKES":
-    case "REACTIONS":
-    case "VIEWS":
-    case "REPOSTS":
-    case "SHARES":
-      return "POST" /* POST */;
-    case "PROFILE":
-    case "USER":
-    case "ACCOUNT":
-    case "ARTIST":
-    case "FOLLOWERS":
-    case "FRIENDS":
-      return "PROFILE" /* PROFILE */;
-    case "VIDEO":
-    case "SHORT_VIDEO":
-    case "SHORT_LINK":
-    case "CLIP":
-    case "REEL":
-    case "SHORTS":
-    case "VK_VIDEO":
-    case "VK_CLIP":
-    case "VK_PLAY":
-    case "PHOTO_MODE":
-    case "VIDEO_INTERACTION":
-    case "WATCH_TIME":
-    case "LIVESTREAM":
-      return "VIDEO" /* VIDEO */;
-    case "STORY":
-    case "STORIES":
-    case "HIGHLIGHT":
-    case "HIGHLIGHTS":
-    case "STORY_INTERACTION":
-      return "STORY" /* STORY */;
-    case "POLL":
-    case "VOTE":
-    case "VOTES":
-    case "POLL_VOTES":
-      return "POLL" /* POLL */;
-    case "COMMENT":
-    case "COMMENTS":
-    case "REVIEWS":
-      return "COMMENTS" /* COMMENTS */;
-    case "BOT":
-    case "REFERRAL":
-    case "BOT_STARTS":
-      return "BOT" /* BOT */;
-    case "CHANNEL_POSTS":
-    case "AUTO_POSTS":
-    case "AUTO_VIEWS":
-    case "AUTO_LIKES":
-    case "AUTO":
-      return "CHANNEL_POSTS" /* CHANNEL_POSTS */;
-    case "CUSTOM":
-    case "GENERIC_LINK":
-    case "OTHER":
-    case "UNKNOWN":
-    default:
-      return "CUSTOM" /* CUSTOM */;
-  }
-}
-function inferTargetTypeFromName(name) {
-  if (!name) return "POST" /* POST */;
-  const n = name.toLowerCase().replace(/vexboost/gi, "").replace(/smmboost/gi, "");
-  const nNoPunct = n.replace(/[^a-zа-яё0-9]/gi, "");
-  if (nNoPunct.includes("\u0430\u0432\u0442\u043E\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || nNoPunct.includes("\u0430\u0432\u0442\u043E\u043B\u0430\u0439\u043A") || nNoPunct.includes("\u0430\u0432\u0442\u043E\u0440\u0435\u0430\u043A\u0446\u0438") || nNoPunct.includes("\u0430\u0432\u0442\u043E\u0440\u0435\u043F\u043E\u0441\u0442") || nNoPunct.includes("\u0430\u0432\u0442\u043E\u0430\u043A\u0442\u0438\u0432\u043D\u043E") || nNoPunct.includes("autoview") || nNoPunct.includes("autolike") || nNoPunct.includes("autoreact") || nNoPunct.includes("autoshare") || nNoPunct.includes("autorepost") || nNoPunct.includes("futureview") || nNoPunct.includes("futurelike") || n.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u043A\u0430") && !n.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A") && !n.includes("\u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A") || n.includes("\u0431\u0443\u0434\u0443\u0449\u0438\u0435 \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B") || n.includes("\u0431\u0443\u0434\u0443\u0449\u0438\u0445 \u043F\u043E\u0441\u0442\u043E\u0432") || n.includes("\u043C\u0430\u0441\u0441\u043E\u0432\u044B\u0435 \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B") || n.includes("channel posts") || /\d+-\d+\s*пост/i.test(n) || /\d+\s*пост/i.test(n) || /на\s+несколько\s+постов/i.test(n) || // "Просмотры на последних N постов" / "Последних 50 постов" — applies to channel, NOT post
-  n.includes("\u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0445 \u043F\u043E\u0441\u0442") || n.includes("\u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0445 \u043F\u0443\u0431\u043B\u0438\u043A") || n.includes("\u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0445 \u0437\u0430\u043F\u0438\u0441") || n.includes("\u043F\u043E\u0441\u043B\u0435\u0434\u043D") && (n.includes("\u043F\u043E\u0441\u0442") || n.includes("\u0437\u0430\u043F\u0438\u0441") || n.includes("\u043F\u0443\u0431\u043B\u0438\u043A")) || n.includes("last post") || n.includes("last 5 post") || n.includes("last 10 post") || n.includes("last 20 post") || n.includes("last 50 post") || // "Пакет охвата" — views package on last N posts of a channel
-  n.includes("\u043F\u0430\u043A\u0435\u0442") && n.includes("\u043E\u0445\u0432\u0430\u0442") || n.includes("\u043F\u0430\u043A\u0435\u0442") && n.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440")) {
-    return "CHANNEL_POSTS" /* CHANNEL_POSTS */;
-  }
-  if (n.includes("\u043E\u043F\u0440\u043E\u0441") || n.includes("\u0433\u043E\u043B\u043E\u0441") || n.includes("poll") || n.includes("vote")) {
-    return "POLL" /* POLL */;
-  }
-  if (n.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A") || n.includes("\u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A") || n.includes("\u0444\u043E\u043B\u043B\u043E\u0432\u0435\u0440") || n.includes("subscriber") || n.includes("member") || n.includes("follower") || n.includes("\u043A\u0430\u043D\u0430\u043B") || n.includes("channel") || n.includes("\u0433\u0440\u0443\u043F\u043F") || n.includes("group") || n.includes("\u0431\u0443\u0441\u0442") || n.includes("boost") || n.includes("\u0438\u043D\u0432\u0430\u0439\u0442") || n.includes("invite")) {
-    return "CHANNEL" /* CHANNEL */;
-  }
-  if (n.includes("\u0441\u0442\u043E\u0440\u0438") || n.includes("story") || n.includes("stories") || n.includes("\u0438\u0441\u0442\u043E\u0440\u0438")) {
-    return "STORY" /* STORY */;
-  }
-  if (n.includes("\u0432\u0438\u0434\u0435\u043E") || n.includes("video") || n.includes("shorts") || n.includes("reels") || n.includes("clip") || n.includes("\u043A\u043B\u0438\u043F") || n.includes("\u0441\u0442\u0440\u0438\u043C") || n.includes("stream") || n.includes("\u0437\u0440\u0438\u0442\u0435\u043B")) {
-    return "VIDEO" /* VIDEO */;
-  }
-  if (n.includes("\u043F\u0440\u043E\u0444\u0438\u043B\u044C") || n.includes("profile") || n.includes("\u0430\u043A\u043A\u0430\u0443\u043D\u0442") || n.includes("\u0434\u0440\u0443\u0433") || n.includes("friend")) {
-    return "PROFILE" /* PROFILE */;
-  }
-  if (n.includes("\u043A\u043E\u043C\u043C\u0435\u043D\u0442") || n.includes("comment") || n.includes("\u043E\u0442\u0437\u044B\u0432") || n.includes("review")) {
-    return "COMMENTS" /* COMMENTS */;
-  }
-  if (n.includes("\u0431\u043E\u0442") || n.includes("bot") || n.includes("\u0440\u0435\u0444\u0435\u0440\u0430\u043B") || n.includes("referral")) {
-    return "BOT" /* BOT */;
-  }
-  return "POST" /* POST */;
-}
-function resolveServiceTargetType(service) {
-  if (!service) return "POST" /* POST */;
-  const effectiveName = service.name || service.category?.name || "";
-  const inferred = inferTargetTypeFromName(effectiveName);
-  if ((!service.targetType || service.targetType === "POST" || service.targetType === "CUSTOM") && (inferred === "CHANNEL" /* CHANNEL */ || inferred === "CHANNEL_POSTS" /* CHANNEL_POSTS */ || inferred === "POLL" /* POLL */ || inferred === "VIDEO" /* VIDEO */ || inferred === "STORY" /* STORY */ || inferred === "BOT" /* BOT */)) {
-    return inferred;
-  }
-  return service.targetType || inferred;
-}
-function isTargetTypeCompatible(detectedLinkType, serviceTargetType) {
-  if (!detectedLinkType || !serviceTargetType) return true;
-  const detected = normalizeTargetType(detectedLinkType);
-  const service = normalizeTargetType(serviceTargetType);
-  if (detected === "CUSTOM" /* CUSTOM */ || service === "CUSTOM" /* CUSTOM */) return true;
-  if (detected === service) return true;
-  const allowedTargets = UNIFIED_COMPATIBILITY_MAP[detected];
-  if (!allowedTargets) return true;
-  return allowedTargets.has(service);
-}
-function getCompatibilityError(rawLinkType, rawTargetType, serviceName) {
-  const link = normalizeTargetType(rawLinkType);
-  const target = normalizeTargetType(rawTargetType);
-  const prefix = serviceName ? `\u0423\u0441\u043B\u0443\u0433\u0430 \xAB${serviceName}\xBB` : "\u0412\u044B\u0431\u0440\u0430\u043D\u043D\u0430\u044F \u0443\u0441\u043B\u0443\u0433\u0430";
-  if (link === "PROFILE" /* PROFILE */ && target === "POST" /* POST */) {
-    return `${prefix} \u043F\u0440\u0435\u0434\u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0430 \u0434\u043B\u044F \u043F\u0443\u0431\u043B\u0438\u043A\u0430\u0446\u0438\u0439 (\u043B\u0430\u0439\u043A\u0438/\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B/\u0440\u0435\u0430\u043A\u0446\u0438\u0438). \u0414\u043B\u044F \u0435\u0435 \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u044F \u0443\u043A\u0430\u0436\u0438\u0442\u0435 \u043F\u0440\u044F\u043C\u0443\u044E \u0441\u0441\u044B\u043B\u043A\u0443 \u043D\u0430 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u044B\u0439 \u043F\u043E\u0441\u0442 \u0438\u043B\u0438 \u0444\u043E\u0442\u043E, \u0430 \u043D\u0435 \u043D\u0430 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0443 \u043F\u0440\u043E\u0444\u0438\u043B\u044F.`;
-  }
-  if (link === "CHANNEL" /* CHANNEL */ && target === "POST" /* POST */) {
-    return `${prefix} \u043F\u0440\u0438\u043C\u0435\u043D\u044F\u0435\u0442\u0441\u044F \u043A \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u044B\u043C \u0437\u0430\u043F\u0438\u0441\u044F\u043C. \u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u0441\u0441\u044B\u043B\u043A\u0443 \u043D\u0430 \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u044B\u0439 \u043F\u043E\u0441\u0442 \u0432 \u043A\u0430\u043D\u0430\u043B\u0435 (\u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440, https://t.me/channel/123), \u0430 \u043D\u0435 \u043D\u0430 \u043A\u0430\u043D\u0430\u043B \u0446\u0435\u043B\u0438\u043A\u043E\u043C.`;
-  }
-  if (link === "POST" /* POST */ && target === "CHANNEL" /* CHANNEL */) {
-    return `${prefix} \u043F\u0440\u0435\u0434\u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0430 \u0434\u043B\u044F \u043F\u0440\u0438\u0432\u043B\u0435\u0447\u0435\u043D\u0438\u044F \u043F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A\u043E\u0432 \u0432 \u043A\u0430\u043D\u0430\u043B/\u0433\u0440\u0443\u043F\u043F\u0443. \u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u0443\u043A\u0430\u0436\u0438\u0442\u0435 \u0441\u0441\u044B\u043B\u043A\u0443 \u043D\u0430 \u0441\u0430\u043C \u043A\u0430\u043D\u0430\u043B (\u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440, https://t.me/channel), \u0430 \u043D\u0435 \u043D\u0430 \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u0443\u044E \u043F\u0443\u0431\u043B\u0438\u043A\u0430\u0446\u0438\u044E.`;
-  }
-  if (link === "POST" /* POST */ && target === "PROFILE" /* PROFILE */) {
-    return `${prefix} \u043F\u0440\u0435\u0434\u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0430 \u0434\u043B\u044F \u043F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A\u043E\u0432 \u043D\u0430 \u0430\u043A\u043A\u0430\u0443\u043D\u0442/\u043F\u0440\u043E\u0444\u0438\u043B\u044C. \u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u0441\u0441\u044B\u043B\u043A\u0443 \u043D\u0430 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0443 \u043F\u0440\u043E\u0444\u0438\u043B\u044F, \u0430 \u043D\u0435 \u043D\u0430 \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u044B\u0439 \u043F\u043E\u0441\u0442.`;
-  }
-  if (link === "POST" /* POST */ && target === "CHANNEL_POSTS" /* CHANNEL_POSTS */) {
-    return `${prefix} \u2014 \u044D\u0442\u043E \u043F\u0430\u043A\u0435\u0442 \u0430\u0432\u0442\u043E-\u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442\u0435\u0439 \u043D\u0430 \u0431\u0443\u0434\u0443\u0449\u0438\u0435 \u043F\u0443\u0431\u043B\u0438\u043A\u0430\u0446\u0438\u0438 \u043A\u0430\u043D\u0430\u043B\u0430. \u0414\u043B\u044F \u0435\u0435 \u0437\u0430\u043F\u0443\u0441\u043A\u0430 \u0442\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044F \u0441\u0441\u044B\u043B\u043A\u0430 \u043D\u0430 \u043A\u0430\u043D\u0430\u043B \u0446\u0435\u043B\u0438\u043A\u043E\u043C, \u0430 \u043D\u0435 \u043D\u0430 \u0440\u0430\u0437\u043E\u0432\u044B\u0439 \u043F\u043E\u0441\u0442.`;
-  }
-  if (link === "STORY" /* STORY */ && target !== "STORY" /* STORY */) {
-    return `${prefix} \u043D\u0435 \u0441\u043E\u0432\u043C\u0435\u0441\u0442\u0438\u043C\u0430 \u0441\u043E \u0441\u0441\u044B\u043B\u043A\u0430\u043C\u0438 \u043D\u0430 \u0418\u0441\u0442\u043E\u0440\u0438\u0438 (Stories). \u0414\u043B\u044F \u0438\u0441\u0442\u043E\u0440\u0438\u0439 \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u044B \u0442\u043E\u043B\u044C\u043A\u043E \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B \u0438 \u0440\u0435\u0430\u043A\u0446\u0438\u0438 \u043D\u0430 \u0441\u0442\u043E\u0440\u0438\u0437.`;
-  }
-  if (link !== "STORY" /* STORY */ && target === "STORY" /* STORY */) {
-    return `${prefix} \u0440\u0430\u0431\u043E\u0442\u0430\u0435\u0442 \u0438\u0441\u043A\u043B\u044E\u0447\u0438\u0442\u0435\u043B\u044C\u043D\u043E \u0441\u043E \u0441\u0441\u044B\u043B\u043A\u0430\u043C\u0438 \u043D\u0430 \u0418\u0441\u0442\u043E\u0440\u0438\u0438 (Stories). \u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u043F\u0440\u044F\u043C\u0443\u044E \u0441\u0441\u044B\u043B\u043A\u0443 \u043D\u0430 \u0430\u043A\u0442\u0438\u0432\u043D\u0443\u044E \u0438\u0441\u0442\u043E\u0440\u0438\u044E.`;
-  }
-  return `${prefix} (\u0442\u0438\u043F \u0446\u0435\u043B\u0438: ${target}) \u043D\u0435\u0441\u043E\u0432\u043C\u0435\u0441\u0442\u0438\u043C\u0430 \u0441 \u0443\u043A\u0430\u0437\u0430\u043D\u043D\u044B\u043C \u0442\u0438\u043F\u043E\u043C \u0441\u0441\u044B\u043B\u043A\u0438 (${link}). \u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u043F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u0444\u043E\u0440\u043C\u0430\u0442 \u0441\u0441\u044B\u043B\u043A\u0438.`;
-}
-var TargetTypeEnum, LinkType, UNIFIED_COMPATIBILITY_MAP, isLinkServiceCompatible;
-var init_target_type_mapper = __esm({
-  "src/utils/target-type-mapper.ts"() {
-    "use strict";
-    TargetTypeEnum = /* @__PURE__ */ ((TargetTypeEnum2) => {
-      TargetTypeEnum2["CHANNEL"] = "CHANNEL";
-      TargetTypeEnum2["POST"] = "POST";
-      TargetTypeEnum2["PROFILE"] = "PROFILE";
-      TargetTypeEnum2["STORY"] = "STORY";
-      TargetTypeEnum2["VIDEO"] = "VIDEO";
-      TargetTypeEnum2["CHANNEL_POSTS"] = "CHANNEL_POSTS";
-      TargetTypeEnum2["POLL"] = "POLL";
-      TargetTypeEnum2["COMMENTS"] = "COMMENTS";
-      TargetTypeEnum2["BOT"] = "BOT";
-      TargetTypeEnum2["CUSTOM"] = "CUSTOM";
-      TargetTypeEnum2["POST_INTERACTION"] = "POST_INTERACTION";
-      TargetTypeEnum2["VIDEO_INTERACTION"] = "VIDEO_INTERACTION";
-      TargetTypeEnum2["STORY_INTERACTION"] = "STORY_INTERACTION";
-      TargetTypeEnum2["POLL_VOTES"] = "POLL_VOTES";
-      TargetTypeEnum2["BOT_STARTS"] = "BOT_STARTS";
-      return TargetTypeEnum2;
-    })(TargetTypeEnum || {});
-    LinkType = TargetTypeEnum;
-    UNIFIED_COMPATIBILITY_MAP = {
-      ["CHANNEL" /* CHANNEL */]: /* @__PURE__ */ new Set([
-        "CHANNEL" /* CHANNEL */,
-        "CHANNEL_POSTS" /* CHANNEL_POSTS */,
-        "PROFILE" /* PROFILE */,
-        "CUSTOM" /* CUSTOM */
-      ]),
-      ["PROFILE" /* PROFILE */]: /* @__PURE__ */ new Set([
-        "PROFILE" /* PROFILE */,
-        "CHANNEL" /* CHANNEL */,
-        "CHANNEL_POSTS" /* CHANNEL_POSTS */,
-        // Anomaly 1.3: IG/TikTok profile post monitoring
-        "CUSTOM" /* CUSTOM */
-      ]),
-      ["POST" /* POST */]: /* @__PURE__ */ new Set([
-        "POST" /* POST */,
-        "VIDEO" /* VIDEO */,
-        "COMMENTS" /* COMMENTS */,
-        "POLL" /* POLL */,
-        // Anomaly 1.2: TG/VK polls inside posts
-        "CUSTOM" /* CUSTOM */
-      ]),
-      ["VIDEO" /* VIDEO */]: /* @__PURE__ */ new Set([
-        "VIDEO" /* VIDEO */,
-        "POST" /* POST */,
-        "COMMENTS" /* COMMENTS */,
-        // Anomaly 1.1: Comments on videos/clips
-        "CUSTOM" /* CUSTOM */
-      ]),
-      ["STORY" /* STORY */]: /* @__PURE__ */ new Set([
-        "STORY" /* STORY */,
-        "CUSTOM" /* CUSTOM */
-      ]),
-      ["POLL" /* POLL */]: /* @__PURE__ */ new Set([
-        "POLL" /* POLL */,
-        "POST" /* POST */,
-        "CUSTOM" /* CUSTOM */
-      ]),
-      ["BOT" /* BOT */]: /* @__PURE__ */ new Set([
-        "BOT" /* BOT */,
-        "CHANNEL" /* CHANNEL */,
-        "CUSTOM" /* CUSTOM */
-      ]),
-      ["COMMENTS" /* COMMENTS */]: /* @__PURE__ */ new Set([
-        "COMMENTS" /* COMMENTS */,
-        "POST" /* POST */,
-        "VIDEO" /* VIDEO */,
-        "CUSTOM" /* CUSTOM */
-      ]),
-      ["CHANNEL_POSTS" /* CHANNEL_POSTS */]: /* @__PURE__ */ new Set([
-        "CHANNEL_POSTS" /* CHANNEL_POSTS */,
-        "CHANNEL" /* CHANNEL */,
-        "PROFILE" /* PROFILE */,
-        "CUSTOM" /* CUSTOM */
-      ]),
-      ["CUSTOM" /* CUSTOM */]: /* @__PURE__ */ new Set([
-        "CHANNEL" /* CHANNEL */,
-        "PROFILE" /* PROFILE */,
-        "POST" /* POST */,
-        "VIDEO" /* VIDEO */,
-        "STORY" /* STORY */,
-        "POLL" /* POLL */,
-        "BOT" /* BOT */,
-        "COMMENTS" /* COMMENTS */,
-        "CHANNEL_POSTS" /* CHANNEL_POSTS */,
-        "CUSTOM" /* CUSTOM */
-      ]),
-      ["POST_INTERACTION" /* POST_INTERACTION */]: /* @__PURE__ */ new Set([
-        "POST" /* POST */,
-        "VIDEO" /* VIDEO */,
-        "COMMENTS" /* COMMENTS */,
-        "POLL" /* POLL */,
-        "CUSTOM" /* CUSTOM */
-      ]),
-      ["VIDEO_INTERACTION" /* VIDEO_INTERACTION */]: /* @__PURE__ */ new Set([
-        "VIDEO" /* VIDEO */,
-        "POST" /* POST */,
-        "COMMENTS" /* COMMENTS */,
-        "CUSTOM" /* CUSTOM */
-      ]),
-      ["STORY_INTERACTION" /* STORY_INTERACTION */]: /* @__PURE__ */ new Set([
-        "STORY" /* STORY */,
-        "CUSTOM" /* CUSTOM */
-      ]),
-      ["POLL_VOTES" /* POLL_VOTES */]: /* @__PURE__ */ new Set([
-        "POLL" /* POLL */,
-        "POST" /* POST */,
-        "CUSTOM" /* CUSTOM */
-      ]),
-      ["BOT_STARTS" /* BOT_STARTS */]: /* @__PURE__ */ new Set([
-        "BOT" /* BOT */,
-        "CHANNEL" /* CHANNEL */,
-        "CUSTOM" /* CUSTOM */
-      ])
-    };
-    isLinkServiceCompatible = isTargetTypeCompatible;
-  }
-});
-
-// src/utils/target-type.ts
-var target_type_exports = {};
-__export2(target_type_exports, {
-  LinkType: () => LinkType,
-  TargetTypeEnum: () => TargetTypeEnum,
-  getCompatibilityError: () => getCompatibilityError,
-  inferTargetTypeFromCategory: () => inferTargetTypeFromCategory,
-  inferTargetTypeFromName: () => inferTargetTypeFromName,
-  isCompatible: () => isCompatible,
-  isHybridViewCategory: () => isHybridViewCategory,
-  isLinkServiceCompatible: () => isLinkServiceCompatible,
-  isTargetTypeCompatible: () => isTargetTypeCompatible,
-  normalizeTargetType: () => normalizeTargetType,
-  resolveServiceTargetType: () => resolveServiceTargetType
-});
-function isCompatible(serviceType, linkType) {
-  return isTargetTypeCompatible(linkType, serviceType);
-}
-function isHybridViewCategory(categoryName) {
-  if (!categoryName) return false;
-  const n = categoryName.toLowerCase();
-  if (n.includes("\u0441\u0442\u043E\u0440\u0438") || n.includes("story") || n.includes("\u043A\u043B\u0438\u043F") || n.includes("clip") || n.includes("shorts") || n.includes("reel")) {
-    return false;
-  }
-  return n.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || n.includes("\u043E\u0445\u0432\u0430\u0442") || n.includes("view") || n.includes("watch");
-}
-function inferTargetTypeFromCategory(categoryName) {
-  if (isHybridViewCategory(categoryName)) {
-    return "CUSTOM" /* CUSTOM */;
-  }
-  return inferTargetTypeFromName(categoryName);
-}
-var init_target_type = __esm({
-  "src/utils/target-type.ts"() {
-    "use strict";
-    init_target_type_mapper();
-  }
-});
-
-// src/constants/link-service-compatibility.ts
-var link_service_compatibility_exports = {};
-__export2(link_service_compatibility_exports, {
-  LinkType: () => LinkType2,
-  ServiceTargetType: () => ServiceTargetType,
-  getCompatibilityError: () => getCompatibilityError2,
-  isLinkServiceCompatible: () => isLinkServiceCompatible2,
-  normalizeLinkType: () => normalizeLinkType,
-  normalizeServiceTargetType: () => normalizeServiceTargetType
-});
-function normalizeLinkType(rawType) {
-  return normalizeTargetType(rawType);
-}
-function normalizeServiceTargetType(rawType) {
-  return normalizeTargetType(rawType);
-}
-function isLinkServiceCompatible2(rawLinkType, rawTargetType) {
-  return isTargetTypeCompatible(rawLinkType, rawTargetType);
-}
-function getCompatibilityError2(rawLinkType, rawTargetType, serviceName) {
-  return getCompatibilityError(rawLinkType, rawTargetType, serviceName);
-}
-var LinkType2, ServiceTargetType;
-var init_link_service_compatibility = __esm({
-  "src/constants/link-service-compatibility.ts"() {
-    "use strict";
-    init_target_type();
-    LinkType2 = TargetTypeEnum;
-    ServiceTargetType = TargetTypeEnum;
   }
 });
 
@@ -127161,7 +126828,7 @@ var init_smart_analyzer_logic = __esm({
           let bestCatMatch = null;
           for (const [c, keywords] of Object.entries(CATEGORY_MAP)) {
             for (const k of keywords) {
-              const searchContent = c === "BOOSTS" || k === "boost" ? fullContent.replace(/vexboost|smmboost/gi, "") : fullContent;
+              const searchContent = c === "BOOSTS" || k === "boost" ? fullContent.replace(/vex[\s-_]?boost|smm[\s-_]?boost/gi, "") : fullContent;
               const idx = searchContent.indexOf(k);
               if (idx !== -1) {
                 if (!bestCatMatch || idx < bestCatMatch.index) {
@@ -127193,8 +126860,8 @@ var init_smart_analyzer_logic = __esm({
           const isStory = nameNode.includes("\u0438\u0441\u0442\u043E\u0440\u0438") || nameNode.includes("story");
           const isAutoViews = !isReactionsPrimary && (nameNode.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u043A") || nameNode.includes("auto") || nameNode.includes("\u0430\u0432\u0442\u043E")) && (nameNode.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || nameNode.includes("view") || nameNode.includes("\u0433\u043B\u0430\u0437"));
           const isSubscribers = (/подписч|member|follower|читател|фолловер/i.test(nameNode) || nameNode.includes("\u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A") && !nameNode.includes("\u043E\u043F\u0440\u043E\u0441") && !nameNode.includes("\u0433\u043E\u043B\u043E\u0441")) && !isAutoViews;
-          const sanitizedBoostName = nameNode.replace(/vexboost|smmboost/gi, "");
-          const sanitizedBoostContent = fullContent.replace(/vexboost|smmboost/gi, "");
+          const sanitizedBoostName = nameNode.replace(/vex[\s-_]?boost|smm[\s-_]?boost/gi, "");
+          const sanitizedBoostContent = fullContent.replace(/vex[\s-_]?boost|smm[\s-_]?boost/gi, "");
           const isBoost = (sanitizedBoostName.includes("boost") || sanitizedBoostName.includes("\u0431\u0443\u0441\u0442") || sanitizedBoostContent.includes("\u0433\u043E\u043B\u043E\u0441 \u0434\u043B\u044F \u0431\u0443\u0441\u0442") || sanitizedBoostContent.includes("\u0433\u043E\u043B\u043E\u0441\u0430 \u0434\u043B\u044F \u0431\u0443\u0441\u0442")) && !isSubscribers;
           const isStars = (fullContent.includes("stars") || nameNode.includes("\u0437\u0432\u0435\u0437\u0434") || nameNode.includes("star")) && !isSubscribers;
           if (isStars) category = "STARS";
@@ -127449,7 +127116,7 @@ var init_link_rules = __esm({
       {
         platform: "TELEGRAM" /* TELEGRAM */,
         type: "channel",
-        pattern: /(?:t\.me|telegram\.me|telegram\.dog)\/(?:boost\/(?:c\/)?@?([\w-]+)\/?(?:\?.*)?$|boost\/?\?(?:.*&)?c=@?([\w-]+)(?:&.*)?$|(?:s\/)?(?:c\/)?@?([\w-]+)(?:\/boost\/?(?:\?.*)?|\/?\?(?:.*&)?boost(?:[=&].*)?)$)/i,
+        pattern: /(?:t\.me|telegram\.me|telegram\.dog)\/(?:boost\/(?:c\/)?@?([\w-]+)\/?(?:\?.*)?$|boost\/?\?(?:.*&)?c=@?([\w-]+)(?:[&#].*)?$|(?:s\/)?(?:c\/)?@?([\w-]+)(?:\/boost\/?(?:\?.*)?|\/?\?(?:.*&)?boost(?:[=&].*)?)$)/i,
         suggestedCategories: [CATEGORY_LABELS.BOOSTS, CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.PREMIUM],
         context: "channel_boost_target"
       },
@@ -128432,6 +128099,371 @@ var init_link_analyzer = __esm({
   }
 });
 
+// src/utils/target-type-mapper.ts
+var target_type_mapper_exports = {};
+__export2(target_type_mapper_exports, {
+  LinkType: () => LinkType,
+  TargetTypeEnum: () => TargetTypeEnum,
+  getCompatibilityError: () => getCompatibilityError,
+  inferTargetTypeFromName: () => inferTargetTypeFromName,
+  isLinkServiceCompatible: () => isLinkServiceCompatible,
+  isTargetTypeCompatible: () => isTargetTypeCompatible,
+  normalizeTargetType: () => normalizeTargetType,
+  resolveServiceTargetType: () => resolveServiceTargetType
+});
+function normalizeTargetType(rawType) {
+  if (!rawType) return "CUSTOM" /* CUSTOM */;
+  const clean = rawType.trim().toUpperCase();
+  switch (clean) {
+    case "CHANNEL":
+    case "GROUP":
+    case "CHAT":
+    case "PUBLIC":
+    case "COMMUNITY":
+    case "COMMUNITIES":
+    case "SUBSCRIBERS":
+    case "MEMBERS":
+    case "BOOST":
+      return "CHANNEL" /* CHANNEL */;
+    case "POST":
+    case "PRIVATE_POST":
+    case "PHOTO":
+    case "WALL":
+    case "TWEET":
+    case "STATUS":
+    case "TRACK":
+    case "POST_INTERACTION":
+    case "LIKES":
+    case "REACTIONS":
+    case "VIEWS":
+    case "REPOSTS":
+    case "SHARES":
+      return "POST" /* POST */;
+    case "PROFILE":
+    case "USER":
+    case "ACCOUNT":
+    case "ARTIST":
+    case "FOLLOWERS":
+    case "FRIENDS":
+      return "PROFILE" /* PROFILE */;
+    case "VIDEO":
+    case "SHORT_VIDEO":
+    case "SHORT_LINK":
+    case "CLIP":
+    case "REEL":
+    case "SHORTS":
+    case "VK_VIDEO":
+    case "VK_CLIP":
+    case "VK_PLAY":
+    case "PHOTO_MODE":
+    case "VIDEO_INTERACTION":
+    case "WATCH_TIME":
+    case "LIVESTREAM":
+      return "VIDEO" /* VIDEO */;
+    case "STORY":
+    case "STORIES":
+    case "HIGHLIGHT":
+    case "HIGHLIGHTS":
+    case "STORY_INTERACTION":
+      return "STORY" /* STORY */;
+    case "POLL":
+    case "VOTE":
+    case "VOTES":
+    case "POLL_VOTES":
+      return "POLL" /* POLL */;
+    case "COMMENT":
+    case "COMMENTS":
+    case "REVIEWS":
+      return "COMMENTS" /* COMMENTS */;
+    case "BOT":
+    case "REFERRAL":
+    case "BOT_STARTS":
+      return "BOT" /* BOT */;
+    case "CHANNEL_POSTS":
+    case "AUTO_POSTS":
+    case "AUTO_VIEWS":
+    case "AUTO_LIKES":
+    case "AUTO":
+      return "CHANNEL_POSTS" /* CHANNEL_POSTS */;
+    case "CUSTOM":
+    case "GENERIC_LINK":
+    case "OTHER":
+    case "UNKNOWN":
+    default:
+      return "CUSTOM" /* CUSTOM */;
+  }
+}
+function inferTargetTypeFromName(name) {
+  if (!name) return "POST" /* POST */;
+  const n = name.toLowerCase().replace(/vexboost/gi, "").replace(/smmboost/gi, "");
+  const nNoPunct = n.replace(/[^a-zа-яё0-9]/gi, "");
+  if (nNoPunct.includes("\u0430\u0432\u0442\u043E\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || nNoPunct.includes("\u0430\u0432\u0442\u043E\u043B\u0430\u0439\u043A") || nNoPunct.includes("\u0430\u0432\u0442\u043E\u0440\u0435\u0430\u043A\u0446\u0438") || nNoPunct.includes("\u0430\u0432\u0442\u043E\u0440\u0435\u043F\u043E\u0441\u0442") || nNoPunct.includes("\u0430\u0432\u0442\u043E\u0430\u043A\u0442\u0438\u0432\u043D\u043E") || nNoPunct.includes("autoview") || nNoPunct.includes("autolike") || nNoPunct.includes("autoreact") || nNoPunct.includes("autoshare") || nNoPunct.includes("autorepost") || nNoPunct.includes("futureview") || nNoPunct.includes("futurelike") || n.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u043A\u0430") && !n.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A") && !n.includes("\u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A") || n.includes("\u0431\u0443\u0434\u0443\u0449\u0438\u0435 \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B") || n.includes("\u0431\u0443\u0434\u0443\u0449\u0438\u0445 \u043F\u043E\u0441\u0442\u043E\u0432") || n.includes("\u043C\u0430\u0441\u0441\u043E\u0432\u044B\u0435 \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B") || n.includes("channel posts") || /\d+-\d+\s*пост/i.test(n) || /\d+\s*пост/i.test(n) || /на\s+несколько\s+постов/i.test(n) || // "Просмотры на последних N постов" / "Последних 50 постов" — applies to channel, NOT post
+  n.includes("\u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0445 \u043F\u043E\u0441\u0442") || n.includes("\u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0445 \u043F\u0443\u0431\u043B\u0438\u043A") || n.includes("\u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0445 \u0437\u0430\u043F\u0438\u0441") || n.includes("\u043F\u043E\u0441\u043B\u0435\u0434\u043D") && (n.includes("\u043F\u043E\u0441\u0442") || n.includes("\u0437\u0430\u043F\u0438\u0441") || n.includes("\u043F\u0443\u0431\u043B\u0438\u043A")) || n.includes("last post") || n.includes("last 5 post") || n.includes("last 10 post") || n.includes("last 20 post") || n.includes("last 50 post") || // "Пакет охвата" — views package on last N posts of a channel
+  n.includes("\u043F\u0430\u043A\u0435\u0442") && n.includes("\u043E\u0445\u0432\u0430\u0442") || n.includes("\u043F\u0430\u043A\u0435\u0442") && n.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440")) {
+    return "CHANNEL_POSTS" /* CHANNEL_POSTS */;
+  }
+  if (n.includes("\u043E\u043F\u0440\u043E\u0441") || n.includes("\u0433\u043E\u043B\u043E\u0441") || n.includes("poll") || n.includes("vote")) {
+    return "POLL" /* POLL */;
+  }
+  if (n.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A") || n.includes("\u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A") || n.includes("\u0444\u043E\u043B\u043B\u043E\u0432\u0435\u0440") || n.includes("subscriber") || n.includes("member") || n.includes("follower") || n.includes("\u043A\u0430\u043D\u0430\u043B") || n.includes("channel") || n.includes("\u0433\u0440\u0443\u043F\u043F") || n.includes("group") || n.includes("\u0431\u0443\u0441\u0442") || n.includes("boost") || n.includes("\u0438\u043D\u0432\u0430\u0439\u0442") || n.includes("invite")) {
+    return "CHANNEL" /* CHANNEL */;
+  }
+  if (n.includes("\u0441\u0442\u043E\u0440\u0438") || n.includes("story") || n.includes("stories") || n.includes("\u0438\u0441\u0442\u043E\u0440\u0438")) {
+    return "STORY" /* STORY */;
+  }
+  if (n.includes("\u0432\u0438\u0434\u0435\u043E") || n.includes("video") || n.includes("shorts") || n.includes("reels") || n.includes("clip") || n.includes("\u043A\u043B\u0438\u043F") || n.includes("\u0441\u0442\u0440\u0438\u043C") || n.includes("stream") || n.includes("\u0437\u0440\u0438\u0442\u0435\u043B")) {
+    return "VIDEO" /* VIDEO */;
+  }
+  if (n.includes("\u043F\u0440\u043E\u0444\u0438\u043B\u044C") || n.includes("profile") || n.includes("\u0430\u043A\u043A\u0430\u0443\u043D\u0442") || n.includes("\u0434\u0440\u0443\u0433") || n.includes("friend")) {
+    return "PROFILE" /* PROFILE */;
+  }
+  if (n.includes("\u043A\u043E\u043C\u043C\u0435\u043D\u0442") || n.includes("comment") || n.includes("\u043E\u0442\u0437\u044B\u0432") || n.includes("review")) {
+    return "COMMENTS" /* COMMENTS */;
+  }
+  if (n.includes("\u0431\u043E\u0442") || n.includes("bot") || n.includes("\u0440\u0435\u0444\u0435\u0440\u0430\u043B") || n.includes("referral")) {
+    return "BOT" /* BOT */;
+  }
+  return "POST" /* POST */;
+}
+function resolveServiceTargetType(service) {
+  if (!service) return "POST" /* POST */;
+  const effectiveName = service.name || service.category?.name || "";
+  const inferred = inferTargetTypeFromName(effectiveName);
+  if ((!service.targetType || service.targetType === "POST" || service.targetType === "CUSTOM") && (inferred === "CHANNEL" /* CHANNEL */ || inferred === "CHANNEL_POSTS" /* CHANNEL_POSTS */ || inferred === "POLL" /* POLL */ || inferred === "VIDEO" /* VIDEO */ || inferred === "STORY" /* STORY */ || inferred === "BOT" /* BOT */)) {
+    return inferred;
+  }
+  return service.targetType || inferred;
+}
+function isTargetTypeCompatible(detectedLinkType, serviceTargetType) {
+  if (!detectedLinkType || !serviceTargetType) return true;
+  const detected = normalizeTargetType(detectedLinkType);
+  const service = normalizeTargetType(serviceTargetType);
+  if (detected === "CUSTOM" /* CUSTOM */ || service === "CUSTOM" /* CUSTOM */) return true;
+  if (detected === service) return true;
+  const allowedTargets = UNIFIED_COMPATIBILITY_MAP[detected];
+  if (!allowedTargets) return true;
+  return allowedTargets.has(service);
+}
+function getCompatibilityError(rawLinkType, rawTargetType, serviceName) {
+  const link = normalizeTargetType(rawLinkType);
+  const target = normalizeTargetType(rawTargetType);
+  const prefix = serviceName ? `\u0423\u0441\u043B\u0443\u0433\u0430 \xAB${serviceName}\xBB` : "\u0412\u044B\u0431\u0440\u0430\u043D\u043D\u0430\u044F \u0443\u0441\u043B\u0443\u0433\u0430";
+  if (link === "PROFILE" /* PROFILE */ && target === "POST" /* POST */) {
+    return `${prefix} \u043F\u0440\u0435\u0434\u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0430 \u0434\u043B\u044F \u043F\u0443\u0431\u043B\u0438\u043A\u0430\u0446\u0438\u0439 (\u043B\u0430\u0439\u043A\u0438/\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B/\u0440\u0435\u0430\u043A\u0446\u0438\u0438). \u0414\u043B\u044F \u0435\u0435 \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u044F \u0443\u043A\u0430\u0436\u0438\u0442\u0435 \u043F\u0440\u044F\u043C\u0443\u044E \u0441\u0441\u044B\u043B\u043A\u0443 \u043D\u0430 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u044B\u0439 \u043F\u043E\u0441\u0442 \u0438\u043B\u0438 \u0444\u043E\u0442\u043E, \u0430 \u043D\u0435 \u043D\u0430 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0443 \u043F\u0440\u043E\u0444\u0438\u043B\u044F.`;
+  }
+  if (link === "CHANNEL" /* CHANNEL */ && target === "POST" /* POST */) {
+    return `${prefix} \u043F\u0440\u0438\u043C\u0435\u043D\u044F\u0435\u0442\u0441\u044F \u043A \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u044B\u043C \u0437\u0430\u043F\u0438\u0441\u044F\u043C. \u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u0441\u0441\u044B\u043B\u043A\u0443 \u043D\u0430 \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u044B\u0439 \u043F\u043E\u0441\u0442 \u0432 \u043A\u0430\u043D\u0430\u043B\u0435 (\u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440, https://t.me/channel/123), \u0430 \u043D\u0435 \u043D\u0430 \u043A\u0430\u043D\u0430\u043B \u0446\u0435\u043B\u0438\u043A\u043E\u043C.`;
+  }
+  if (link === "POST" /* POST */ && target === "CHANNEL" /* CHANNEL */) {
+    return `${prefix} \u043F\u0440\u0435\u0434\u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0430 \u0434\u043B\u044F \u043F\u0440\u0438\u0432\u043B\u0435\u0447\u0435\u043D\u0438\u044F \u043F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A\u043E\u0432 \u0432 \u043A\u0430\u043D\u0430\u043B/\u0433\u0440\u0443\u043F\u043F\u0443. \u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u0443\u043A\u0430\u0436\u0438\u0442\u0435 \u0441\u0441\u044B\u043B\u043A\u0443 \u043D\u0430 \u0441\u0430\u043C \u043A\u0430\u043D\u0430\u043B (\u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440, https://t.me/channel), \u0430 \u043D\u0435 \u043D\u0430 \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u0443\u044E \u043F\u0443\u0431\u043B\u0438\u043A\u0430\u0446\u0438\u044E.`;
+  }
+  if (link === "POST" /* POST */ && target === "PROFILE" /* PROFILE */) {
+    return `${prefix} \u043F\u0440\u0435\u0434\u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0430 \u0434\u043B\u044F \u043F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A\u043E\u0432 \u043D\u0430 \u0430\u043A\u043A\u0430\u0443\u043D\u0442/\u043F\u0440\u043E\u0444\u0438\u043B\u044C. \u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u0441\u0441\u044B\u043B\u043A\u0443 \u043D\u0430 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0443 \u043F\u0440\u043E\u0444\u0438\u043B\u044F, \u0430 \u043D\u0435 \u043D\u0430 \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u044B\u0439 \u043F\u043E\u0441\u0442.`;
+  }
+  if (link === "POST" /* POST */ && target === "CHANNEL_POSTS" /* CHANNEL_POSTS */) {
+    return `${prefix} \u2014 \u044D\u0442\u043E \u043F\u0430\u043A\u0435\u0442 \u0430\u0432\u0442\u043E-\u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442\u0435\u0439 \u043D\u0430 \u0431\u0443\u0434\u0443\u0449\u0438\u0435 \u043F\u0443\u0431\u043B\u0438\u043A\u0430\u0446\u0438\u0438 \u043A\u0430\u043D\u0430\u043B\u0430. \u0414\u043B\u044F \u0435\u0435 \u0437\u0430\u043F\u0443\u0441\u043A\u0430 \u0442\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044F \u0441\u0441\u044B\u043B\u043A\u0430 \u043D\u0430 \u043A\u0430\u043D\u0430\u043B \u0446\u0435\u043B\u0438\u043A\u043E\u043C, \u0430 \u043D\u0435 \u043D\u0430 \u0440\u0430\u0437\u043E\u0432\u044B\u0439 \u043F\u043E\u0441\u0442.`;
+  }
+  if (link === "STORY" /* STORY */ && target !== "STORY" /* STORY */) {
+    return `${prefix} \u043D\u0435 \u0441\u043E\u0432\u043C\u0435\u0441\u0442\u0438\u043C\u0430 \u0441\u043E \u0441\u0441\u044B\u043B\u043A\u0430\u043C\u0438 \u043D\u0430 \u0418\u0441\u0442\u043E\u0440\u0438\u0438 (Stories). \u0414\u043B\u044F \u0438\u0441\u0442\u043E\u0440\u0438\u0439 \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u044B \u0442\u043E\u043B\u044C\u043A\u043E \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B \u0438 \u0440\u0435\u0430\u043A\u0446\u0438\u0438 \u043D\u0430 \u0441\u0442\u043E\u0440\u0438\u0437.`;
+  }
+  if (link !== "STORY" /* STORY */ && target === "STORY" /* STORY */) {
+    return `${prefix} \u0440\u0430\u0431\u043E\u0442\u0430\u0435\u0442 \u0438\u0441\u043A\u043B\u044E\u0447\u0438\u0442\u0435\u043B\u044C\u043D\u043E \u0441\u043E \u0441\u0441\u044B\u043B\u043A\u0430\u043C\u0438 \u043D\u0430 \u0418\u0441\u0442\u043E\u0440\u0438\u0438 (Stories). \u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u043F\u0440\u044F\u043C\u0443\u044E \u0441\u0441\u044B\u043B\u043A\u0443 \u043D\u0430 \u0430\u043A\u0442\u0438\u0432\u043D\u0443\u044E \u0438\u0441\u0442\u043E\u0440\u0438\u044E.`;
+  }
+  return `${prefix} (\u0442\u0438\u043F \u0446\u0435\u043B\u0438: ${target}) \u043D\u0435\u0441\u043E\u0432\u043C\u0435\u0441\u0442\u0438\u043C\u0430 \u0441 \u0443\u043A\u0430\u0437\u0430\u043D\u043D\u044B\u043C \u0442\u0438\u043F\u043E\u043C \u0441\u0441\u044B\u043B\u043A\u0438 (${link}). \u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u043F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u0444\u043E\u0440\u043C\u0430\u0442 \u0441\u0441\u044B\u043B\u043A\u0438.`;
+}
+var TargetTypeEnum, LinkType, UNIFIED_COMPATIBILITY_MAP, isLinkServiceCompatible;
+var init_target_type_mapper = __esm({
+  "src/utils/target-type-mapper.ts"() {
+    "use strict";
+    TargetTypeEnum = /* @__PURE__ */ ((TargetTypeEnum2) => {
+      TargetTypeEnum2["CHANNEL"] = "CHANNEL";
+      TargetTypeEnum2["POST"] = "POST";
+      TargetTypeEnum2["PROFILE"] = "PROFILE";
+      TargetTypeEnum2["STORY"] = "STORY";
+      TargetTypeEnum2["VIDEO"] = "VIDEO";
+      TargetTypeEnum2["CHANNEL_POSTS"] = "CHANNEL_POSTS";
+      TargetTypeEnum2["POLL"] = "POLL";
+      TargetTypeEnum2["COMMENTS"] = "COMMENTS";
+      TargetTypeEnum2["BOT"] = "BOT";
+      TargetTypeEnum2["CUSTOM"] = "CUSTOM";
+      TargetTypeEnum2["POST_INTERACTION"] = "POST_INTERACTION";
+      TargetTypeEnum2["VIDEO_INTERACTION"] = "VIDEO_INTERACTION";
+      TargetTypeEnum2["STORY_INTERACTION"] = "STORY_INTERACTION";
+      TargetTypeEnum2["POLL_VOTES"] = "POLL_VOTES";
+      TargetTypeEnum2["BOT_STARTS"] = "BOT_STARTS";
+      return TargetTypeEnum2;
+    })(TargetTypeEnum || {});
+    LinkType = TargetTypeEnum;
+    UNIFIED_COMPATIBILITY_MAP = {
+      ["CHANNEL" /* CHANNEL */]: /* @__PURE__ */ new Set([
+        "CHANNEL" /* CHANNEL */,
+        "CHANNEL_POSTS" /* CHANNEL_POSTS */,
+        "PROFILE" /* PROFILE */,
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["PROFILE" /* PROFILE */]: /* @__PURE__ */ new Set([
+        "PROFILE" /* PROFILE */,
+        "CHANNEL" /* CHANNEL */,
+        "CHANNEL_POSTS" /* CHANNEL_POSTS */,
+        // Anomaly 1.3: IG/TikTok profile post monitoring
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["POST" /* POST */]: /* @__PURE__ */ new Set([
+        "POST" /* POST */,
+        "VIDEO" /* VIDEO */,
+        "COMMENTS" /* COMMENTS */,
+        "POLL" /* POLL */,
+        // Anomaly 1.2: TG/VK polls inside posts
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["VIDEO" /* VIDEO */]: /* @__PURE__ */ new Set([
+        "VIDEO" /* VIDEO */,
+        "POST" /* POST */,
+        "COMMENTS" /* COMMENTS */,
+        // Anomaly 1.1: Comments on videos/clips
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["STORY" /* STORY */]: /* @__PURE__ */ new Set([
+        "STORY" /* STORY */,
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["POLL" /* POLL */]: /* @__PURE__ */ new Set([
+        "POLL" /* POLL */,
+        "POST" /* POST */,
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["BOT" /* BOT */]: /* @__PURE__ */ new Set([
+        "BOT" /* BOT */,
+        "CHANNEL" /* CHANNEL */,
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["COMMENTS" /* COMMENTS */]: /* @__PURE__ */ new Set([
+        "COMMENTS" /* COMMENTS */,
+        "POST" /* POST */,
+        "VIDEO" /* VIDEO */,
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["CHANNEL_POSTS" /* CHANNEL_POSTS */]: /* @__PURE__ */ new Set([
+        "CHANNEL_POSTS" /* CHANNEL_POSTS */,
+        "CHANNEL" /* CHANNEL */,
+        "PROFILE" /* PROFILE */,
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["CUSTOM" /* CUSTOM */]: /* @__PURE__ */ new Set([
+        "CHANNEL" /* CHANNEL */,
+        "PROFILE" /* PROFILE */,
+        "POST" /* POST */,
+        "VIDEO" /* VIDEO */,
+        "STORY" /* STORY */,
+        "POLL" /* POLL */,
+        "BOT" /* BOT */,
+        "COMMENTS" /* COMMENTS */,
+        "CHANNEL_POSTS" /* CHANNEL_POSTS */,
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["POST_INTERACTION" /* POST_INTERACTION */]: /* @__PURE__ */ new Set([
+        "POST" /* POST */,
+        "VIDEO" /* VIDEO */,
+        "COMMENTS" /* COMMENTS */,
+        "POLL" /* POLL */,
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["VIDEO_INTERACTION" /* VIDEO_INTERACTION */]: /* @__PURE__ */ new Set([
+        "VIDEO" /* VIDEO */,
+        "POST" /* POST */,
+        "COMMENTS" /* COMMENTS */,
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["STORY_INTERACTION" /* STORY_INTERACTION */]: /* @__PURE__ */ new Set([
+        "STORY" /* STORY */,
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["POLL_VOTES" /* POLL_VOTES */]: /* @__PURE__ */ new Set([
+        "POLL" /* POLL */,
+        "POST" /* POST */,
+        "CUSTOM" /* CUSTOM */
+      ]),
+      ["BOT_STARTS" /* BOT_STARTS */]: /* @__PURE__ */ new Set([
+        "BOT" /* BOT */,
+        "CHANNEL" /* CHANNEL */,
+        "CUSTOM" /* CUSTOM */
+      ])
+    };
+    isLinkServiceCompatible = isTargetTypeCompatible;
+  }
+});
+
+// src/utils/target-type.ts
+var target_type_exports = {};
+__export2(target_type_exports, {
+  LinkType: () => LinkType,
+  TargetTypeEnum: () => TargetTypeEnum,
+  getCompatibilityError: () => getCompatibilityError,
+  inferTargetTypeFromCategory: () => inferTargetTypeFromCategory,
+  inferTargetTypeFromName: () => inferTargetTypeFromName,
+  isCompatible: () => isCompatible,
+  isHybridViewCategory: () => isHybridViewCategory,
+  isLinkServiceCompatible: () => isLinkServiceCompatible,
+  isTargetTypeCompatible: () => isTargetTypeCompatible,
+  normalizeTargetType: () => normalizeTargetType,
+  resolveServiceTargetType: () => resolveServiceTargetType
+});
+function isCompatible(serviceType, linkType) {
+  return isTargetTypeCompatible(linkType, serviceType);
+}
+function isHybridViewCategory(categoryName) {
+  if (!categoryName) return false;
+  const n = categoryName.toLowerCase();
+  if (n.includes("\u0441\u0442\u043E\u0440\u0438") || n.includes("story") || n.includes("\u043A\u043B\u0438\u043F") || n.includes("clip") || n.includes("shorts") || n.includes("reel")) {
+    return false;
+  }
+  return n.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || n.includes("\u043E\u0445\u0432\u0430\u0442") || n.includes("view") || n.includes("watch");
+}
+function inferTargetTypeFromCategory(categoryName) {
+  if (isHybridViewCategory(categoryName)) {
+    return "CUSTOM" /* CUSTOM */;
+  }
+  return inferTargetTypeFromName(categoryName);
+}
+var init_target_type = __esm({
+  "src/utils/target-type.ts"() {
+    "use strict";
+    init_target_type_mapper();
+  }
+});
+
+// src/constants/link-service-compatibility.ts
+var link_service_compatibility_exports = {};
+__export2(link_service_compatibility_exports, {
+  LinkType: () => LinkType2,
+  ServiceTargetType: () => ServiceTargetType,
+  getCompatibilityError: () => getCompatibilityError2,
+  isLinkServiceCompatible: () => isLinkServiceCompatible2,
+  normalizeLinkType: () => normalizeLinkType,
+  normalizeServiceTargetType: () => normalizeServiceTargetType
+});
+function normalizeLinkType(rawType) {
+  return normalizeTargetType(rawType);
+}
+function normalizeServiceTargetType(rawType) {
+  return normalizeTargetType(rawType);
+}
+function isLinkServiceCompatible2(rawLinkType, rawTargetType) {
+  return isTargetTypeCompatible(rawLinkType, rawTargetType);
+}
+function getCompatibilityError2(rawLinkType, rawTargetType, serviceName) {
+  return getCompatibilityError(rawLinkType, rawTargetType, serviceName);
+}
+var LinkType2, ServiceTargetType;
+var init_link_service_compatibility = __esm({
+  "src/constants/link-service-compatibility.ts"() {
+    "use strict";
+    init_target_type();
+    LinkType2 = TargetTypeEnum;
+    ServiceTargetType = TargetTypeEnum;
+  }
+});
+
 // src/services/users/loyalty.service.ts
 var loyalty_service_exports = {};
 __export2(loyalty_service_exports, {
@@ -128678,6 +128710,18 @@ var init_order_service = __esm({
             }
           }
           const isDripFeed = input.runs ? input.runs > 1 : false;
+          let preDetectedLinkType = "generic_link";
+          if (!input.isLinkOverridden) {
+            try {
+              const { IntelligenceLinkAnalyzer: IntelligenceLinkAnalyzer2 } = await Promise.resolve().then(() => (init_link_analyzer(), link_analyzer_exports));
+              const analyzer = new IntelligenceLinkAnalyzer2();
+              const analysis = await analyzer.analyze(input.link.trim());
+              preDetectedLinkType = analysis?.type || "generic_link";
+            } catch (e) {
+              console.warn(`[OrderService] IntelligenceLinkAnalyzer error:`, e);
+              preDetectedLinkType = "generic_link";
+            }
+          }
           const newOrder = await runSerializableTransaction(async (tx) => {
             const user = await tx.user.findUnique({
               where: { id: userId },
@@ -128718,16 +128762,7 @@ var init_order_service = __esm({
             }
             if (!input.isLinkOverridden) {
               const { isLinkServiceCompatible: isLinkServiceCompatible3, getCompatibilityError: getCompatibilityError3, normalizeServiceTargetType: normalizeServiceTargetType2 } = await Promise.resolve().then(() => (init_link_service_compatibility(), link_service_compatibility_exports));
-              let detectedLinkType = "generic_link";
-              try {
-                const { IntelligenceLinkAnalyzer: IntelligenceLinkAnalyzer2 } = await Promise.resolve().then(() => (init_link_analyzer(), link_analyzer_exports));
-                const analyzer = new IntelligenceLinkAnalyzer2();
-                const analysis = await analyzer.analyze(input.link.trim());
-                detectedLinkType = analysis?.type || "generic_link";
-              } catch (e) {
-                console.warn(`[OrderService] IntelligenceLinkAnalyzer error:`, e);
-                detectedLinkType = "generic_link";
-              }
+              const detectedLinkType = preDetectedLinkType;
               const resolvedTargetType = service.targetType || (service.category?.name ? (await Promise.resolve().then(() => (init_target_type(), target_type_exports))).inferTargetTypeFromCategory(service.category.name) : "POST");
               const serviceTargetType = normalizeServiceTargetType2(resolvedTargetType);
               if (!isLinkServiceCompatible3(detectedLinkType, serviceTargetType)) {
@@ -128738,19 +128773,23 @@ var init_order_service = __esm({
             const serviceTenantId = service.tenantId;
             if (serviceTenantId !== userTenantId) {
               try {
-                await db.securityEvent.create({
-                  data: {
-                    event: "CROSS_TENANT_ORDER_ATTEMPT",
-                    severity: "CRITICAL",
-                    details: {
-                      userId,
-                      userTenantId,
-                      serviceId: input.serviceId,
-                      serviceTenantId,
-                      charge: input.charge
+                const secEventClient = tx?.securityEvent ?? db?.securityEvent;
+                if (secEventClient?.create) {
+                  await secEventClient.create({
+                    data: {
+                      tenantId: userTenantId,
+                      event: "CROSS_TENANT_ORDER_ATTEMPT",
+                      severity: "CRITICAL",
+                      details: {
+                        userId,
+                        userTenantId,
+                        serviceId: input.serviceId,
+                        serviceTenantId,
+                        charge: input.charge
+                      }
                     }
-                  }
-                });
+                  });
+                }
               } catch (err) {
                 console.error("[SecurityEvent] failed to persist:", err);
               }
@@ -128832,9 +128871,13 @@ var init_order_service = __esm({
        */
       async cancelPendingOrderClient(orderId, userId, tenantId) {
         try {
-          return await runSerializableTransaction(async (tx) => {
+          const txResult = await runSerializableTransaction(async (tx) => {
             const order = await tx.order.findUnique({
-              where: { id: orderId }
+              where: { id: orderId },
+              include: {
+                user: { select: { email: true } },
+                service: { select: { name: true } }
+              }
             });
             if (!order || order.userId !== userId || tenantId && order.tenantId !== tenantId) {
               return { success: false, error: "\u0417\u0430\u043A\u0430\u0437 \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D \u0438\u043B\u0438 \u0434\u043E\u0441\u0442\u0443\u043F \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D" };
@@ -128887,17 +128930,23 @@ var init_order_service = __esm({
                 );
               }
             }
-            Promise.resolve().then(() => (init_smtp(), smtp_exports)).then(({ sendOrderCanceledMail: sendOrderCanceledMail2 }) => {
-              db.user.findUnique({ where: { id: userId }, select: { email: true } }).then((u) => {
-                if (u?.email) {
-                  db.service.findUnique({ where: { id: order.serviceId }, select: { name: true } }).then((s) => {
-                    if (s?.name) sendOrderCanceledMail2(u.email, order.numericId.toString(), s.name, order.tenantId).catch(console.error);
-                  });
-                }
-              });
-            });
-            return { success: true };
+            return {
+              success: true,
+              email: order.user?.email,
+              numericId: order.numericId.toString(),
+              serviceName: order.service?.name,
+              tenantId: order.tenantId
+            };
           });
+          if (txResult?.success && txResult.email && txResult.serviceName) {
+            try {
+              const { sendOrderCanceledMail: sendOrderCanceledMail2 } = await Promise.resolve().then(() => (init_smtp(), smtp_exports));
+              await sendOrderCanceledMail2(txResult.email, txResult.numericId, txResult.serviceName, txResult.tenantId);
+            } catch (mailErr) {
+              console.error("[OrderService] sendOrderCanceledMail post-commit error:", mailErr);
+            }
+          }
+          return { success: txResult?.success ?? false, error: txResult?.error };
         } catch (e) {
           console.error("[OrderService] cancelPendingOrderClient failed:", e instanceof Error ? e.message : String(e));
           return { success: false, error: "\u0412\u043D\u0443\u0442\u0440\u0435\u043D\u043D\u044F\u044F \u043E\u0448\u0438\u0431\u043A\u0430 \u043F\u0440\u0438 \u043E\u0442\u043C\u0435\u043D\u0435 \u0437\u0430\u043A\u0430\u0437\u0430" };
@@ -141373,17 +141422,7 @@ async function checkVatThreshold(tenantId = "smmplan") {
     }
   });
   const grossKopecks = BigInt(grossResult._sum?.amount || 0);
-  const refundResult = await db.ledgerEntry.aggregate({
-    _sum: { amount: true },
-    where: {
-      tenantId: cleanTenant,
-      transactionType: "REFUND",
-      createdAt: { gte: startOfYear }
-    }
-  }).catch(() => ({ _sum: { amount: BigInt(0) } }));
-  const refundKopecks = BigInt(refundResult._sum?.amount || 0);
-  const netAnnualRevenueKopecks = grossKopecks > refundKopecks ? grossKopecks - refundKopecks : BigInt(0);
-  const isExceeded = netAnnualRevenueKopecks >= VAT_THRESHOLD_KOPECKS;
+  const isExceeded = grossKopecks >= VAT_THRESHOLD_KOPECKS;
   vatThresholdCache.set(cleanTenant, { result: isExceeded, expiresAt: now + 3600 * 1e3 });
   return isExceeded;
 }
@@ -142843,7 +142882,8 @@ function stripTrackingParams(urlObj, platform, targetType) {
     const comment = urlObj.searchParams.get("comment");
     const hasSingle = urlObj.searchParams.has("single");
     const isPrivate = urlObj.pathname.includes("/+") || urlObj.pathname.includes("/joinchat/");
-    if (normTarget === "CHANNEL" || normTarget === "PROFILE" || normTarget === "CHANNEL_POSTS") {
+    const isBoostRoute = urlObj.pathname.startsWith("/boost");
+    if (normTarget === "CHANNEL" || normTarget === "PROFILE" || normTarget === "CHANNEL_POSTS" || normTarget === "BOOST" || normTarget === "BOOSTS" || isBoostRoute) {
       const hasBoostParam = urlObj.searchParams.has("boost");
       const cParam = urlObj.searchParams.get("c");
       if (!isPrivate) {
@@ -143016,8 +143056,8 @@ function canonicalizeUrl(rawUrl, platform, targetType) {
       urlObj.pathname = urlObj.pathname.replace(/^\/s\/([a-zA-Z0-9_]+)/i, "/$1");
       urlObj.pathname = urlObj.pathname.replace(/^\/@/, "/");
       urlObj.pathname = urlObj.pathname.replace(/^\/boost\/@/, "/boost/");
-      if (urlObj.pathname === "/boost/") {
-        urlObj.pathname = "/boost";
+      if (urlObj.pathname.startsWith("/boost")) {
+        urlObj.pathname = urlObj.pathname.replace(/\/+$/, "");
       }
       urlObj.pathname = urlObj.pathname.replace(/\/topic\/(\d+)\/(\d+)/i, "/$1/$2");
       if (normTarget === "CHANNEL" || normTarget === "CHANNEL_POSTS" || normTarget === "PROFILE") {
@@ -143044,13 +143084,14 @@ function canonicalizeUrl(rawUrl, platform, targetType) {
     }
     const intellPlatform = typeof platform === "string" ? platform : platform;
     stripTrackingParams(urlObj, intellPlatform, targetType);
+    const isBoostRoute = urlObj.pathname.startsWith("/boost");
     let result = urlObj.toString();
     if (urlObj.hostname.includes("instagram.com")) {
       result = result.replace(/\/share\/p\/([a-zA-Z0-9_-]+)\/?/i, "/p/$1/");
       result = result.replace(/\/share\/reel\/([a-zA-Z0-9_-]+)\/?/i, "/reel/$1/");
       result = result.replace(/\/reels\/([a-zA-Z0-9_-]+)\/?/i, "/reel/$1/");
     }
-    if ((normTarget === "CHANNEL" || normTarget === "PROFILE" || normTarget === "STORY") && urlObj.search === "") {
+    if ((normTarget === "CHANNEL" || normTarget === "PROFILE" || normTarget === "STORY" || normTarget === "BOOST" || normTarget === "BOOSTS" || isBoostRoute) && urlObj.search === "") {
       result = result.replace(/\/+$/, "");
     }
     return result;
@@ -145494,18 +145535,11 @@ var init_owner_hub_wizard = __esm({
       await ctx.answerCbQuery("\u041F\u0440\u043E\u0432\u0435\u0440\u043A\u0430 \u0446\u0435\u043B\u043E\u0441\u0442\u043D\u043E\u0441\u0442\u0438 Ledger...");
       const results = await BalanceVerifier.verifyAllBalances();
       const discrepancies = results.filter((r) => r.isDiscrepancy);
-      const recentErrors = await db.telegramErrorLog?.findMany({
-        take: 3,
-        orderBy: { createdAt: "desc" }
-      }).catch(() => []);
       let ledgerVerdict = "\u{1F7E2} <b>\u0418\u0414\u0415\u0410\u041B\u042C\u041D\u041E:</b> \u0420\u0430\u0441\u0445\u043E\u0436\u0434\u0435\u043D\u0438\u0439 0. \u0411\u0430\u043B\u0430\u043D\u0441\u044B 100% \u0441\u0445\u043E\u0434\u044F\u0442\u0441\u044F \u0441 \u0442\u0440\u0430\u043D\u0437\u0430\u043A\u0446\u0438\u044F\u043C\u0438.";
       if (discrepancies.length > 0) {
         ledgerVerdict = `\u{1F534} <b>\u0412\u041D\u0418\u041C\u0410\u041D\u0418\u0415:</b> \u041E\u0431\u043D\u0430\u0440\u0443\u0436\u0435\u043D\u043E ${discrepancies.length} \u0440\u0430\u0441\u0445\u043E\u0436\u0434\u0435\u043D\u0438\u0439 \u0431\u0430\u043B\u0430\u043D\u0441\u0430! \u0410\u043A\u043A\u0430\u0443\u043D\u0442\u044B \u0432\u0440\u0435\u043C\u0435\u043D\u043D\u043E \u0437\u0430\u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u0430\u043D\u044B.`;
       }
-      let errorLogSummary = "\u{1F7E2} \u041E\u0448\u0438\u0431\u043E\u043A \u043D\u0435 \u0437\u0430\u0444\u0438\u043A\u0441\u0438\u0440\u043E\u0432\u0430\u043D\u043E";
-      if (recentErrors && recentErrors.length > 0) {
-        errorLogSummary = recentErrors.map((e) => `  \u26A0\uFE0F [${e.level}] ${e.errorMessage.slice(0, 45)}...`).join("\n");
-      }
+      const errorLogSummary = "\u{1F7E2} \u041E\u0448\u0438\u0431\u043E\u043A \u043D\u0435 \u0437\u0430\u0444\u0438\u043A\u0441\u0438\u0440\u043E\u0432\u0430\u043D\u043E (\u041B\u043E\u0433\u0438 \u0432 structured logger)";
       const text = `\u{1F6E1}\uFE0F <b>\u0411\u0415\u0417\u041E\u041F\u0410\u0421\u041D\u041E\u0421\u0422\u042C, LEDGER & P0 SENSOR</b>
 
 \u{1F4B0} <b>\u0426\u0435\u043B\u043E\u0441\u0442\u043D\u043E\u0441\u0442\u044C \u0411\u0430\u043B\u0430\u043D\u0441\u043E\u0432 (Ledger-First Invariant):</b>
@@ -145564,7 +145598,8 @@ ${errorLogSummary}`;
           body: JSON.stringify({
             contents: [{ role: "user", parts: [{ text: prompt }] }],
             generationConfig: { temperature: 0.1 }
-          })
+          }),
+          signal: AbortSignal.timeout(15e3)
         });
         const elapsed = ((Date.now() - startTime) / 1e3).toFixed(1);
         if (res.ok) {
@@ -146325,9 +146360,10 @@ var init_ticket_service = __esm({
           \u0418\u043B\u0438 \u0432\u044B \u043C\u043E\u0436\u0435\u0442\u0435 \u0432\u043E\u0439\u0442\u0438 \u0432 \u043F\u0430\u043D\u0435\u043B\u044C \u0443\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F (Dashboard) \u0434\u043B\u044F \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u0430 \u0432\u0441\u0435\u0439 \u043F\u0435\u0440\u0435\u043F\u0438\u0441\u043A\u0438.
         </p>
       `;
-          const supportDomain = await SettingsProvider.getSupportEmailDomain();
-          const settings = await SettingsProvider.getContactAndLegalSettings();
-          const companyName = settings.COMPANY_NAME || "SMMplan";
+          const tenantId = message.ticket.tenantId || "smmplan";
+          const supportDomain = await SettingsProvider.getSupportEmailDomain(tenantId);
+          const settings = await SettingsProvider.getContactAndLegalSettings(tenantId);
+          const companyName = settings.COMPANY_NAME || (tenantId === "flux" ? "SMMflux" : "SMMplan");
           const replyToAddress = `support+${message.ticket.id}@${supportDomain}`;
           const escapeHtml4 = (unsafe) => (unsafe ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;").replace(/\n/g, "<br>");
           const previousMessages = await db.ticketMessage.findMany({
@@ -146368,7 +146404,7 @@ var init_ticket_service = __esm({
           ${actionText}
           ${historyHtml}
         </div>
-      `, replyToAddress);
+      `, replyToAddress, tenantId);
         }
         void Promise.resolve(publishMessageSSE(ticketId, message.id)).catch((err) => {
           console.error("[TicketService] SSE broadcast error:", err);
@@ -147385,6 +147421,7 @@ var init_bot = __esm({
     init_wallet_ops();
     init_admin_audit();
     init_seo_helpers();
+    init_logger();
     init_order_wizard();
     init_deposit_wizard();
     init_referral_wizard();
@@ -147455,20 +147492,13 @@ var init_bot = __esm({
         }
         const contextObj = ctx;
         console.error(`[Bot] ERROR [${contextObj?.updateType || "unknown"}]:`, err);
-        try {
-          await db.telegramErrorLog?.create({
-            data: {
-              level: "ERROR",
-              source: contextObj?.updateType || "polling",
-              errorCode,
-              errorMessage: description || "Unknown bot error",
-              stackTrace: errorObj?.stack?.slice(0, 1e3),
-              userId: contextObj?.from?.id ? String(contextObj.from.id) : void 0,
-              chatId: contextObj?.chat?.id ? String(contextObj.chat.id) : void 0
-            }
-          });
-        } catch {
-        }
+        logger.error(`[TelegramBot] ${description || "Unknown bot error"}`, {
+          source: contextObj?.updateType || "polling",
+          errorCode,
+          userId: contextObj?.from?.id ? String(contextObj.from.id) : void 0,
+          chatId: contextObj?.chat?.id ? String(contextObj.chat.id) : void 0,
+          stack: errorObj?.stack
+        });
         try {
           const { sendAdminAlert: sendAdminAlert3 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
           sendAdminAlert3(
@@ -161423,11 +161453,14 @@ async function syncProcessor(job) {
         });
         if (allExtIds.length === 0) continue;
         let statuses = {};
+        let batchTimerId;
         try {
           const syncStartTime = Date.now();
           statuses = await Promise.race([
             provider.getMultiOrderStatus(allExtIds),
-            new Promise((_, reject) => setTimeout(() => reject(new Error("PROVIDER_TIMEOUT")), 15e3))
+            new Promise((_, reject) => {
+              batchTimerId = setTimeout(() => reject(new Error("PROVIDER_TIMEOUT")), 15e3);
+            })
           ]);
           const elapsedMs = Date.now() - syncStartTime;
           await db.provider.update({
@@ -161454,17 +161487,24 @@ async function syncProcessor(job) {
           }
           const fallbackCandidates = allExtIds.slice(0, 50);
           await Promise.allSettled(fallbackCandidates.map(async (extId) => {
+            let singleTimerId;
             try {
               const single = await Promise.race([
                 provider.getOrderStatus(extId),
-                new Promise((resolve) => setTimeout(() => resolve(null), 3e3))
+                new Promise((resolve) => {
+                  singleTimerId = setTimeout(() => resolve(null), 3e3);
+                })
               ]);
               if (single && typeof single === "object") {
                 statuses[extId] = single;
               }
             } catch {
+            } finally {
+              if (singleTimerId) clearTimeout(singleTimerId);
             }
           }));
+        } finally {
+          if (batchTimerId) clearTimeout(batchTimerId);
         }
         for (const order of ordersBatch) {
           if (order.isDripFeed && order.dripExternalIds && order.dripExternalIds.length > 0) {

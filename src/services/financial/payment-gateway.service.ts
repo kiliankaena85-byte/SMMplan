@@ -92,20 +92,10 @@ export async function checkVatThreshold(tenantId: string = 'smmplan'): Promise<b
   });
   const grossKopecks = BigInt(grossResult._sum?.amount || 0);
 
-  // 2. Deduct refunds from net taxable turnover
-  const refundResult = await db.ledgerEntry.aggregate({
-    _sum: { amount: true },
-    where: {
-      tenantId: cleanTenant,
-      transactionType: 'REFUND',
-      createdAt: { gte: startOfYear }
-    }
-  }).catch(() => ({ _sum: { amount: BigInt(0) } }));
-  const refundKopecks = BigInt(refundResult._sum?.amount || 0);
-
-  const netAnnualRevenueKopecks = grossKopecks > refundKopecks ? (grossKopecks - refundKopecks) : BigInt(0);
-
-  const isExceeded = netAnnualRevenueKopecks >= VAT_THRESHOLD_KOPECKS;
+  // 2. 54-FZ & Tax Reform 2026 (ст. 145 НК РФ, ФЗ № 176-ФЗ & № 425-ФЗ):
+  // The 20M ₽ threshold is evaluated strictly against gross revenue (receipts),
+  // without subtracting customer refunds or store credits.
+  const isExceeded = grossKopecks >= VAT_THRESHOLD_KOPECKS;
   vatThresholdCache.set(cleanTenant, { result: isExceeded, expiresAt: now + 3600 * 1000 });
   return isExceeded;
 }

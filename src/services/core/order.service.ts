@@ -85,6 +85,20 @@ class OrderService {
 
       const isDripFeed = input.runs ? input.runs > 1 : false;
 
+      // 1.5 Pre-transaction link analysis (extract network I/O outside serializable transaction - D1-01)
+      let preDetectedLinkType = 'generic_link';
+      if (!input.isLinkOverridden) {
+        try {
+          const { IntelligenceLinkAnalyzer } = await import('@/services/analyzer/link-analyzer');
+          const analyzer = new IntelligenceLinkAnalyzer();
+          const analysis = await analyzer.analyze(input.link.trim());
+          preDetectedLinkType = analysis?.type || 'generic_link';
+        } catch (e) {
+          console.warn(`[OrderService] IntelligenceLinkAnalyzer error:`, e);
+          preDetectedLinkType = 'generic_link';
+        }
+      }
+
       // 2. Atomic Charge & Creation (Prevents Ghost Deductions)
       const newOrder = await runSerializableTransaction(async (tx) => {
         // 2a. Fetch User tenant and validate service tenant isolation
@@ -136,16 +150,7 @@ class OrderService {
         // 2a.1 Link-Service Domain Compatibility Check
         if (!input.isLinkOverridden) {
           const { isLinkServiceCompatible, getCompatibilityError, normalizeServiceTargetType } = await import('@/constants/link-service-compatibility');
-          let detectedLinkType = 'generic_link';
-          try {
-            const { IntelligenceLinkAnalyzer } = await import('@/services/analyzer/link-analyzer');
-            const analyzer = new IntelligenceLinkAnalyzer();
-            const analysis = await analyzer.analyze(input.link.trim());
-            detectedLinkType = analysis?.type || 'generic_link';
-          } catch (e) {
-            console.warn(`[OrderService] IntelligenceLinkAnalyzer error:`, e);
-            detectedLinkType = 'generic_link';
-          }
+          const detectedLinkType = preDetectedLinkType;
           const resolvedTargetType = service.targetType || (service.category?.name ? (await import('@/utils/target-type')).inferTargetTypeFromCategory(service.category.name) : 'POST');
           const serviceTargetType = normalizeServiceTargetType(resolvedTargetType);
 
@@ -157,21 +162,25 @@ class OrderService {
 
         const serviceTenantId = service.tenantId;
         if (serviceTenantId !== userTenantId) {
-          // REMEDIATION HARDENING: Await SecurityEvent via root db to guarantee audit trail persistence
+          // REMEDIATION HARDENING: Log security event via transaction client or root db fallback (D1-05)
           try {
-            await db.securityEvent.create({
-              data: {
-                event: 'CROSS_TENANT_ORDER_ATTEMPT',
-                severity: 'CRITICAL',
-                details: {
-                  userId,
-                  userTenantId,
-                  serviceId: input.serviceId,
-                  serviceTenantId,
-                  charge: input.charge
+            const secEventClient = (tx as any)?.securityEvent ?? (db as any)?.securityEvent;
+            if (secEventClient?.create) {
+              await secEventClient.create({
+                data: {
+                  tenantId: userTenantId,
+                  event: 'CROSS_TENANT_ORDER_ATTEMPT',
+                  severity: 'CRITICAL',
+                  details: {
+                    userId,
+                    userTenantId,
+                    serviceId: input.serviceId,
+                    serviceTenantId,
+                    charge: input.charge
+                  }
                 }
-              }
-            });
+              });
+            }
           } catch (err) {
             console.error('[SecurityEvent] failed to persist:', err);
           }
@@ -278,9 +287,13 @@ class OrderService {
    */
   async cancelPendingOrderClient(orderId: string, userId: string, tenantId?: string): Promise<{ success: boolean; error?: string }> {
     try {
-      return await runSerializableTransaction(async (tx) => {
+      const txResult = await runSerializableTransaction(async (tx) => {
         const order = await tx.order.findUnique({
-          where: { id: orderId }
+          where: { id: orderId },
+          include: {
+            user: { select: { email: true } },
+            service: { select: { name: true } },
+          }
         });
 
         if (!order || order.userId !== userId || (tenantId && order.tenantId !== tenantId)) {
@@ -344,19 +357,26 @@ class OrderService {
           }
         }
 
-        // Email Notification for Canceled
-        import('../../lib/smtp').then(({ sendOrderCanceledMail }) => {
-          db.user.findUnique({ where: { id: userId }, select: { email: true } }).then(u => {
-            if (u?.email) {
-              db.service.findUnique({ where: { id: order.serviceId }, select: { name: true } }).then(s => {
-                if (s?.name) sendOrderCanceledMail(u.email, order.numericId.toString(), s.name, order.tenantId).catch(console.error);
-              });
-            }
-          });
-        });
-
-        return { success: true };
+        return {
+          success: true,
+          email: order.user?.email,
+          numericId: order.numericId.toString(),
+          serviceName: order.service?.name,
+          tenantId: order.tenantId,
+        };
       });
+
+      // Email Notification for Canceled (dispatched outside transaction - D1-02, D1-05)
+      if (txResult?.success && txResult.email && txResult.serviceName) {
+        try {
+          const { sendOrderCanceledMail } = await import('../../lib/smtp');
+          await sendOrderCanceledMail(txResult.email, txResult.numericId, txResult.serviceName, txResult.tenantId);
+        } catch (mailErr) {
+          console.error('[OrderService] sendOrderCanceledMail post-commit error:', mailErr);
+        }
+      }
+
+      return { success: txResult?.success ?? false, error: txResult?.error };
     } catch (e: unknown) {
       console.error('[OrderService] cancelPendingOrderClient failed:', (e instanceof Error ? e.message : String(e)));
       return { success: false, error: 'Внутренняя ошибка при отмене заказа' };

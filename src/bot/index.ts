@@ -30,6 +30,7 @@ import { db } from '@/lib/db';
 import { WalletOps } from '@/services/financial/wallet-ops';
 import { auditAdminAwaitable } from '@/lib/admin-audit';
 import { normalizeTenantId } from '@/lib/seo-helpers';
+import { logger } from '@/lib/logger';
 import type { BotContext } from './types/bot-context';
 
 function sanitizeTelegramTemplate(template: string): string {
@@ -140,20 +141,14 @@ bot.catch(async (err: unknown, ctx: unknown) => {
     };
     console.error(`[Bot] ERROR [${contextObj?.updateType || 'unknown'}]:`, err);
 
-    // Asynchronously log to TelegramErrorLog in database
-    try {
-      await (db as any).telegramErrorLog?.create({
-        data: {
-          level: 'ERROR',
-          source: (contextObj?.updateType as 'command' | 'callback_query' | 'webhook' | 'polling') || 'polling',
-          errorCode,
-          errorMessage: description || 'Unknown bot error',
-          stackTrace: errorObj?.stack?.slice(0, 1000),
-          userId: contextObj?.from?.id ? String(contextObj.from.id) : undefined,
-          chatId: contextObj?.chat?.id ? String(contextObj.chat.id) : undefined,
-        }
-      });
-    } catch { /* error logging must never crash the bot */ }
+    // Standard structured logger error reporting (replacing non-existent db.telegramErrorLog - D7-01)
+    logger.error(`[TelegramBot] ${description || 'Unknown bot error'}`, {
+      source: (contextObj?.updateType as 'command' | 'callback_query' | 'webhook' | 'polling') || 'polling',
+      errorCode,
+      userId: contextObj?.from?.id ? String(contextObj.from.id) : undefined,
+      chatId: contextObj?.chat?.id ? String(contextObj.chat.id) : undefined,
+      stack: errorObj?.stack,
+    });
 
     // Instant alert to Admin Channel for any user-facing crash
     try {

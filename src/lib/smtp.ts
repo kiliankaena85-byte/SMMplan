@@ -155,6 +155,9 @@ async function getTransporter(tenantId?: string): Promise<TransporterResult | nu
       user: s.smtpUser,
       pass: s.smtpPassword,
     },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
     family: 4, // Force IPv4 to prevent ENETUNREACH on systems without IPv6 routing
   } as any);
 

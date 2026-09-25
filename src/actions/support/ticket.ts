@@ -696,7 +696,7 @@ export async function bulkRefillOrdersAction(ticketId: string, orderIds: string[
 
     const { refillQueue } = await import('@/lib/queue-manager');
     for (const refill of createdRefills) {
-      await refillQueue.add('process-refill', { refillId: refill.id });
+      await refillQueue.add('process-refill', { refillId: refill.id }, { jobId: `refill-${refill.id}` });
     }
 
     const ipAddress = await getClientIp('unknown');

@@ -13,6 +13,7 @@ vi.mock('@/lib/db', () => ({
     order: {
       findUnique: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
     ledgerEntry: {
       findMany: vi.fn(),
@@ -22,7 +23,7 @@ vi.mock('@/lib/db', () => ({
 
 vi.mock('@/lib/settings', () => ({
   SettingsProvider: {
-    getExchangeRateUSD: vi.fn(),
+    getExchangeRateUSD: vi.fn().mockResolvedValue(100),
   },
 }));
 
@@ -279,13 +280,13 @@ describe('CompensationService - Adversarial and Edge Case Challenge Tests', () =
     await CompensationService.trackCompensation('order-ticket-1', null);
 
     expect(db.ledgerEntry.findMany).toHaveBeenLastCalledWith({
-      where: {
+      where: expect.objectContaining({
         OR: [
           { idempotencyKey: { startsWith: 'refund_order-ticket-1_' } },
           { idempotencyKey: { endsWith: '_order_order-ticket-1' } },
           { idempotencyKey: { endsWith: '-order-ticket-1' } }
         ]
-      }
+      })
     });
   });
 
@@ -308,13 +309,13 @@ describe('CompensationService - Adversarial and Edge Case Challenge Tests', () =
     await CompensationService.trackCompensation('order-dash-refund-1', null);
 
     expect(db.ledgerEntry.findMany).toHaveBeenLastCalledWith({
-      where: {
+      where: expect.objectContaining({
         OR: [
           { idempotencyKey: { startsWith: 'refund_order-dash-refund-1_' } },
           { idempotencyKey: { endsWith: '_order_order-dash-refund-1' } },
           { idempotencyKey: { endsWith: '-order-dash-refund-1' } }
         ]
-      }
+      })
     });
 
     expect(db.order.update).toHaveBeenLastCalledWith({

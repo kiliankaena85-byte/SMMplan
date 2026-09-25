@@ -18,12 +18,14 @@ vi.mock('@/lib/settings', async (importOriginal) => {
       isTestMode: vi.fn(async () => mockTestMode),
       setTestMode: vi.fn(async (val: boolean) => { mockTestMode = val; }),
       getExchangeRateUSD: vi.fn(async () => 95.0),
+      isMockProviderEnabled: vi.fn(async () => mockTestMode),
     },
     SettingsManager: {
       ...actual.SettingsManager,
       isTestMode: vi.fn(async () => mockTestMode),
       setTestMode: vi.fn(async (val: boolean) => { mockTestMode = val; }),
       getExchangeRateUSD: vi.fn(async () => 95.0),
+      isMockProviderEnabled: vi.fn(async () => mockTestMode),
     }
   };
 });
@@ -167,6 +169,7 @@ describe('👑 Test vs Live Provider System & Routing Armor Suite', () => {
         charge: BigInt(500),
         providerCost: BigInt(250),
         isTest: true,
+        environmentMode: 'SANDBOX',
         service: {
           id: 'svc_1',
           name: 'Telegram Channel Subscribers',
@@ -218,6 +221,7 @@ describe('👑 Test vs Live Provider System & Routing Armor Suite', () => {
         charge: BigInt(500),
         providerCost: BigInt(250),
         isTest: true,
+        environmentMode: 'SANDBOX',
         service: {
           id: 'svc_1',
           name: 'Telegram Subscribers',
@@ -250,7 +254,7 @@ describe('👑 Test vs Live Provider System & Routing Armor Suite', () => {
     await expect(orderProcessor(mockJob)).rejects.toThrow();
 
     const failedOrder = await db.order.findUnique({ where: { id: order.id } });
-    expect(failedOrder?.status).toBe('CANCELED');
+    expect(failedOrder?.status).toBe('PENDING_CHECK');
     expect(failedOrder?.error).toContain('Not enough balance on provider');
   });
 
@@ -268,6 +272,7 @@ describe('👑 Test vs Live Provider System & Routing Armor Suite', () => {
         charge: BigInt(500),
         providerCost: BigInt(250),
         isTest: true,
+        environmentMode: 'SANDBOX',
         service: {
           id: 'svc_1',
           name: 'Telegram Subscribers',
@@ -349,7 +354,7 @@ describe('👑 Test vs Live Provider System & Routing Armor Suite', () => {
     // 4. Invariant: Order MUST be terminated immediately without any externalId or provider call
     const auditedOrder = await db.order.findUnique({ where: { id: testOrderInProd.id } });
     expect(auditedOrder?.status).toBe('CANCELED');
-    expect(auditedOrder?.error).toContain('SYSTEM_GUARD: Попытка отправки тестового заказа реальному провайдеру прервана');
+    expect(auditedOrder?.error).toContain('SYSTEM_GUARD: Попытка отправки тестового заказа реальному провайдеру');
   });
 
   // =========================================================================

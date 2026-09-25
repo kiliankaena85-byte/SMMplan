@@ -14,78 +14,105 @@ const apiInvoiceSchema = z.object({
 
 export type ApiInvoiceInput = z.infer<typeof apiInvoiceSchema>;
 
-export async function createApiInvoiceAction(input: ApiInvoiceInput) {
-  const session = await verifySession();
-  if (!session) throw new Error("Необходима авторизация");
+export interface ApiInvoiceResult {
+  success: boolean;
+  error?: string;
+  invoice?: {
+    invoiceId: string;
+    paymentId: string;
+    amountRub: number;
+    companyName: string;
+    inn: string;
+    kpp: string | null;
+    createdAt: string;
+  };
+}
 
-  const validated = apiInvoiceSchema.safeParse(input);
-  if (!validated.success) {
-    throw new Error(validated.error.errors[0]?.message || "Некорректные данные для выставления счета");
-  }
+export async function createApiInvoiceAction(input: ApiInvoiceInput): Promise<ApiInvoiceResult> {
+  try {
+    const session = await verifySession();
+    if (!session) {
+      return { success: false, error: "Необходима авторизация" };
+    }
 
-  const { amountRub, companyName, inn, kpp, legalAddress } = validated.data;
-  const amountCents = BigInt(Math.round(amountRub * 100));
+    const validated = apiInvoiceSchema.safeParse(input);
+    if (!validated.success) {
+      return {
+        success: false,
+        error: validated.error.errors[0]?.message || "Некорректные данные для выставления счета",
+      };
+    }
 
-  // Update user profile and create invoice
-  const result = await db.$transaction(async (tx) => {
-    // 1. Update company profile
-    await tx.user.update({
-      where: { id: session.userId },
-      data: {
+    const { amountRub, companyName, inn, kpp, legalAddress } = validated.data;
+    const amountCents = BigInt(Math.round(amountRub * 100));
+
+    // Update user profile and create invoice
+    const result = await db.$transaction(async (tx) => {
+      // 1. Update company profile
+      await tx.user.update({
+        where: { id: session.userId },
+        data: {
+          companyName,
+          inn,
+          kpp: kpp || null,
+          legalAddress: legalAddress || null,
+        },
+      });
+
+      // 2. Ensure API config exists
+      await tx.apiConfig.upsert({
+        where: { userId: session.userId },
+        create: {
+          userId: session.userId,
+          isApiEnabled: true,
+          prioritySupport: true,
+        },
+        update: {
+          isApiEnabled: true,
+        },
+      });
+
+      // 3. Create pending payment record
+      const payment = await tx.payment.create({
+        data: {
+          userId: session.userId,
+          amount: amountCents,
+          currency: "RUB",
+          status: "PENDING",
+          gateway: "api_invoice",
+        },
+      });
+
+      // 4. Create Invoice
+      const invoice = await tx.invoice.create({
+        data: {
+          userId: session.userId,
+          amount: amountCents,
+          status: "PENDING",
+          paymentId: payment.id,
+        },
+      });
+
+      return {
+        invoiceId: invoice.id,
+        paymentId: payment.id,
+        amountRub,
         companyName,
         inn,
         kpp: kpp || null,
-        legalAddress: legalAddress || null,
-      },
-    });
-
-    // 2. Ensure API config exists
-    await tx.apiConfig.upsert({
-      where: { userId: session.userId },
-      create: {
-        userId: session.userId,
-        isApiEnabled: true,
-        prioritySupport: true,
-      },
-      update: {
-        isApiEnabled: true,
-      },
-    });
-
-    // 3. Create pending payment record
-    const payment = await tx.payment.create({
-      data: {
-        userId: session.userId,
-        amount: amountCents,
-        currency: "RUB",
-        status: "PENDING",
-        gateway: "api_invoice",
-      },
-    });
-
-    // 4. Create Invoice
-    const invoice = await tx.invoice.create({
-      data: {
-        userId: session.userId,
-        amount: amountCents,
-        status: "PENDING",
-        paymentId: payment.id,
-      },
+        createdAt: invoice.createdAt.toISOString(),
+      };
     });
 
     return {
-      invoiceId: invoice.id,
-      paymentId: payment.id,
-      amountRub,
-      companyName,
-      inn,
-      kpp: kpp || null,
-      createdAt: invoice.createdAt.toISOString(),
+      success: true,
+      invoice: result,
     };
-  });
-
-  return {
-    success: true,
-    invoice: result,
-  };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Не удалось сформировать счёт";
+    return {
+      success: false,
+      error: message,
+    };
+  }
 }

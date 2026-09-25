@@ -81,7 +81,7 @@ export async function directRestartRefillAction(refillId: string) {
       }
 
       const { refillQueue } = await import('@/lib/queue-manager');
-      await refillQueue.add('process-refill', { refillId });
+      await refillQueue.add('process-refill', { refillId }, { jobId: `refill-${refillId}` });
 
       await auditAdminAwaitable({
         adminId: admin.id,

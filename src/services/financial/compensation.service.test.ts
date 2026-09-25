@@ -17,7 +17,7 @@ vi.mock('@/lib/db', () => ({
 
 vi.mock('@/lib/settings', () => ({
   SettingsProvider: {
-    getExchangeRateUSD: vi.fn(),
+    getExchangeRateUSD: vi.fn().mockResolvedValue(100),
   },
 }));
 

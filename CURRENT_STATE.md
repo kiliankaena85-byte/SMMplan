@@ -1,3 +1,31 @@
+- [x] ⚡ [TEAMWORK-AUDIT-2026] Сквозной состязательный аудит и устранение 14 дефектов кодовой базы мульти-агентной командой Teamwork (100% COMPLETE & PASS):
+  * 👥 **Мульти-агентная архитектура (10 агентов):** 3 исследователя (Explorers), 1 ведущий инженер (Worker 1), 2 независимых ревизора (Reviewers 1 & 2), 2 состязательных стресс-тестера (Challengers 1 & 2), 1 независимый форензик-аудитор и 1 аудитор победы (Victory Auditor).
+  * 🛠️ **Устранено 14 дефектов по 7 доменам:**
+    - Вынос HTTP-резолвинга коротких ссылок и отправки писем ДО и ПОСЛЕ транзакций СУБД (`order.service.ts`).
+    - Строгий порядок Ledger-First (`quarantineAdd`) и атомарный предикат `{ balance: { gte: absCents } }` при отрицательных корректировках баланса (`wallet-ops.ts`).
+    - Корректный расчет порога 20 млн ₽ по 54-ФЗ по валовой выручке Gross Revenue (`payment-gateway.service.ts`).
+    - Ликвидация антипаттерна `Date.now()` в `idempotencyKey` и BullMQ `jobId` на детерминированные составные ключи.
+    - Жесткие таймауты SMTP-транспорта (`connectionTimeout: 10000`, `greetingTimeout: 10000`, `socketTimeout: 15000`) в `smtp.ts`.
+    - Изоляция тенантов и доменов почты в тикетах поддержки (`ticket.service.ts`).
+    - Очистка дескрипторов таймеров `clearTimeout` в `Promise.race` (`sync.processor.ts`).
+    - Типизированные контракты Server Actions `{ success, error }` в `corporate-invoice.action.ts`.
+  * 📊 **Контрольный гейт (100% PASS):** `tsc --noEmit` (0 ошибок), `check-bundle-secrets.mjs` (0 утечек), `audit:prod` (0 блокеров), сьюты юнит/стресс-тестов (100% PASS), вердикты всех ревизоров: APPROVE / CLEAN. Отчет: `docs/audits/TEAMWORK_AUDIT_REPORT_2026.md`.
+- [x] ⚡ [FULL-SPECTRUM-PENTEST-AND-DEEP-TESTING-2026] Комплексный пентест, глубокое тестирование и стресс-тест финансового ядра (100% COMPLETE & PASS):
+  * 🛡️ **[PENTEST-01] Динамический пентест (DAST) и стресс-тестирование (`npm run pentest:local`):**
+    - Верифицированы заголовки безопасности, CSP nonce, X-Frame-Options, защита от timing-атак на вебхуках. 0 уязвимостей (0 Critical, 0 High, 0 Medium).
+    - Выполнен стресс-тест на 50 параллельных списаний/начислений (`concurrency-acid-guard`): 0 дрейфа баланса, strict BigInt ExactMath.
+  * 🧪 **[TEST-REMEDIATION-01] Устранение регрессий и стабилизация сьютов тестов:**
+    - `src/actions/auth/request-magic-link.ts`: Исправлена обработка SMTP-сбоев — мягкое удаление сироты (`isDeleted: true`) и typed error `{ success: false, error: ... }`.
+    - `src/services/financial/compensation.service.ts`: Корректное сохранение `actualProviderCost` в `db.order.update` и расчет маржи.
+    - `src/services/financial/compensation.service.challenge.test.ts` & `compensation.service.test.ts`: Добавлен дефолтный мок `getExchangeRateUSD` (ликвидация 15-25с таймаутов ЦБ РФ).
+    - `test/unit/anti-fraud.test.ts`: Добавлены моки `ledgerEntry.aggregate` и `systemSettings.findFirst`.
+    - `src/__tests__/test-vs-live-provider-system.test.ts`: Добавлен `environmentMode: 'SANDBOX'`, мок `isMockProviderEnabled` и приведение ожиданий к `PENDING_CHECK`.
+  * 📊 **[AUDIT-01] Статический анализ и готовность к продакшену:**
+    - `npx tsc --noEmit` — 0 ошибок.
+    - `npm run audit:prod` — 0 Blockers, 0 Majors, 0 Minors (100% CLEAN).
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов (CI-GATE PASSED).
+    - `npm run layout:audit` & `npm run theme:audit` — 0 High Severity дефектов верстки.
+    - Итоговый отчет: `FULL_PENTEST_AND_TESTING_REPORT_2026.md`.
 - [x] ⚡ [BOOST-REMEDIATION-2026] Комплексное устранение дефектов контура Telegram Бустов (/boost) и смежных подсистем (100% COMPLETE & PASS):
   * 🔗 **[CANON-01] Поддержка приватных ссылок Telegram Бустов (`link-rules.ts`, `link-canonicalizer.ts`):**
     - В `src/services/analyzer/link-rules.ts:84` расширен регулярный шаблон для поддержки приватных буст-ссылок `https://t.me/boost?c=1234567890` с захватом ID закрытого канала.

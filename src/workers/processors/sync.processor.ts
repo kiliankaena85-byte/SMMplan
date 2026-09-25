@@ -119,11 +119,14 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
 
         // multiStatus API with Timeout and 2-Tier Fallback
         let statuses: Record<string, any> = {};
+        let batchTimerId: NodeJS.Timeout | undefined;
         try {
           const syncStartTime = Date.now();
           statuses = await Promise.race([
             provider.getMultiOrderStatus(allExtIds),
-            new Promise<never>((_, reject) => setTimeout(() => reject(new Error('PROVIDER_TIMEOUT')), 15000))
+            new Promise<never>((_, reject) => {
+              batchTimerId = setTimeout(() => reject(new Error('PROVIDER_TIMEOUT')), 15000);
+            })
           ]);
           const elapsedMs = Date.now() - syncStartTime;
 
@@ -153,16 +156,24 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
           // Fallback: poll with bounded concurrency and timeout so 1 broken batch does not stall worker
           const fallbackCandidates = allExtIds.slice(0, 50);
           await Promise.allSettled(fallbackCandidates.map(async (extId) => {
+            let singleTimerId: NodeJS.Timeout | undefined;
             try {
               const single = await Promise.race([
                 provider.getOrderStatus(extId),
-                new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000))
+                new Promise<null>((resolve) => {
+                  singleTimerId = setTimeout(() => resolve(null), 3000);
+                })
               ]);
               if (single && typeof single === 'object') {
                 statuses[extId] = single;
               }
             } catch { /* skip individual failure */ }
+            finally {
+              if (singleTimerId) clearTimeout(singleTimerId);
+            }
           }));
+        } finally {
+          if (batchTimerId) clearTimeout(batchTimerId);
         }
 
         // 3. Update orders based on responses

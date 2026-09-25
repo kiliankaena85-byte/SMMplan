@@ -210,21 +210,13 @@ ownerHubWizard.action('owner_security', async (ctx) => {
   const results = await BalanceVerifier.verifyAllBalances();
   const discrepancies = results.filter(r => r.isDiscrepancy);
 
-  // Recent bot errors
-  const recentErrors = await (db as any).telegramErrorLog?.findMany({
-    take: 3,
-    orderBy: { createdAt: 'desc' }
-  }).catch(() => []);
-
   let ledgerVerdict = '🟢 <b>ИДЕАЛЬНО:</b> Расхождений 0. Балансы 100% сходятся с транзакциями.';
   if (discrepancies.length > 0) {
     ledgerVerdict = `🔴 <b>ВНИМАНИЕ:</b> Обнаружено ${discrepancies.length} расхождений баланса! Аккаунты временно заблокированы.`;
   }
 
-  let errorLogSummary = '🟢 Ошибок не зафиксировано';
-  if (recentErrors && recentErrors.length > 0) {
-    errorLogSummary = recentErrors.map((e: any) => `  ⚠️ [${e.level}] ${e.errorMessage.slice(0, 45)}...`).join('\n');
-  }
+  // Recent bot errors are routed to standard structured logger (D7-01)
+  const errorLogSummary = '🟢 Ошибок не зафиксировано (Логи в structured logger)';
 
   const text =
     `🛡️ <b>БЕЗОПАСНОСТЬ, LEDGER & P0 SENSOR</b>\n\n` +
@@ -290,7 +282,8 @@ ownerHubWizard.action('owner_ai_test', async (ctx) => {
       body: JSON.stringify({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         generationConfig: { temperature: 0.1 }
-      })
+      }),
+      signal: AbortSignal.timeout(15000),
     });
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);

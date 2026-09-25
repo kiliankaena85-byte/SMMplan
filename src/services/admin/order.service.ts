@@ -644,7 +644,7 @@ class AdminOrderService {
       if (refundCents > 0) {
         await WalletOps.refund(tx, order.userId, refundCents,
           `Отмена заказа ${order.numericId} администратором - Возврат средств`,
-          { adminId: admin.id, idempotencyKey: `refund_${order.id}_CANCELED_${Date.now()}`, tenantId: order.tenantId }
+          { adminId: admin.id, idempotencyKey: `refund_${order.id}_CANCELED`, tenantId: order.tenantId }
         );
       }
 

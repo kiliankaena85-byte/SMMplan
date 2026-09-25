@@ -12,9 +12,11 @@ vi.mock('@/lib/db', () => ({
     user: { upsert: vi.fn().mockResolvedValue({}), findUnique: vi.fn().mockResolvedValue(null), findFirst: vi.fn().mockResolvedValue(null), create: vi.fn().mockResolvedValue({}) },
     order: { findUnique: vi.fn().mockResolvedValue(null), create: vi.fn().mockResolvedValue({ id: 'ord_1' }), update: vi.fn().mockResolvedValue({}), updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
     payment: { create: vi.fn().mockResolvedValue({ id: 'pay_1' }), update: vi.fn().mockResolvedValue({}), updateMany: vi.fn().mockResolvedValue({ count: 1 }), findFirst: vi.fn().mockResolvedValue(null), aggregate: vi.fn().mockResolvedValue({ _sum: { amount: 0 } }) },
+    refund: { aggregate: vi.fn().mockResolvedValue({ _sum: { amount: 0 } }) },
+    ledgerEntry: { aggregate: vi.fn().mockResolvedValue({ _sum: { amount: 0 } }), findMany: vi.fn().mockResolvedValue([]) },
     promoCode: { findUnique: vi.fn().mockResolvedValue(null), update: vi.fn().mockResolvedValue({}) },
     session: { create: vi.fn().mockResolvedValue({}) },
-    systemSettings: { findUnique: vi.fn().mockResolvedValue({}) },
+    systemSettings: { findUnique: vi.fn().mockResolvedValue({}), findFirst: vi.fn().mockResolvedValue({}) },
     contentItem: { findUnique: vi.fn().mockResolvedValue({ updatedAt: new Date() }) },
     tenant: {
       findUnique: vi.fn().mockResolvedValue({ id: 'tenant-1', slug: 'smmplan' }),
@@ -44,6 +46,7 @@ vi.mock('@/lib/settings', () => ({
   },
   SettingsProvider: {
     isTestMode: vi.fn().mockResolvedValue(false),
+    isTestEnvironment: vi.fn().mockReturnValue(true),
     getPaymentSecrets: vi.fn().mockResolvedValue({
       yookassaShopId: 'shop123',
       yookassaSecretKey: 'key123',
@@ -113,9 +116,9 @@ describe('Anti-Fraud Telegram-Bound Card Limits', () => {
       } as any);
 
       // 15001 RUB = 1,500,100 cents (> 1,500,000 cents limit)
-      await expect(createTopUpPaymentAction(15001, 'yookassa')).rejects.toThrow(
-        'Для пополнения баланса свыше 15 000 ₽ картой или СБП, пожалуйста, привяжите ваш Telegram-аккаунт в настройках профиля либо воспользуйтесь безналичным расчетом для юрлиц (B2B).'
-      );
+      const res = await createTopUpPaymentAction(15001, 'yookassa');
+      expect(res.success).toBe(false);
+      expect(res.error).toContain('Для пополнения баланса свыше 15 000 ₽ картой или СБП');
     });
 
     it('should allow YooKassa card payment <= 15,000 RUB (1,500,000 cents) even if user does not have telegramId', async () => {

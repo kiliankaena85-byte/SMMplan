@@ -178,3 +178,42 @@ Ensure that single links, emails, and bare handles continue to paste perfectly. 
 - [ ] The first link of the pasted text is successfully set in the input field.
 - [ ] Single links, emails, and handles are processed normally without the multi-line toast.
 - [ ] `tsc --noEmit` and `vitest` pass with zero regressions.
+
+## 2026-09-25T11:22:52Z
+
+Perform an adversarial multi-agent audit and verification of the OmniSMM codebase across all 7 defect categories defined in the 24–25 September 2026 Engineering Registry, verifying that every known failure pattern is eliminated or prevented with fail-closed guards.
+
+Working directory: c:\Users\Shadow\Documents\SMM
+Integrity mode: development
+
+## Requirements
+
+### R1. Comprehensive Seven-Domain Defect Audit
+Systematically audit the entire application codebase against the 7 established defect domains:
+1. **PostgreSQL MVCC & Transactions:** verify zero external network/AI/HTTP/SMTP calls inside transactions, zero transaction escape (`db` vs `tx`), coverage of partial indexes on high-churn status queues, and index coverage for foreign keys.
+2. **Fintech & Ledger Invariants:** verify strict Ledger-First sequencing (`ledgerEntry.create` before balance mutation), atomic TOCTOU balance decrements with `{ balance: { gte: amount } }`, single-gateway `WalletOps` access control, BigInt kopecks calculations, deterministic idempotency keys, and 54-FZ gross revenue thresholds without refund deduction.
+3. **Multi-Tenancy & Brand Isolation:** verify zero cross-tenant IDOR in all user/order/ticket queries, dynamic tenant resolution from database without hardcoded brand arrays, per-tenant Redis key namespacing, and per-tenant outbound email credentials.
+4. **BullMQ & Background Queues:** verify non-colliding dynamic job IDs, leak-free timer cleanup in `Promise.race`, and immediate Redis dispatch lock clearance upon queue enqueue failure.
+5. **Security & Auditing:** verify all financial/access audits use `await auditAdminAwaitable()`, strict PII and credential scrubbing (`redactSensitiveTokens`) in error logs, and polynomial ReDoS protection with input length caps.
+6. **Network Reliability:** verify every outgoing `fetch` and HTTP call has an explicit `AbortSignal.timeout`, and SMTP transports specify connection and socket timeouts.
+7. **Code Architecture & Contracts:** verify zero phantom Prisma arguments masked by `any`, typed `{ success, error }` results in all Server Actions without uncaught exceptions, and enforcement of the Drip-Feed Floor invariant $\lfloor Q/N \rfloor \ge \text{minQty}$.
+
+### R2. Concrete Proof & Verification
+Validate all findings with reproducible evidence, including static analysis, targeted AST scans, and automated tests. Where potential regressions or hidden bugs are detected, provide precise file and line references, root cause analyses, and backwards-compatible remediations.
+
+### R3. Executive Deliverable
+Produce a comprehensive audit report detailing all inspected domains, confirmed invariants, any identified anomalies, and full verification test passes.
+
+## Acceptance Criteria
+
+### Audit & Verification Standards
+- [ ] 100% of outgoing `fetch` and HTTP requests verified to use `AbortSignal.timeout` or AbortController
+- [ ] 100% of user balance mutations verified to flow strictly through `WalletOps` and preceded by `LedgerEntry`
+- [ ] Zero database transaction blocks (`$transaction`, `runSerializableTransaction`) containing external network, AI, or SMTP calls
+- [ ] Zero balance deduction queries lacking the atomic `{ balance: { gte: amount } }` predicate
+- [ ] Zero un-namespaced global Redis keys for tenant-specific cache and rate-limiters
+- [ ] Zero Server Actions throwing raw unhandled exceptions to client components
+- [ ] Static type check passes with 0 errors (`npx tsc --noEmit`)
+- [ ] Secret scan passes with 0 leaks (`node scripts/check-bundle-secrets.mjs`)
+- [ ] Production readiness audit passes with 0 blockers (`npm run audit:prod`)
+
